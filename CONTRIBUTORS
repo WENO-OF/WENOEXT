@@ -1,0 +1,20 @@
+====== WENOEXT library ======
+
+The weighted essentially non-oscillatory library was initially developed by
+Tobias Martin at the University of Rostock. The method and its validation has 
+been demonstrated in
+
+@misc {tobiasMartinThesis,
+    Author = {Tobias Martin},
+    Title = {Development of a two-phase incompressible Navier-Stokes solver using a level set method},
+    Howpublished = {Master’s thesis, Chair of Modelling and Simulation, University of Rostock},
+    Year = {2016}
+}
+
+Please make a proper reference to this thesis, if the library is used. 
+
+
+---------------------------
+This development was guided by
+
+Ivan Shevchuk <ivan.shevchuk@uni-rostock.de>, University of Rostock
