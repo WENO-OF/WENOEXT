@@ -8,5 +8,6 @@ Currently supported versions:
 If you want to get access to the library, please contact the authors:
 
 Tobias Martin <tobias.martin@ntnu.no>, NTNU, Norway
+
 Ivan Shevchuk <ivan.shevchuk@uni-rostock.de>, University of Rostock, Germany
 
