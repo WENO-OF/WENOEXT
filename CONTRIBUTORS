@@ -4,14 +4,17 @@ The weighted essentially non-oscillatory library was initially developed by
 Tobias Martin at the University of Rostock. The method and its validation has 
 been demonstrated in
 
-@misc {tobiasMartinThesis,
-    Author = {Tobias Martin},
-    Title = {Development of a two-phase incompressible Navier-Stokes solver using a level set method},
-    Howpublished = {Master’s thesis, Chair of Modelling and Simulation, University of Rostock},
-    Year = {2016}
+@Article{computation6010006,
+AUTHOR = {Martin, Tobias and Shevchuk, Ivan},
+TITLE = {Implementation and Validation of Semi-Implicit WENO Schemes Using OpenFOAM},
+JOURNAL = {Computation},
+VOLUME = {6},
+YEAR = {2018},
+NUMBER = {1},
+ARTICLE NUMBER = {6}
 }
 
-Please make a proper reference to this thesis, if the library is used. 
+Please make a proper reference to this open access paper if the library is used. 
 
 
 ---------------------------
