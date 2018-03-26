@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -x
+
+wmake libso libWENOEXT-2.3.x
+
