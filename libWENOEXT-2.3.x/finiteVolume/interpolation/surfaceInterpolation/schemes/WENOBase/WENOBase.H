@@ -55,11 +55,11 @@ private:
 
     //- Constructors
 
-		WENOBase
-		(
-			const fvMesh& mesh,
-			const label polOrder
-		);
+        WENOBase
+        (
+            const fvMesh& mesh,
+            const label polOrder
+        );
 
        //- Disallow default bitwise copy construct
        WENOBase(const WENOBase&);
@@ -68,152 +68,152 @@ private:
        WENOBase& operator=(const WENOBase&);
 
 
-		//- Destructor
-		~WENOBase(){};
+        //- Destructor
+        ~WENOBase(){};
 
 
     //- Private Data
 
         //- Typedef for 3D scalar matrix
-		typedef List< List< List<scalar> > > scalarMatrix;
+        typedef List< List< List<scalar> > > scalarMatrix;
 
-		//- Path to lists in constant folder
+        //- Path to lists in constant folder
         fileName Dir_;
 
-		//- Dimensionality of the geometry
-		//  Individual for each stencil
+        //- Dimensionality of the geometry
+        //  Individual for each stencil
         labelListList dimList_;
 
-		//- Order of polynomials
-		label polOrder_;
+        //- Order of polynomials
+        label polOrder_;
 
-		//- Number of derivatives
-		label nDvt_;
+        //- Number of derivatives
+        label nDvt_;
 
-		//- Lists of central and sectorial stencil ID's for each cell
-		List<labelListList> stencilsID_;
+        //- Lists of central and sectorial stencil ID's for each cell
+        List<labelListList> stencilsID_;
 
-		//- Lists of center coordinates of halo cells
-		List<List<point> > haloCenters_;
+        //- Lists of center coordinates of halo cells
+        List<List<point> > haloCenters_;
 
-		//- Lists of ID's of halo cells
-		labelListList ownHalos_;
+        //- Lists of ID's of halo cells
+        labelListList ownHalos_;
 
-		//- Information about cell property
-		//  Could be extended to boundary conditions
-		//  - -1 : local cell
-		//  - >-1: halo cell
-		List<labelListList> cellToPatchMap_;
+        //- Information about cell property
+        //  Could be extended to boundary conditions
+        //  - -1 : local cell
+        //  - >-1: halo cell
+        List<labelListList> cellToPatchMap_;
 
-		//- Information about processor neighbours of patches
-		labelList patchToProcMap_;
+        //- Information about processor neighbours of patches
+        labelList patchToProcMap_;
 
-		//- List of volume integrals over basis functions
-		//  Calculated in the reference space
-		List<scalarMatrix> volMom_;
+        //- List of volume integrals over basis functions
+        //  Calculated in the reference space
+        List<scalarMatrix> volMom_;
 
-		//- Lists of surface integrals of basis functions
-		//  Calculated in the reference space
-		List<List<scalarMatrix> > intBasTrans_;
+        //- Lists of surface integrals of basis functions
+        //  Calculated in the reference space
+        List<List<scalarMatrix> > intBasTrans_;
 
-		//- List of face areas in the reference space
-		List<scalarList> refFacAr_;
+        //- List of face areas in the reference space
+        List<scalarList> refFacAr_;
 
-		//- Lists of inverse Jacobians for each cell
-		List<scalarRectangularMatrix> JInv_;
+        //- Lists of inverse Jacobians for each cell
+        List<scalarRectangularMatrix> JInv_;
 
-		//- Lists of determinants of inverse Jacobian for each cell
-		List<scalar> refDet_;
+        //- Lists of determinants of inverse Jacobian for each cell
+        List<scalar> refDet_;
 
-		//- Lists of reference points of the reference space for each cell
-		List<point> refPoint_;
+        //- Lists of reference points of the reference space for each cell
+        List<point> refPoint_;
 
-		//- Lists of pseudoinverses for each stencil of each cell
-		List<List<scalarRectangularMatrix> > LSmatrix_;
+        //- Lists of pseudoinverses for each stencil of each cell
+        List<List<scalarRectangularMatrix> > LSmatrix_;
 
-		//- Lists of oscillation matrices for each stencil of each cell
-		List<scalarRectangularMatrix> B_;
+        //- Lists of oscillation matrices for each stencil of each cell
+        List<scalarRectangularMatrix> B_;
 
 
-	//- Private member functions
+    //- Private member functions
 
-		//- Split big central stencil into sectorial stencils
+        //- Split big central stencil into sectorial stencils
         void splitStencil
         (
-			const fvMesh& mesh,
-			const label cellI,
+            const fvMesh& mesh,
+            const label cellI,
             label& nStencilsI
         );
 
-		//- Extend stencil by one layer
+        //- Extend stencil by one layer
         void extendStencils
         (
-			const fvMesh& mesh,
-			const label cellI,
+            const fvMesh& mesh,
+            const label cellI,
             labelList& lastNeighboursI,
             label& minStencilSize
         );
 
-		//- Sort list of stencil cells from nearest to farest
-		//- and cut to necessary size
+        //- Sort list of stencil cells from nearest to farest
+        //- and cut to necessary size
         void sortStencil
-		(
-			const fvMesh& mesh,
-			const label cellI,
-			const label maxSize
-		);
+        (
+            const fvMesh& mesh,
+            const label cellI,
+            const label maxSize
+        );
 
-		//- Distribute data between processors
-		void distributeStencils
-		(
-			const fvMesh& mesh,
-			labelListList& haloCells,
-			List<List<List<point> > >& haloTriFaces
-		);
+        //- Distribute data between processors
+        void distributeStencils
+        (
+            const fvMesh& mesh,
+            labelListList& haloCells,
+            List<List<List<point> > >& haloTriFaces
+        );
 
-		//- Distribute data between local boundaries
-		void distributeLocalStencils
-		(
-			const fvMesh& mesh,
-			labelListList& haloCells,
-			List<List<List<point> > >& haloTriFaces
-		);
+        //- Distribute data between local boundaries
+        void distributeLocalStencils
+        (
+            const fvMesh& mesh,
+            labelListList& haloCells,
+            List<List<List<point> > >& haloTriFaces
+        );
 
-		//- Fill the least squares matrices and calculate the
-		//- pseudoinverses for each cell
-		scalarRectangularMatrix calcMatrix
-		(
-			const fvMesh& mesh,
-			const label cellI,
-			const label stencilI,
-			const List<List<List<point> > >& haloTriFaces
-		);
+        //- Fill the least squares matrices and calculate the
+        //- pseudoinverses for each cell
+        scalarRectangularMatrix calcMatrix
+        (
+            const fvMesh& mesh,
+            const label cellI,
+            const label stencilI,
+            const List<List<List<point> > >& haloTriFaces
+        );
 
         //- Calculate the entries of the least squares matrices
         scalar calcGeom
-		(
-			const vector x_ij,
-			const scalar m,
-			const scalar n,
-			const scalar o,
-			const scalarMatrix& integralsj,
-			const scalarMatrix& integralsi
-		);
+        (
+            const vector x_ij,
+            const scalar m,
+            const scalar n,
+            const scalar o,
+            const scalarMatrix& integralsj,
+            const scalarMatrix& integralsi
+        );
 
-		//- Check for existing lists in constant folder and read them
-		bool readList(const fvMesh& mesh);
+        //- Check for existing lists in constant folder and read them
+        bool readList(const fvMesh& mesh);
 
-		//- Write lists to constant folder
-		void writeList(const fvMesh& mesh);
+        //- Write lists to constant folder
+        void writeList(const fvMesh& mesh);
 
-		//- Draw final stencils for postprocessing
+        //- Draw final stencils for postprocessing
         void drawStencils
         (
-			const List<labelListList>& stencilsID,
-			const List<List<point> >& haloCenters,
-			const List<labelListList>& cellToPatchMap,
-			const fvMesh& mesh,
-			const fileName DirBase
+            const List<labelListList>& stencilsID,
+            const List<List<point> >& haloCenters,
+            const List<labelListList>& cellToPatchMap,
+            const fvMesh& mesh,
+            const fileName DirBase
         );
 
 
@@ -221,22 +221,22 @@ public:
 
     // Member Functions
 
-		static WENOBase& instance
-		(
-			const fvMesh& mesh,
-			const label polOrder
-		)
-		{
-			static WENOBase instance_
-			(
-				mesh,
-				polOrder
-			);
+        static WENOBase& instance
+        (
+            const fvMesh& mesh,
+            const label polOrder
+        )
+        {
+            static WENOBase instance_
+            (
+                mesh,
+                polOrder
+            );
 
-			return instance_;
-		}
+            return instance_;
+        }
 
-		//- Get necessary lists for runtime operations
+        //- Get necessary lists for runtime operations
         inline List<labelListList>* getPointerStencilID()
         {
             return &stencilsID_;
