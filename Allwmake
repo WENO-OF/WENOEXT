@@ -1,6 +1,50 @@
 #!/bin/bash
 
-set -x
+
+echo "Current OpenFOAM version is $WM_PROJECT_VERSION."
+if [ -e foamVersionThisIsCompiledFor ]; then
+    prevVersion=$(<foamVersionThisIsCompiledFor)
+    echo "Previously compiled for OpenFOAM ($prevVersion)"
+    if [ "$WM_PROJECT_VERSION" != "$prevVersion" ]
+    then
+        echo "Different than current OpenFOAM ($WM_PROJECT_VERSION) version."
+        echo "   Use ./Allwclean before compiling"
+        exit 42
+    fi
+        unset prevVersion
+else
+        echo "This is a clean install"
+        echo $WM_PROJECT_VERSION >foamVersionThisIsCompiledFor
+fi
+
+versionFile=versionRules/foamVersion4weno.H
+
+versionRules/makeFoamVersionHeader.py $WM_PROJECT_VERSION >$versionFile.tmp
+
+
+if [ -e $versionFile ]; then                                                    
+    nrDiff=$(diff $versionFile.tmp $versionFile | wc -l | tr -d " ")            
+    if [[ $nrDiff > 0 ]]; then                                                  
+    echo "$versionFile changed"                                                 
+    mv $versionFile.tmp $versionFile                                            
+    else                                                                        
+    # Make sure that not a complete recompilation is triggered                  
+    echo "No change to $versionFile"                                            
+    rm $versionFile.tmp                                                         
+    fi                                                                          
+else                                                                            
+    echo "No $versionFile. Generating!"                                           
+    mv $versionFile.tmp $versionFile                                            
+fi                                          
+
+# Ensure consistent definition of OPENFOAM_COM without relying anything else.   
+# This may be available from the regular wmake rules, but use our own convention
+sed -ne 's/.*WMLES_IS_COM \([0-9][0-9]*\)/OPENFOAM_COM=\1/p' < $versionFile > versionRules/foamVersion
+                                                                                
+echo                                                                            
+echo "Please include the output above when reporting a problem in the compilation. It helps diagnosing the problem    "
+echo                                                                            
+
 
 wmake libso libWENOEXT-2.3.x
 
