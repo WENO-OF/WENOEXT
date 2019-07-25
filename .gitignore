@@ -31,3 +31,7 @@ libWENOEXT-2.3.x/Make/linux64IccDPInt32Opt
 **/processor*
 !**/Make/files
 !**/Make/options
+
+versionRules/foamVersion4weno.H
+versionRules/foamVersion
+foamVersionThisIsCompiledFor
