@@ -48,34 +48,34 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                        Class geometryWENO Declaration                         
+                        Class geometryWENO Declaration
 \*---------------------------------------------------------------------------*/
 
 class geometryWENO
 {
 private:
-	
-    //- Typedef for 3D scalar matrix 
+
+    //- Typedef for 3D scalar matrix
 	typedef List< List< List<scalar> > > scalarMatrix;
-		
-		
+
+
 public:
-	
-    // Member Functions	
-	
+
+    // Member Functions
+
 		//- Evaluate the surface integral using Gaussian quadrature
 		static scalar gaussQuad
 		(
-			const scalar n,													
-			const scalar m,												
-			const scalar l,													
-			const point x0,														
-			const vector v0,														
+			const scalar n,
+			const scalar m,
+			const scalar l,
+			const point x0,
+			const vector v0,
 			const vector v1,
 			const vector v2
 		);
-		
-		//- Build the transformation and calculate the volume integral for 
+
+		//- Build the transformation and calculate the volume integral for
 		//- each cell
 		static void initIntegrals
 		(
@@ -85,29 +85,29 @@ public:
 			scalarMatrix& Integral,
 			scalarRectangularMatrix& JInvI,
 			point& refPointI,
-			scalar& refDetI		
+			scalar& refDetI
 		);
-		
+
 		//- Calculate triangulation of halo faces
 		static List<point> getTriFaces
 		(
 			const fvMesh& mesh,
-			const label cellI	
-		);    
-		
-		//- Calculate volume integrals of halo cells in reference space of 
+			const label cellI
+		);
+
+		//- Calculate volume integrals of halo cells in reference space of
 		//- owner cell
 		static scalarMatrix getHaloMoments
 		(
 			const fvMesh& mesh,
-			const point transCenterJ,       
+			const point transCenterJ,
 			const List<point>& triFaces,
 			const label polOrder,
 			const scalarRectangularMatrix& JInvI,
-			const point refPointI        	
-		);     
-	  
-		//- Calculate the volume integrals of stencil cells in reference space 
+			const point refPointI
+		);
+
+		//- Calculate the volume integrals of stencil cells in reference space
 		//- of owner cell
 		static scalarMatrix transformIntegral
 		(
@@ -117,84 +117,84 @@ public:
 			const label polOrder,
 			const scalarRectangularMatrix& JInvI,
 			const point refPointI,
-			const scalar refDetI				    		
-		);  
-	  
+			const scalar refDetI
+		);
+
 		//- Check validity of chosen reference frame
 		static bool checkRefFrame
 		(
-			const scalar x0, const scalar y0, const scalar z0,							
-			const scalar x1, const scalar y1, const scalar z1,		
-			const scalar x2, const scalar y2, const scalar z2,		
-			const scalar x3, const scalar y3, const scalar z3		
-		);   
-	  
+			const scalar x0, const scalar y0, const scalar z0,
+			const scalar x1, const scalar y1, const scalar z1,
+			const scalar x2, const scalar y2, const scalar z2,
+			const scalar x3, const scalar y3, const scalar z3
+		);
+
 		//- Calculate inverse of Jacobian matrix
 		static scalarRectangularMatrix JacobiInverse
 		(
-			const scalar x0, const scalar y0, const scalar z0,							
-			const scalar x1, const scalar y1, const scalar z1,		
-			const scalar x2, const scalar y2, const scalar z2,		
-			const scalar x3, const scalar y3, const scalar z3		
-		);  
-		
+			const scalar x0, const scalar y0, const scalar z0,
+			const scalar x1, const scalar y1, const scalar z1,
+			const scalar x2, const scalar y2, const scalar z2,
+			const scalar x3, const scalar y3, const scalar z3
+		);
+
 		//- Calculate determinant of inverse Jacobian matrix
 		static scalar determinantJacInv
 		(
-			const scalar x0, const scalar y0, const scalar z0,							
-			const scalar x1, const scalar y1, const scalar z1,		
-			const scalar x2, const scalar y2, const scalar z2,		
-			const scalar x3, const scalar y3, const scalar z3		
-		);  
-	  
-		//- Transform an arbitrary point into reference space of owner cell     
+			const scalar x0, const scalar y0, const scalar z0,
+			const scalar x1, const scalar y1, const scalar z1,
+			const scalar x2, const scalar y2, const scalar z2,
+			const scalar x3, const scalar y3, const scalar z3
+		);
+
+		//- Transform an arbitrary point into reference space of owner cell
 		static point transformPoint
 		(
 			const scalarRectangularMatrix& Jinv,
 			const point xP,
-			const point x0									
-		);		  
-	  
+			const point x0
+		);
+
 		//- Evaluate the surface integrals for smoothness indicator
 		static scalar gaussQuadB
 		(
-			const scalar n,												
-			const scalar m,													
-			const scalar l,													
+			const scalar n,
+			const scalar m,
+			const scalar l,
 			const point x0,
-			const vector v0,													
+			const vector v0,
 			const vector v1,
 			const vector v2
-		);       
+		);
 
 		//- Calculate the volume integrals for the smoothness indicator matrix
 		static scalarMatrix smoothIndIntegrals
 		(
 			const fvMesh& mesh,
-			const label cellI,		
+			const label cellI,
 			const label polOrder,
 			const scalarRectangularMatrix& JacobianI,
-			const point refPointI					    		
-		);       
-		
+			const point refPointI
+		);
+
 		//- Calculate the smoothness indicator matrices
 		static scalarRectangularMatrix getB
 		(
 			const fvMesh& mesh,
-			const label cellI,  
+			const label cellI,
 			const label polOrder,
 			const label nDvt,
 			const scalarRectangularMatrix& JInvI,
 			const point refPointI,
-			const labelList& dim		    		
-		); 	
-		
+			const labelList& dim
+		);
+
 		//- Check sign of variable
-		static scalar Pos(scalar x);	
+		static scalar Pos(scalar x);
 
 		//- Calculate factorials of variable
 		static scalar Fac(scalar x);
-		  
+
 		//- Calculation of surface integrals for convective terms
 		static void surfIntTrans
 		(
@@ -205,13 +205,13 @@ public:
 			const List<point>& refPoint,
 			List<List<scalarMatrix> >& intBasTrans,
 			List<scalarList>& refFacAr
-		);        
-		
+		);
+
 		static vector compCheck
 		(
 			const label n,
 			const label m,
-			const label l,                
+			const label l,
 			const scalarMatrix& intBasisfI
 		);
 };

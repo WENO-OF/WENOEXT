@@ -39,21 +39,21 @@ Foam::WENOUpwindFit<Type>::correction
     const GeometricField<Type, fvPatchField, volMesh>& vf
 )   const
 {
-	const fvMesh& mesh = this->mesh();		 
+	const fvMesh& mesh = this->mesh();
 
 	// Get degrees of freedom from WENOCoeff class
 
 	Foam::WENOCoeff<Type> getWeights(mesh, polOrder_);
-	Field<Field<Type> > coeffsWeighted = getWeights.getWENOPol(vf);	
+	Field<Field<Type> > coeffsWeighted = getWeights.getWENOPol(vf);
 
 	WENOUpwindFit *ptr = const_cast<WENOUpwindFit*>(this);
-	
+
 	ptr->intBasTrans_ = getWeights.getPointerIntBasTrans();
-	ptr->refFacAr_ = getWeights.getPointerRefFacAr();	
-	ptr->dimList_ = getWeights.getPointerDimList();	
-	
+	ptr->refFacAr_ = getWeights.getPointerRefFacAr();
+	ptr->dimList_ = getWeights.getPointerDimList();
+
 	// Calculate the interpolated face values
-	
+
 	const labelUList& P = mesh.owner();
 	const labelUList& N = mesh.neighbour();
 
@@ -75,16 +75,16 @@ Foam::WENOUpwindFit<Type>::correction
         )
     );
     GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP = tsfCorrP();
-		
+
 	// Unlimited polynomial
-	if (limFac_ == 0)	
+	if (limFac_ == 0)
 	{
 		// Exact Riemann solver at each internal and coupled face
 		forAll(P, faceI)
-		{	
+		{
 			if (faceFlux_[faceI] > 0)
 			{
-				tsfP[faceI] = 
+				tsfP[faceI] =
 					sumFlux
 					(
 						(**dimList_)[P[faceI]],
@@ -93,28 +93,28 @@ Foam::WENOUpwindFit<Type>::correction
 					)  /(**refFacAr_)[faceI][0];
 			}
 			else if (faceFlux_[faceI] < 0)
-			{		         
-				tsfP[faceI] = 
+			{
+				tsfP[faceI] =
 					sumFlux
 					(
 						(**dimList_)[N[faceI]],
 						coeffsWeighted[N[faceI]],
 						(**intBasTrans_)[faceI][1]
-					)  /(**refFacAr_)[faceI][1];				
-			}     
+					)  /(**refFacAr_)[faceI][1];
+			}
 			else
 			{
 				tsfP[faceI] = pTraits<Type>::zero;
-			}			
-		}	
-		
+			}
+		}
+
 		coupledRiemannSolver(mesh, tsfP, vf, coeffsWeighted);
-	}	
-	// Limited polynomials 
-	else 	
+	}
+	// Limited polynomials
+	else
 	{
-		const fvPatchList& patches = mesh.boundary(); 
-		
+		const fvPatchList& patches = mesh.boundary();
+
 		tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tsfCorrN
 			(
 				new GeometricField<Type, fvsPatchField, surfaceMesh>
@@ -134,76 +134,76 @@ Foam::WENOUpwindFit<Type>::correction
 				)
 			);
 		GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN = tsfCorrN();
-		
+
 		typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-			GeometricBoundaryField& btsfN = tsfN.boundaryField();		
-			
+			GeometricBoundaryField& btsfN = tsfN.boundaryField();
+
 		typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-			GeometricBoundaryField& btsfP = tsfP.boundaryField();			
-			
+			GeometricBoundaryField& btsfP = tsfP.boundaryField();
+
 		// Calculating face fluxes from both sides
-		
+
 		forAll(P, faceI)
-		{			
-			tsfP[faceI] = 
+		{
+			tsfP[faceI] =
 				vf[P[faceI]] + sumFlux
 				(
 					(**dimList_)[P[faceI]],
 					coeffsWeighted[P[faceI]],
 					(**intBasTrans_)[faceI][0]
 				)  /(**refFacAr_)[faceI][0];
-			
-			tsfN[faceI] = 
+
+			tsfN[faceI] =
 				vf[N[faceI]] + sumFlux
 				(
 				    (**dimList_)[N[faceI]],
 					coeffsWeighted[N[faceI]],
 					(**intBasTrans_)[faceI][1]
-				)  /(**refFacAr_)[faceI][1];	
-		}			
-		
+				)  /(**refFacAr_)[faceI][1];
+		}
+
 		forAll(btsfN, patchI)
 		{
-			fvsPatchField<Type>& pbtsfP = btsfP[patchI];					
+			fvsPatchField<Type>& pbtsfP = btsfP[patchI];
 			fvsPatchField<Type>& pbtsfN = btsfN[patchI];
-		
+
 			if (isA<processorFvPatch>(patches[patchI]))
-			{					
-				const labelUList& pOwner = mesh.boundary()[patchI].faceCells();	
-					
+			{
+				const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+
 				label startFace = patches[patchI].start();
-			
+
 				forAll(pOwner, faceI)
-				{				
+				{
 					label own = pOwner[faceI];
-						
-					pbtsfN[faceI] = 
+
+					pbtsfN[faceI] =
 						vf[own] + sumFlux
 						(
 							(**dimList_)[own],
 							coeffsWeighted[own],
 							(**intBasTrans_)[faceI + startFace][0]
 						)  /(**refFacAr_)[faceI + startFace][0] ;
-							
-					pbtsfP[faceI] = pbtsfN[faceI];								
+
+					pbtsfP[faceI] = pbtsfN[faceI];
 				}
 			}
 		}
-			
-		swapData(mesh, btsfN);				
+
+		swapData(mesh, btsfN);
 
 		// Limiting the polynomials and evaluating the upwind fluxes
-		
-		calcLimiter(mesh, vf, tsfP, tsfN);	
+
+		calcLimiter(mesh, vf, tsfP, tsfN);
 	}
 
-	return tsfCorrP;		
-} 
+	return tsfCorrP;
+}
 
 
 template<class Type>
 Type Foam::WENOUpwindFit<Type>::sumFlux
-(        
+(
     const labelList& dim,
     const Field<Type>& coeffcI,
     const scalarMatrix intBasiscIfI
@@ -220,18 +220,18 @@ Type Foam::WENOUpwindFit<Type>::sumFlux
 			for (label l = 0; l <= dim[2]; l++)
 			{
 				if ((n+m+l) <= polOrder_ && (n+m+l) > 0)
-				{				
-					flux += 
+				{
+					flux +=
 						coeffcI[nCoeff]*intBasiscIfI[n][m][l];
-						
-					nCoeff++;													
+
+					nCoeff++;
 				}
 			}
 		}
-	}	
-		
-	return flux; 
-}	
+	}
+
+	return flux;
+}
 
 
 template<class Type>
@@ -243,46 +243,46 @@ void Foam::WENOUpwindFit<Type>::swapData
 )   const
 {
 	const fvPatchList& patches = mesh.boundary();
-	
-	PstreamBuffers pBufs(Pstream::nonBlocking);							
-		
+
+	PstreamBuffers pBufs(Pstream::nonBlocking);
+
 	// Distribute data
 	forAll(btsf, patchI)
-	{		
+	{
 		if (isA<processorFvPatch>(patches[patchI]))
-		{			
+		{
 			UOPstream toBuffer
 				(
 					refCast<const processorFvPatch>
-						(patches[patchI]).neighbProcNo(), 
+						(patches[patchI]).neighbProcNo(),
 					pBufs
 				);
-							
+
 			forAll(btsf[patchI],faceI)
 			{
-				toBuffer << btsf[patchI][faceI];		
-			}													
+				toBuffer << btsf[patchI][faceI];
+			}
 		}
 	}
-        
-	pBufs.finishedSends();										
-			
-	// Collect data					
+
+	pBufs.finishedSends();
+
+	// Collect data
 	forAll(btsf, patchI)
-	{		
+	{
 		if (isA<processorFvPatch>(patches[patchI]))
 		{
 			UIPstream fromBuffer
 				(
 					refCast<const processorFvPatch>
-						(patches[patchI]).neighbProcNo(), 
+						(patches[patchI]).neighbProcNo(),
 					pBufs
 				);
-				
+
 			forAll(btsf[patchI],faceI)
-			{						
-				fromBuffer >> btsf[patchI][faceI];			
-			}				   									
+			{
+				fromBuffer >> btsf[patchI][faceI];
+			}
 		}
 	}
 }
@@ -297,11 +297,11 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
 	Field<Field<Type> > coeffsWeighted
 )   const
 {
-	const fvPatchList& patches = mesh.boundary(); 
-					
+	const fvPatchList& patches = mesh.boundary();
+
 	typename GeometricField<Type, fvsPatchField, surfaceMesh>::
 		GeometricBoundaryField& btsfP = tsfP.boundaryField();
-				
+
 	tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tsfUDCoupled
 	(
 		new GeometricField<Type, fvsPatchField, surfaceMesh>
@@ -320,68 +320,68 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
 				(vf.name(), vf.dimensions(), pTraits<Type>::zero)
 		)
 	);
-	GeometricField<Type, fvsPatchField, surfaceMesh>& tsfUD = 
-		tsfUDCoupled();				
-				
+	GeometricField<Type, fvsPatchField, surfaceMesh>& tsfUD =
+		tsfUDCoupled();
+
 	typename GeometricField<Type, fvsPatchField, surfaceMesh>::
 		GeometricBoundaryField& btsfUD = tsfUD.boundaryField();
-			
+
 	forAll(btsfP, patchI)
 	{
-		fvsPatchField<Type>& pSfCorr = btsfP[patchI];					
-	
+		fvsPatchField<Type>& pSfCorr = btsfP[patchI];
+
 		if (isA<processorFvPatch>(patches[patchI]))
-		{			
-			const scalarField& pFaceFlux = 
+		{
+			const scalarField& pFaceFlux =
 				faceFlux_.boundaryField()[patchI];
-			
-			const labelUList& pOwner = mesh.boundary()[patchI].faceCells();	
-				
+
+			const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+
 			label startFace = patches[patchI].start();
-		
+
 			forAll(pOwner, faceI)
-			{				
+			{
 				if (pFaceFlux[faceI] > 0)
 				{
 					label own = pOwner[faceI];
-					
-					btsfUD[patchI][faceI] = 
+
+					btsfUD[patchI][faceI] =
 						sumFlux
 						(
 							(**dimList_)[own],
 							coeffsWeighted[own],
 							(**intBasTrans_)[faceI + startFace][0]
 						)  /(**refFacAr_)[faceI + startFace][0] ;
-						
-					pSfCorr[faceI] = btsfUD[patchI][faceI];	
-				}				
+
+					pSfCorr[faceI] = btsfUD[patchI][faceI];
+				}
 			}
 		}
 	}
-		
+
 	swapData(mesh, btsfUD);
-	
+
 	forAll(btsfP, patchI)
 	{
-		fvsPatchField<Type>& pSfCorr = btsfP[patchI];					
-	
+		fvsPatchField<Type>& pSfCorr = btsfP[patchI];
+
 		if (isA<processorFvPatch>(patches[patchI]))
-		{			
-			const scalarField& pFaceFlux = 
+		{
+			const scalarField& pFaceFlux =
 				faceFlux_.boundaryField()[patchI];
-			
-			const labelUList& pOwner = mesh.boundary()[patchI].faceCells();	
+
+			const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
 
 			forAll(pOwner, faceI)
-			{						
+			{
 				if (pFaceFlux[faceI] < 0)
 				{
 					pSfCorr[faceI] = btsfUD[patchI][faceI];
-				}				
+				}
 			}
 		}
-	}	
-	
+	}
+
 }
 
 
