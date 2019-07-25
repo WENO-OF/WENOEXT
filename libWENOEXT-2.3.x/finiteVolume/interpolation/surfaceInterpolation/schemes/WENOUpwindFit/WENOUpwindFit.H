@@ -39,6 +39,7 @@ Author
 #ifndef WENOUpwindFit_H
 #define WENOUpwindFit_H
 
+#include "codeRules.H"
 #include "surfaceInterpolationScheme.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -35,3 +35,7 @@ libWENOEXT-2.3.x/Make/linux64IccDPInt32Opt
 versionRules/foamVersion4weno.H
 versionRules/foamVersion
 foamVersionThisIsCompiledFor
+
+tutorials/cavity/constant/polyMesh/*
+tutorials/cavity/constant/WENO*
+!tutorials/cavity/constant/polyMesh/blockMeshDict

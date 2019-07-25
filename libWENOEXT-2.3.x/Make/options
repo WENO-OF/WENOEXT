@@ -1,7 +1,10 @@
+include $(OBJECTS_DIR)/../../../versionRules/libraryRules
+
 EXE_INC = \
  -Wno-deprecated \
  -I$(LIB_SRC)/dynamicMesh/lnInclude \
  -I$(LIB_SRC)/triSurface/lnInclude \
+$(TRISURFACE_INC) \
  -I$(LIB_SRC)/finiteVolume/lnInclude \
  -I$(LIB_SRC)/meshTools/lnInclude \
  -I$(LIB_SRC)/surfMesh/lnInclude \
@@ -12,7 +15,6 @@ EXE_INC = \
 LIB_LIBS = \
  -lfiniteVolume \
  -lspecie \
- -ltriSurface \
  -ldynamicMesh \
  -lmeshTools \
  -lsurfMesh \

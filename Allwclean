@@ -1,6 +1,6 @@
 #! /bin/bash
 
-wclean
+wclean libWENOEXT-2.3.x
 
 rm -f foamVersionThisIsCompiledFor
 rm -f versionRules/foamVersion4weno.H

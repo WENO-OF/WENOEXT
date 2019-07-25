@@ -77,7 +77,7 @@ Foam::WENOUpwindFit<Type>::correction
     );
     GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP =
 #ifdef FOAM_NEW_TMP_RULES
-        tsfCorrP().ref();
+        tsfCorrP.ref();
 #else 
         tsfCorrP();
 #endif
@@ -146,7 +146,11 @@ Foam::WENOUpwindFit<Type>::correction
 #endif
 
         typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+            Boundary& btsfN =
+#else 
             GeometricBoundaryField& btsfN =
+#endif
 #ifdef FOAM_NEW_GEOMFIELD_RULES
         tsfN.boundaryFieldRef();
 #else 
@@ -154,11 +158,10 @@ Foam::WENOUpwindFit<Type>::correction
 #endif
 
         typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-            GeometricBoundaryField& btsfP =
 #ifdef FOAM_NEW_GEOMFIELD_RULES
-        tsfP.boundaryFieldRef();
+        Boundary& btsfP = tsfP.boundaryFieldRef();
 #else 
-        tsfP.boundaryField();
+        GeometricBoundaryField& btsfP = tsfP.boundaryField();
 #endif
 
         // Calculating face fluxes from both sides
@@ -268,7 +271,11 @@ void Foam::WENOUpwindFit<Type>::swapData
 {
     const fvPatchList& patches = mesh.boundary();
 
+#ifdef FOAM_NONBLOCKING_NEEDS_COMMSTYPES 
+    PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+#else 
     PstreamBuffers pBufs(Pstream::nonBlocking);
+#endif
 
     // Distribute data
     forAll(btsf, patchI)
@@ -324,7 +331,6 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
     const fvPatchList& patches = mesh.boundary();
 
     typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-        GeometricBoundaryField& btsfP = tsfP.boundaryField();
 #ifdef FOAM_NEW_GEOMFIELD_RULES
         Boundary& btsfP = tsfP.boundaryFieldRef();
 #else 
@@ -358,7 +364,7 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
 
     typename GeometricField<Type, fvsPatchField, surfaceMesh>::
 #ifdef FOAM_NEW_GEOMFIELD_RULES
-        Boundary& btsfUD = tsfUD.boundaryField();
+        Boundary& btsfUD = tsfUD.boundaryFieldRef();
 #else 
         GeometricBoundaryField& btsfUD = tsfUD.boundaryField();
 #endif

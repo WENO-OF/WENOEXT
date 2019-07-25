@@ -26,6 +26,7 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
+#include "codeRules.H"
 #include "WENOBase.H"
 #include "WENOPolynomial.H"
 #include "geometryWENO.H"
@@ -598,20 +599,20 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
 Foam::scalar Foam::WENOBase::calcGeom
 (
     const vector x_ij,
-    const scalar n,
-    const scalar m,
-    const scalar o,
+    const label n,
+    const label m,
+    const label o,
     const scalarMatrix& volMomJ,
     const scalarMatrix& volMomI
 )
 {
     scalar geom = 0.0;
 
-    for (scalar k = 0.0; k <= n; k++)
+    for (label k = 0; k <= n; k++)
     {
-        for (scalar l = 0.0; l <= m; l++)
+        for (label l = 0; l <= m; l++)
         {
-            for (scalar j = 0.0; j <= o; j++)
+            for (label j = 0; j <= o; j++)
             {
                 geom +=
                     factorial(n)/(factorial(k)*factorial((n - k)))

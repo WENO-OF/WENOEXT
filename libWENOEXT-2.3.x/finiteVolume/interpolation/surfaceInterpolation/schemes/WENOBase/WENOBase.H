@@ -193,9 +193,9 @@ private:
         scalar calcGeom
         (
             const vector x_ij,
-            const scalar m,
-            const scalar n,
-            const scalar o,
+            const label m,
+            const label n,
+            const label o,
             const scalarMatrix& integralsj,
             const scalarMatrix& integralsi
         );
