@@ -26,6 +26,7 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
+#include "codeRules.H"
 #include "WENOCoeff.H"
 #include "WENOBase.H"
 
@@ -86,7 +87,11 @@ void Foam::WENOCoeff<Type>::calcCoeff
 template<class Type>
 void Foam::WENOCoeff<Type>::collectData(const fvMesh& mesh)
 {
+#ifdef FOAM_NONBLOCKING_NEEDS_COMMSTYPES 
+    PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+#else
     PstreamBuffers pBufs(Pstream::nonBlocking);
+#endif
 
     // Distribute data
     forAll((*patchToProcMap_), patchI)

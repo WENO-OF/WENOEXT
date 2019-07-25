@@ -351,7 +351,11 @@ void Foam::WENOBase::distributeStencils
     List<List<List<point> > >& haloTriFaceCoord
 )
 {
+#ifdef FOAM_NONBLOCKING_NEEDS_COMMSTYPES 
+    PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+#else
     PstreamBuffers pBufs(Pstream::nonBlocking);
+#endif
 
     // Collect centres of halo cells
     forAll(haloCells, patchI)

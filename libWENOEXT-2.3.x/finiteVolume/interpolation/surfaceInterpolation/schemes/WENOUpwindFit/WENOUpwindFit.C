@@ -26,6 +26,7 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
+#include "codeRules.H"
 #include "WENOCoeff.H"
 #include "WENOUpwindFit.H"
 #include "processorFvPatch.H"
@@ -74,8 +75,12 @@ Foam::WENOUpwindFit<Type>::correction
             dimensioned<Type>(vf.name(), vf.dimensions(), pTraits<Type>::zero)
         )
     );
-    GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP = tsfCorrP();
-
+    GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP =
+#ifdef FOAM_NEW_TMP_RULES
+        tsfCorrP().ref();
+#else 
+        tsfCorrP();
+#endif
     // Unlimited polynomial
     if (limFac_ == 0)
     {
@@ -133,13 +138,28 @@ Foam::WENOUpwindFit<Type>::correction
                         (vf.name(), vf.dimensions(), pTraits<Type>::zero)
                 )
             );
-        GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN = tsfCorrN();
+        GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN =
+#ifdef FOAM_NEW_TMP_RULES
+        tsfCorrN.ref();
+#else 
+        tsfCorrN();
+#endif
 
         typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-            GeometricBoundaryField& btsfN = tsfN.boundaryField();
+            GeometricBoundaryField& btsfN =
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+        tsfN.boundaryFieldRef();
+#else 
+        tsfN.boundaryField();
+#endif
 
         typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-            GeometricBoundaryField& btsfP = tsfP.boundaryField();
+            GeometricBoundaryField& btsfP =
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+        tsfP.boundaryFieldRef();
+#else 
+        tsfP.boundaryField();
+#endif
 
         // Calculating face fluxes from both sides
 
@@ -239,8 +259,12 @@ void Foam::WENOUpwindFit<Type>::swapData
 (
     const fvMesh& mesh,
     typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-            GeometricBoundaryField& btsf
-)   const
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+        Boundary& btsf
+#else 
+        GeometricBoundaryField& btsf
+#endif
+            )   const
 {
     const fvPatchList& patches = mesh.boundary();
 
@@ -301,6 +325,11 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
 
     typename GeometricField<Type, fvsPatchField, surfaceMesh>::
         GeometricBoundaryField& btsfP = tsfP.boundaryField();
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+        Boundary& btsfP = tsfP.boundaryFieldRef();
+#else 
+        GeometricBoundaryField& btsfP = tsfP.boundaryField();
+#endif
 
     tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tsfUDCoupled
     (
@@ -321,10 +350,18 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
         )
     );
     GeometricField<Type, fvsPatchField, surfaceMesh>& tsfUD =
+#ifdef FOAM_NEW_TMP_RULES
+        tsfUDCoupled.ref();
+#else 
         tsfUDCoupled();
+#endif
 
     typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+        Boundary& btsfUD = tsfUD.boundaryField();
+#else 
         GeometricBoundaryField& btsfUD = tsfUD.boundaryField();
+#endif
 
     forAll(btsfP, patchI)
     {

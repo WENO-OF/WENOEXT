@@ -98,7 +98,11 @@ class WENOUpwindFit
         (
             const fvMesh& mesh,
             typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+                Boundary& btsf
+#else 
                 GeometricBoundaryField& btsf
+#endif
         )   const;
 
         void coupledRiemannSolver
@@ -349,7 +353,11 @@ public:
             forAll(tsfP.boundaryField(), patchI)
             {
                 fvsPatchField<Type>& pbtsfP =
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+                    tsfP.boundaryFieldRef()[patchI];
+#else 
                     tsfP.boundaryField()[patchI];
+#endif
                 const fvsPatchField<Type>& pbtsfN =
                     tsfN.boundaryField()[patchI];
 
@@ -516,7 +524,12 @@ void WENOUpwindFit<scalar>::calcLimiter
 
     forAll(tsfP.boundaryField(), patchI)
     {
-        fvsPatchField<scalar>& pbtsfP = tsfP.boundaryField()[patchI];
+        fvsPatchField<scalar>& pbtsfP =
+#ifdef FOAM_NEW_GEOMFIELD_RULES
+            tsfP.boundaryFieldRef()[patchI];
+#else 
+            tsfP.boundaryField()[patchI];
+#endif
         const fvsPatchField<scalar>& pbtsfN = tsfN.boundaryField()[patchI];
 
         if (tsfP.boundaryField()[patchI].coupled())
