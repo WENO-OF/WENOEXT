@@ -193,7 +193,7 @@ public:
         static scalar Pos(scalar x);
 
         //- Calculate factorials of variable
-        static scalar Fac(scalar x);
+        static scalar Fac(label x);
 
         //- Calculation of surface integrals for convective terms
         static void surfIntTrans

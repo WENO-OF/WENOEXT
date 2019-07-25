@@ -1137,9 +1137,12 @@ Foam::scalar Foam::geometryWENO::Pos(scalar x)
 }
 
 
-Foam::scalar Foam::geometryWENO::Fac(scalar x)
+Foam::scalar Foam::geometryWENO::Fac(label x)
 {
-    if (x <= 0) return 1.0;
+    if (x <= 0)
+    { 
+        return 1;
+    } 
     else
     {
         return Foam::factorial(x);
