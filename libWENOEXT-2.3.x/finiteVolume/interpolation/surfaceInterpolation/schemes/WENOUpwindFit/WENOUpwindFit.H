@@ -173,7 +173,7 @@ public:
     // Member Functions
 
         //- Return a zero surfaceScalarField
-        surfaceScalarField zeroFlux() const
+        tmp<surfaceScalarField> zeroFlux() const
         {
             tmp<surfaceScalarField> zeroFlux
             (

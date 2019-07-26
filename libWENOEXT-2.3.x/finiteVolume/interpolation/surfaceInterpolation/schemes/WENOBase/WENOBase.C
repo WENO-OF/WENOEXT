@@ -352,7 +352,7 @@ void Foam::WENOBase::distributeStencils
     List<List<List<point> > >& haloTriFaceCoord
 )
 {
-#ifdef FOAM_NONBLOCKING_NEEDS_COMMSTYPES 
+#ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
     PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
 #else
     PstreamBuffers pBufs(Pstream::nonBlocking);
