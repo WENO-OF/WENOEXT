@@ -155,25 +155,25 @@ templateString="""// OpenFOAM versions information
 #ifndef foamVersion4wmles_H
 #define foamVersion4wmles_H
 
-#define FOAM_VERSION4WMLES_FORK  {foamFork}
-#define FOAM_VERSION4WMLES_MAJOR {of_version_major}
-#define FOAM_VERSION4WMLES_MINOR {of_version_minor}
-#define FOAM_VERSION4WMLES_PATCH {of_version_patch}
-#define FOAM_VERSION4WMLES_PATCH_NUM {of_version_patch_num}
+#define FOAM_VERSION4WENO_FORK  {foamFork}
+#define FOAM_VERSION4WENO_MAJOR {of_version_major}
+#define FOAM_VERSION4WENO_MINOR {of_version_minor}
+#define FOAM_VERSION4WENO_PATCH {of_version_patch}
+#define FOAM_VERSION4WENO_PATCH_NUM {of_version_patch_num}
 
 """
 
 # Add define for the fork, with some linear versioning
 #
-# #define FOAM_VERSION4WMLES_IS_<forkName> <major>
-# #undef  FOAM_VERSION4WMLES_IS_<forkName> If it is not that fork
+# #define FOAM_VERSION4WENO_IS_<forkName> <major>
+# #undef  FOAM_VERSION4WENO_IS_<forkName> If it is not that fork
 #
 # Return True if it is that fork, False otherwise
 def addFork(fName):
     global templateString
 
     if foamFork == fName:
-        templateString += "#define FOAM_VERSION4WMLES_IS_"+fName.upper()
+        templateString += "#define FOAM_VERSION4WENO_IS_"+fName.upper()
         if of_version_major > 1 and of_version_major < 2999:
             # information about the major version appears reliable
             templateString += " " + str(of_version_major)+"\n"
@@ -181,7 +181,7 @@ def addFork(fName):
             templateString += " 1\n"
         return True
     else:
-        templateString += "#undef  FOAM_VERSION4WMLES_IS_"+fName.upper() + "\n"
+        templateString += "#undef  FOAM_VERSION4WENO_IS_"+fName.upper() + "\n"
         return False
 
 
