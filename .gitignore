@@ -19,23 +19,24 @@
 **.a
 **.lib
 
-lnInclude/
-
 **.dep
 **.swp
 **.swo
 
-libWENOEXT-2.3.x/lnInclude/
-**/Make/*
-libWENOEXT-2.3.x/Make/linux64IccDPInt32Opt
-**/processor*
-!**/Make/files
-!**/Make/options
+libWENOEXT-2.3.x/lnInclude
+libWENOEXT-2.3.x/Make
+!libWENOEXT-2.3.x/Make/files
+!libWENOEXT-2.3.x/Make/options
 
 versionRules/foamVersion4weno.H
 versionRules/foamVersion
 foamVersionThisIsCompiledFor
 
+**/processor*
 tutorials/cavity/constant/polyMesh/*
 tutorials/cavity/constant/WENO*
 !tutorials/cavity/constant/polyMesh/blockMeshDict
+tutorials/cavity/0.1
+
+logs
+.vscode
