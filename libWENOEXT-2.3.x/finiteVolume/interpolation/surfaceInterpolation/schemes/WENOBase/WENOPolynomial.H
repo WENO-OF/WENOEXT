@@ -26,11 +26,11 @@ Class
 
 Description
     Cell centred Taylor polynomial for interpolation fitting.
-    Can also be used for boundary condition extension. 
-    
+    Can also be used for boundary condition extension.
+
 Author
-    Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved. 
-    
+    Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
+
 \*---------------------------------------------------------------------------*/
 
 #ifndef WENOPolynomial_H
@@ -42,46 +42,46 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                        Class WENOPolynomial Declaration                      
+                        Class WENOPolynomial Declaration
 \*---------------------------------------------------------------------------*/
 
 class WENOPolynomial
 {
 private:
-	
-    //- Typedef for 3D scalar matrix 
-	typedef List< List< List<scalar> > > scalarMatrix;
-		
-	
+
+    //- Typedef for 3D scalar matrix
+    typedef List< List< List<scalar> > > scalarMatrix;
+
+
 public:
 
     // Member functions
 
-		//- Fill matrix with coefficients
-        static void addCoeffs											
+        //- Fill matrix with coefficients
+        static void addCoeffs
         (
-            scalar* coeffs,																	
-			const label polOrder,
-			const labelList& dim,			
-            const scalarMatrix& x_circ_	
+            scalar* coeffs,
+            const label polOrder,
+            const labelList& dim,
+            const scalarMatrix& x_circ_
         )
         {
-			register label curIdx = 0;	
-     
-			for (label n=0 ; n <= dim[0] ; n++)
-			{
-				for (label m=0 ; m <= dim[1] ; m++)
-				{
-					for (label l=0 ; l <= dim[2] ; l++)
-					{
-						if( (n+m+l) <= polOrder && (n+m+l) > 0 )
-						{
-							coeffs[curIdx++] = x_circ_[n][m][l];
-						}
-					}
-				}
-			}						
-        }        
+            register label curIdx = 0;
+
+            for (label n=0 ; n <= dim[0] ; n++)
+            {
+                for (label m=0 ; m <= dim[1] ; m++)
+                {
+                    for (label l=0 ; l <= dim[2] ; l++)
+                    {
+                        if( (n+m+l) <= polOrder && (n+m+l) > 0 )
+                        {
+                            coeffs[curIdx++] = x_circ_[n][m][l];
+                        }
+                    }
+                }
+            }
+        }
 };
 
 

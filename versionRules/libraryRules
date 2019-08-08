@@ -1,0 +1,118 @@
+# -*- Makefile -*-
+# Set switches for libraries that were renamed between versions
+# Code copied from swak4foam, (c) Bernhard F.W. Gschaider
+
+# Where am I
+SELF_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
+# Generated file with information about the current foam version
+include $(SELF_DIR)foamVersion
+
+ifdef FOAM_DEV
+FOAM_DEV_OPTION = -DFOAM_DEV
+endif
+
+FLUIDTHERMO_LIB=-lbasicThermophysicalModels
+SOLIDTHERMO_LIB=-lbasicSolidThermo
+
+THERMOPHYSICALFUNCTIONS_LIB=-lthermophysicalFunctions
+
+RADIATION_LIB=-lradiationModels
+RADIATION_INC=-I$(LIB_SRC)/thermophysicalModels/radiationModels/lnInclude
+
+INCOMPRESSIBLE_TURB_INC=-I$(LIB_SRC)/turbulenceModels
+COMPRESSIBLE_TURB_INC=-I$(LIB_SRC)/turbulenceModels
+INCOMPRESSIBLE_TURB_LIB=-lincompressibleTurbulenceModel
+COMPRESSIBLE_TURB_LIB=-lcompressibleTurbulenceModel
+INCOMPRESSIBLE_TURB_ALL_LIBS=-lincompressibleLESModels -lincompressibleRASModels
+COMPRESSIBLE_TURB_ALL_LIBS=-lcompressibleLESModels -lcompressibleRASModels
+
+TRISURFACE_INC=-I$(LIB_SRC)/triSurface/lnInclude
+
+# -----------------------------------------------------------------------------
+# OpenFOAM.com: v3.0+, v1606, v1612, ... com/plus (development branch)
+# OPENFOAM_COM is the release date (YYMM) as an integer, added after 1606.
+#
+ifdef OPENFOAM_COM
+  # $(info This is OpenFOAM.com $(OPENFOAM_COM))
+  ifeq ("$(WM_PROJECT_VERSION)", $(filter "$(WM_PROJECT_VERSION)", "com" "plus"))
+    $(info OpenFOAM.com development version)
+
+    WMAKE_NEW_CONVENTION=new
+    FOAM_UNIFIEDTURBULENCE=yes
+    NEEDS_FILTER_DROPIN=1
+    # triSurface merged into surfMesh
+    TRISURFACE_INC=
+    THERMOPHYSICALFUNCTIONS_LIB=
+  else ifeq "1705" "$(word 1, $(sort 1705 $(OPENFOAM_COM)))"
+    # Changes with 1706
+    WMAKE_NEW_CONVENTION=new
+    FOAM_UNIFIEDTURBULENCE=yes
+    NEEDS_FILTER_DROPIN=1
+    # triSurface merged into surfMesh
+    TRISURFACE_INC=
+    THERMOPHYSICALFUNCTIONS_LIB=
+  else ifeq "1611" "$(word 1, $(sort 1611 $(OPENFOAM_COM)))"
+    # Changes with 1612
+    WMAKE_NEW_CONVENTION=new
+    FOAM_UNIFIEDTURBULENCE=yes
+    NEEDS_FILTER_DROPIN=1
+  endif
+endif
+# -----------------------------------------------------------------------------
+
+ifeq "dev" "$(WM_PROJECT_VERSION)"
+  $(info Appears to be an OpenFOAM.org development version)
+  WMAKE_NEW_CONVENTION=new
+  FOAM_UNIFIEDTURBULENCE=yes
+endif
+
+ifeq "3.0" "$(word 1, $(sort 3.0 $(WM_PROJECT_VERSION)))"
+  ifndef FOAM_DEV
+    WMAKE_NEW_CONVENTION=new
+    FOAM_UNIFIEDTURBULENCE=yes
+  else
+    ifdef WM_WMAKE_NEW_CONVENTION
+      WMAKE_NEW_CONVENTION=new
+    endif
+  endif
+endif
+
+ifeq "$(FOAM_UNIFIEDTURBULENCE)" "yes"
+  COMPRESSIBLE_TRANSPORT_INC=-I$(LIB_SRC)/transportModels/compressible/lnInclude
+
+  INCOMPRESSIBLE_TURB_INC=-I$(LIB_SRC)/TurbulenceModels/incompressible/lnInclude -I$(LIB_SRC)/TurbulenceModels/turbulenceModels/lnInclude
+  COMPRESSIBLE_TURB_INC=-I$(LIB_SRC)/TurbulenceModels/compressible/lnInclude -I$(LIB_SRC)/TurbulenceModels/turbulenceModels/lnInclude
+  INCOMPRESSIBLE_TURB_LIB=-lincompressibleTurbulenceModels -lturbulenceModels
+  COMPRESSIBLE_TURB_LIB=-lcompressibleTurbulenceModels -lturbulenceModels
+  INCOMPRESSIBLE_TURB_ALL_LIBS=
+  COMPRESSIBLE_TURB_ALL_LIBS=
+  RADIATION_INC=-I$(LIB_SRC)/thermophysicalModels/radiation/lnInclude
+endif
+
+ifdef FOAM_DEV
+  RADIATION_LIB=-lradiation
+  RADIATION_INC=-I$(LIB_SRC)/thermophysicalModels/radiation/lnInclude
+  SOLIDTHERMO_LIB=
+else
+  ifeq "2.2" "$(word 1, $(sort 2.2 $(WM_PROJECT_VERSION)))"
+     FILEFORMATS_INC=-I$(LIB_SRC)/fileFormats/lnInclude
+     FLUIDTHERMO_LIB=-lfluidThermophysicalModels
+     SOLIDTHERMO_LIB=-lsolidThermo
+     FVOPTIONS_LIB=-lfvOptions
+     FVOPTIONS_INC=-I$(LIB_SRC)/fvOptions/lnInclude
+  endif
+endif
+
+ifndef FOAM_DEV
+  ifndef OPENFOAM_COM
+    ifeq "4" "$(word 1, $(sort 4 $(WM_PROJECT_VERSION)))"
+      NEEDS_FILTER_DROPIN=1
+    endif
+    ifeq "4" "$(word 1, $(sort 4 $(WM_PROJECT_VERSION)))"
+      THERMOPHYSICALFUNCTIONS_LIB=
+    endif
+  endif
+endif
+
+# -----------------------------------------------------------------------------
