@@ -1,1 +1,0 @@
-../finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/WENOCoeff.H
