@@ -1,5 +1,3 @@
-include $(OBJECTS_DIR)/../../../versionRules/libraryRules
-
 EXE_INC = \
  -Wno-deprecated \
  -I$(LIB_SRC)/dynamicMesh/lnInclude \

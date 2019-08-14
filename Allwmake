@@ -46,5 +46,4 @@ echo "Please include the output above when reporting a problem in the compilatio
 echo                                                                            
 
 
-wmake libso libWENOEXT-2.3.x
-
+wmake libso libWENOEXT

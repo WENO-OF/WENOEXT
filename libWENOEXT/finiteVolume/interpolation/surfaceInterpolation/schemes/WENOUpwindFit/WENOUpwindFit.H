@@ -362,7 +362,7 @@ public:
                 const fvsPatchField<Type>& pbtsfN =
                     tsfN.boundaryField()[patchI];
 
-                if (tsfP.boundaryField()[patchI].coupled())
+                if (pbtsfP.coupled())
                 {
                     const labelUList& pOwner =
                         mesh.boundary()[patchI].faceCells();

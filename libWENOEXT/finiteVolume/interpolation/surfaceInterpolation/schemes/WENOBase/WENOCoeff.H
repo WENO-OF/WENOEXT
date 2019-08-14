@@ -38,6 +38,7 @@ Author
 #ifndef WENOCoeff_H
 #define WENOCoeff_H
 
+#include "DynamicField.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam

@@ -1,0 +1,4 @@
+DEPENDENCIES = \
+finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO/geometryWENO.dep\
+finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/WENOBase.dep\
+finiteVolume/interpolation/surfaceInterpolation/schemes/WENOUpwindFit/makeWENOUpwindFit.dep

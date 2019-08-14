@@ -29,6 +29,7 @@ Author
 #include "codeRules.H"
 #include "WENOCoeff.H"
 #include "WENOBase.H"
+#include "DynamicField.H"
 
 #include "processorFvPatch.H"
 
@@ -131,7 +132,7 @@ Foam::WENOCoeff<Type>::getWENOPol
     const fvPatchList& patches = mesh.boundary();
 
     // Get preprocessing lists from WENOBase class
-
+    
     Foam::WENOBase& init =
         WENOBase::instance
         (
@@ -176,20 +177,25 @@ Foam::WENOCoeff<Type>::getWENOPol
     // Runtime operations
 
     Field<Field<Type> > coeffsWeighted(mesh.nCells());
+    Field<Type> coeffField(nDvt_,pTraits<Type>::zero);
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
+Info<<" cell "<<cellI<<"\n"<<endl;	    
         const label nStencilsI = (*LSmatrix_)[cellI].size();
-        Field<Field<Type> > coeffsI(nStencilsI);
+        Field<Field<Type> > coeffsI(nStencilsI,coeffField);
+        
+	coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
 
-        coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
-
-        label excludeStencils = 0;
+	label excludeStencils = 0;
         label stencilI = 0;
 
         // Calculate degrees of freedom for each stencil of the cell
         while (stencilI < nStencilsI)
         {
+
+Info<<" stencil "<<stencilI<<endl;		
+            
             // Offset for deleted stencils
             if ((*stencilsID_)[cellI][stencilI+excludeStencils][0] == -1)
             {
@@ -197,7 +203,11 @@ Foam::WENOCoeff<Type>::getWENOPol
             }
             else
             {
-                coeffsI[stencilI].setSize(nDvt_,pTraits<Type>::zero);
+
+Info<<"size "<<coeffsI[stencilI].size()<<endl;
+//		coeffsI[stencilI].setSize(nDvt_,pTraits<Type>::zero);
+
+Info<<coeffsI[stencilI]<<" \n"<<endl;
 
                 calcCoeff
                 (
@@ -207,12 +217,12 @@ Foam::WENOCoeff<Type>::getWENOPol
                     stencilI,
                     excludeStencils
                 );
-
-                stencilI++;
+                
+		stencilI++;
             }
         }
-
-        // Get weighted combination
+	
+	// Get weighted combination
         calcWeight
         (
             coeffsWeighted[cellI],
@@ -221,6 +231,7 @@ Foam::WENOCoeff<Type>::getWENOPol
             coeffsI
         );
     }
+
 
     return coeffsWeighted;
 }
@@ -245,7 +256,7 @@ void Foam::WENOCoeff<Type>::calcWeightComp
 
         forAll(coeffsI, stencilI)
         {
-            const Field<Type> coeffsIsI = coeffsI[stencilI];
+            const Field<Type>& coeffsIsI = coeffsI[stencilI];
 
             // Get smoothness indicator
 
