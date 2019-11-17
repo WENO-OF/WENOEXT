@@ -22,12 +22,12 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Author
-    Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved. 
-    
+    Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
+
 \*---------------------------------------------------------------------------*/
 
-#include "fvMesh.H"
 #include "WENOUpwindFit.H"
+#include "fvMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

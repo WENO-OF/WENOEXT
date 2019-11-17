@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-libs ( "libWENOEXT-2.3.x.so" );
+libs ( "libWENOEXT.so" );
 
 application     icoFoam;
 

@@ -1,0 +1,42 @@
+# Compiled Object files
+**.slo
+**.lo
+**.o
+**.obj
+
+# Precompiled Headers
+**.gch
+**.pch
+
+# Compiled Dynamic libraries
+**.so
+**.dylib
+**.dll
+
+# Compiled Static libraries
+**.lai
+**.la
+**.a
+**.lib
+
+**.dep
+**.swp
+**.swo
+
+libWENOEXT-2.3.x/lnInclude
+libWENOEXT-2.3.x/Make
+!libWENOEXT-2.3.x/Make/files
+!libWENOEXT-2.3.x/Make/options
+
+versionRules/foamVersion4weno.H
+versionRules/foamVersion
+foamVersionThisIsCompiledFor
+
+**/processor*
+tutorials/cavity/constant/polyMesh/*
+tutorials/cavity/constant/WENO*
+!tutorials/cavity/constant/polyMesh/blockMeshDict
+tutorials/cavity/0.1
+
+logs
+.vscode

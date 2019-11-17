@@ -1,0 +1,4 @@
+LOCAL_OBJECTS = \
+geometryWENO.o\
+WENOBase.o\
+makeWENOUpwindFit.o

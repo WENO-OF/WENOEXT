@@ -1,0 +1,6 @@
+finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO/geometryWENO.C
+finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/WENOBase.C 
+
+finiteVolume/interpolation/surfaceInterpolation/schemes/WENOUpwindFit/makeWENOUpwindFit.C
+
+LIB = $(FOAM_USER_LIBBIN)/libWENOEXT
