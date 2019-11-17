@@ -41,7 +41,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
 (
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    Field<Type>& coeffI,
+    List<Type>& coeff,
     const label stencilI,
     const label excludeStencils
 )
@@ -55,19 +55,23 @@ void Foam::WENOCoeff<Type>::calcCoeff
 
     // Calculate degrees of freedom of stencil as a matrix vector product
     // First line is always constraint line
+    
+    coeff.setSize(nDvt_,pTraits<Type>::zero);
 
     Type bJ = pTraits<Type>::zero;
 
+
     for (label j = 1; j < stencilsIDI.size(); j++)
     {
+
         // Distinguish between local and halo cells
         if (cellToPatchMapI[j] == -1)
         {
             bJ = vf[stencilsIDI[j]] - vf[cellI];
 
-            for (label i = 0; i < A.n(); i++)
+            for (label i = 0; i < nDvt_; i++)
             {
-                coeffI[i] += A[i][j-1]*bJ;
+                coeff[i] += A[i][j-1]*bJ;
             }
         }
         else if(cellToPatchMapI[j] > -4)
@@ -76,9 +80,9 @@ void Foam::WENOCoeff<Type>::calcCoeff
                 haloData_[cellToPatchMapI[j]][stencilsIDI[j]]
               - vf[cellI];
 
-            for (label i = 0; i < A.n(); i++)
+            for (label i = 0; i < nDvt_; i++)
             {
-                coeffI[i] += A[i][j-1]*bJ;
+                coeff[i] += A[i][j-1]*bJ;
             }
         }
     }
@@ -174,28 +178,27 @@ Foam::WENOCoeff<Type>::getWENOPol
 
     collectData(mesh);
 
+
+
     // Runtime operations
-
+    
     Field<Field<Type> > coeffsWeighted(mesh.nCells());
-    Field<Type> coeffField(nDvt_,pTraits<Type>::zero);
-
+    
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
-Info<<" cell "<<cellI<<"\n"<<endl;	    
-        const label nStencilsI = (*LSmatrix_)[cellI].size();
-        Field<Field<Type> > coeffsI(nStencilsI,coeffField);
-        
-	coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
+        coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
 
-	label excludeStencils = 0;
+        const label nStencilsI = (*LSmatrix_)[cellI].size();
+        
+        List<List<Type> > coeffsI(nStencilsI);
+        
+	    label excludeStencils = 0;
         label stencilI = 0;
+
 
         // Calculate degrees of freedom for each stencil of the cell
         while (stencilI < nStencilsI)
         {
-
-Info<<" stencil "<<stencilI<<endl;		
-            
             // Offset for deleted stencils
             if ((*stencilsID_)[cellI][stencilI+excludeStencils][0] == -1)
             {
@@ -203,12 +206,6 @@ Info<<" stencil "<<stencilI<<endl;
             }
             else
             {
-
-Info<<"size "<<coeffsI[stencilI].size()<<endl;
-//		coeffsI[stencilI].setSize(nDvt_,pTraits<Type>::zero);
-
-Info<<coeffsI[stencilI]<<" \n"<<endl;
-
                 calcCoeff
                 (
                     cellI,
@@ -218,11 +215,12 @@ Info<<coeffsI[stencilI]<<" \n"<<endl;
                     excludeStencils
                 );
                 
-		stencilI++;
+		        stencilI++;
             }
         }
-	
-	// Get weighted combination
+
+        
+        // Get weighted combination
         calcWeight
         (
             coeffsWeighted[cellI],
@@ -243,7 +241,7 @@ void Foam::WENOCoeff<Type>::calcWeightComp
     Field<Type>& coeffsWeightedI,
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const Field<Field<Type> >& coeffsI
+    const List<List<Type> >& coeffsI
 )
 {
     // Get weighted combination for each component separately
@@ -256,7 +254,7 @@ void Foam::WENOCoeff<Type>::calcWeightComp
 
         forAll(coeffsI, stencilI)
         {
-            const Field<Type>& coeffsIsI = coeffsI[stencilI];
+            const List<Type>& coeffsIsI = coeffsI[stencilI];
 
             // Get smoothness indicator
 
@@ -291,10 +289,11 @@ void Foam::WENOCoeff<Type>::calcWeightComp
 
             gammaSum += gamma;
 
+
+
             forAll(coeffsIsI, coeffI)
             {
-                coeffsWeightedI[coeffI][compI] +=
-                    coeffsIsI[coeffI][compI]*gamma;
+                coeffsWeightedI[coeffI][compI] += coeffsIsI[coeffI][compI]*gamma;
             }
         }
 

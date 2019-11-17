@@ -2,8 +2,9 @@ WENO framework
 ====================
 Weighted essentially non-oscillatory library for the framework of OpenFOAM.
 
-Currently supported version:
-	- 2.3.x
+Tested versions:
+    - OpenFOAM 2.3.x
+    - OpenFOAM-dev
 	
 
 Installation

@@ -43,15 +43,15 @@ Foam::WENOUpwindFit<Type>::correction
     const fvMesh& mesh = this->mesh();
 
     // Get degrees of freedom from WENOCoeff class
-
+    
     Foam::WENOCoeff<Type> getWeights(mesh, polOrder_);
     Field<Field<Type> > coeffsWeighted = getWeights.getWENOPol(vf);
 
     WENOUpwindFit *ptr = const_cast<WENOUpwindFit*>(this);
-
     ptr->intBasTrans_ = getWeights.getPointerIntBasTrans();
     ptr->refFacAr_ = getWeights.getPointerRefFacAr();
     ptr->dimList_ = getWeights.getPointerDimList();
+
 
     // Calculate the interpolated face values
 
@@ -81,6 +81,8 @@ Foam::WENOUpwindFit<Type>::correction
 #else 
         tsfCorrP();
 #endif
+
+
     // Unlimited polynomial
     if (limFac_ == 0)
     {

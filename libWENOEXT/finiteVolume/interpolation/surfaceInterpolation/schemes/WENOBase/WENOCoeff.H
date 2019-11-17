@@ -180,7 +180,7 @@ public:
         (
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& dataField,
-            Field<Type>& dvtI,
+            List<Type>& dvtI,
             const label stencilI,
             const label excludeStencils
         )    ;
@@ -191,7 +191,7 @@ public:
             Field<scalar>& coeffsWeightedI,
             const label cellI,
             const GeometricField<scalar, fvPatchField, volMesh>& vf,
-            const Field<Field<scalar> >& coeffsI
+            const List<List<scalar> >& coeffsI
         )
         {
             scalar gamma = 0.0;
@@ -199,7 +199,7 @@ public:
 
             forAll(coeffsI, stencilI)
             {
-                const scalarField coeffsIsI = coeffsI[stencilI];
+                const List<scalar> coeffsIsI = coeffsI[stencilI];
 
                 // Get smoothness indicator
 
@@ -250,7 +250,7 @@ public:
             Field<Type>& coeffsWeightedI,
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            const Field<Field<Type> >& coeffsI
+            const List<List<Type> >& coeffsI
         )    ;
 
         void calcWeight
@@ -258,7 +258,7 @@ public:
             Field<vector>& coeffsWeightedI,
             const label cellI,
             const GeometricField<vector, fvPatchField, volMesh>& vf,
-            const Field<Field<vector> >& coeffsI
+            const List<List<vector> >& coeffsI
         )
         {
             calcWeightComp
@@ -275,7 +275,7 @@ public:
             Field<tensor>& coeffsWeightedI,
             const label cellI,
             const GeometricField<tensor, fvPatchField, volMesh>& vf,
-            const Field<Field<tensor> >& coeffsI
+            const List<List<tensor> >& coeffsI
         )
         {
             calcWeightComp
@@ -292,7 +292,7 @@ public:
             Field<symmTensor>& coeffsWeightedI,
             const label cellI,
             const GeometricField<symmTensor, fvPatchField, volMesh>& vf,
-            const Field<Field<symmTensor> >& coeffsI
+            const List<List<symmTensor> >& coeffsI
         )
         {
             calcWeightComp
@@ -309,7 +309,7 @@ public:
             Field<sphericalTensor>& coeffsWeightedI,
             const label cellI,
             const GeometricField<sphericalTensor, fvPatchField, volMesh>& vf,
-            const Field<Field<sphericalTensor> >& coeffsI
+            const List<List<sphericalTensor> >& coeffsI
         )
         {
             calcWeightComp
