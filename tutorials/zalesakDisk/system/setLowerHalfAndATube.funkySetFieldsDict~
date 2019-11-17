@@ -1,0 +1,39 @@
+FoamFile
+{
+    version         2.0;
+    format          ascii;
+
+    root            "/.automount/werner/Werner/bgschaid/bgschaid-foamStuff/DepositionTests";
+    case            "neutralTest";
+    instance        "system";
+    local           "";
+
+    class           dictionary;
+    object          funkySetFieldsDict;
+}
+
+expressions
+(
+circleVel
+{
+field U;
+expression "vector(0,0,6.28)^(pos()-vector(0.0,0.0,0.0))";
+}
+circleP
+{
+field p_rgh;
+expression "0";
+}
+diskGamma0
+{
+field alpha1;
+expression "1";
+condition "pow(pos().x-0.0,2) + pow(pos().y-0.25,2) < pow(0.15,2)";
+}
+diskGamma1
+{
+field alpha1;
+expression "0";
+condition "pos().x > -0.025 && pos().x < 0.025 && pos().y > 0.15 && pos().y < 0.5";
+}
+);
