@@ -126,7 +126,8 @@ public:
             const scalar x0, const scalar y0, const scalar z0,
             const scalar x1, const scalar y1, const scalar z1,
             const scalar x2, const scalar y2, const scalar z2,
-            const scalar x3, const scalar y3, const scalar z3
+            const scalar x3, const scalar y3, const scalar z3,
+            const scalar cellDimension
         );
 
         //- Calculate inverse of Jacobian matrix

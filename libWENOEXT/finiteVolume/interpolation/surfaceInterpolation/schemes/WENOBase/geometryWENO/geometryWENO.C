@@ -113,6 +113,9 @@ void Foam::geometryWENO::initIntegrals
     const labelList pLabels(cc.labels(fcs));
     const labelList pEdge = mesh.pointPoints()[pLabels[0]];
 
+	const scalar cellDimension = cc.mag(pts,fcs);
+
+
     // Create reference frame of new space
 
     labelList referenceFrame(1,pLabels[0]);
@@ -143,9 +146,11 @@ void Foam::geometryWENO::initIntegrals
             pts[referenceFrame[1]][1], pts[referenceFrame[1]][2],
             pts[referenceFrame[2]][0], pts[referenceFrame[2]][1],
             pts[referenceFrame[2]][2], pts[referenceFrame[3]][0],
-            pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
+            pts[referenceFrame[3]][1], pts[referenceFrame[3]][2],
+            cellDimension
         )
         != true
+        && (k < pLabels.size())
     )
     {
         const labelList pEdgeMod = mesh.pointPoints()[pLabels[k]];
@@ -529,9 +534,11 @@ bool Foam::geometryWENO::checkRefFrame
     const scalar x0, const scalar y0, const scalar z0,
     const scalar x1, const scalar y1, const scalar z1,
     const scalar x2, const scalar y2, const scalar z2,
-    const scalar x3, const scalar y3, const scalar z3
+    const scalar x3, const scalar y3, const scalar z3,
+    const scalar cellDimension
 )
 {
+	// Calculate determinante of Jacobian matrix 
     if
     (
         mag(x2*y1*z0 - x3*y1*z0 - x1*y2*z0 + x3*y2*z0 + x1*y3*z0
@@ -539,7 +546,7 @@ bool Foam::geometryWENO::checkRefFrame
       - x0*y3*z1 + x2*y3*z1 + x1*y0*z2 - x3*y0*z2 - x0*y1*z2
       + x3*y1*z2 + x0*y3*z2 - x1*y3*z2 - x1*y0*z3 + x2*y0*z3
       + x0*y1*z3 - x2*y1*z3 - x0*y2*z3 + x1*y2*z3 )
-        < 1e-10
+        < cellDimension
     )
     {
         return false;
