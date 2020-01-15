@@ -32,6 +32,7 @@ SourceFiles
 
 Author
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
 
 \*---------------------------------------------------------------------------*/
 
@@ -56,8 +57,8 @@ class geometryWENO
 private:
 
     //- Typedef for 3D scalar matrix
-    typedef List< List< List<scalar> > > scalarMatrix;
-
+    using scalarMatrix = List< List< List<scalar> > > ;
+    using scalarSquareMatrix = SquareMatrix<scalar>;
 
 public:
 
@@ -123,20 +124,14 @@ public:
         //- Check validity of chosen reference frame
         static bool checkRefFrame
         (
-            const scalar x0, const scalar y0, const scalar z0,
-            const scalar x1, const scalar y1, const scalar z1,
-            const scalar x2, const scalar y2, const scalar z2,
-            const scalar x3, const scalar y3, const scalar z3,
+            const scalarSquareMatrix&& J, // use forward referencing 
             const scalar cellDimension
         );
 
         //- Calculate inverse of Jacobian matrix
         static scalarRectangularMatrix JacobiInverse
         (
-            const scalar x0, const scalar y0, const scalar z0,
-            const scalar x1, const scalar y1, const scalar z1,
-            const scalar x2, const scalar y2, const scalar z2,
-            const scalar x3, const scalar y3, const scalar z3
+            const scalarSquareMatrix& J
         );
 
         //- Calculate determinant of inverse Jacobian matrix
@@ -214,6 +209,12 @@ public:
             const label m,
             const label l,
             const scalarMatrix& intBasisfI
+        );
+        
+        static scalarSquareMatrix jacobi
+        (
+            const pointField& pts,
+            const labelList& referenceFrame
         );
 };
 

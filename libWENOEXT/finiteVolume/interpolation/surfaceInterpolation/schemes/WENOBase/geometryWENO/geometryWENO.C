@@ -113,7 +113,7 @@ void Foam::geometryWENO::initIntegrals
     const labelList pLabels(cc.labels(fcs));
     const labelList pEdge = mesh.pointPoints()[pLabels[0]];
 
-	const scalar cellDimension = cc.mag(pts,fcs);
+    const scalar cellDimension = cc.mag(pts,fcs);
 
 
     // Create reference frame of new space
@@ -141,12 +141,7 @@ void Foam::geometryWENO::initIntegrals
     (
         checkRefFrame
         (
-            pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
-            pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
-            pts[referenceFrame[1]][1], pts[referenceFrame[1]][2],
-            pts[referenceFrame[2]][0], pts[referenceFrame[2]][1],
-            pts[referenceFrame[2]][2], pts[referenceFrame[3]][0],
-            pts[referenceFrame[3]][1], pts[referenceFrame[3]][2],
+            jacobi(pts,referenceFrame),
             cellDimension
         )
         != true
@@ -175,16 +170,9 @@ void Foam::geometryWENO::initIntegrals
         referenceFrame = modrefFrame;
     }
 
-    JInvI =
-        JacobiInverse
-        (
-            pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
-            pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
-            pts[referenceFrame[1]][1], pts[referenceFrame[1]][2],
-            pts[referenceFrame[2]][0], pts[referenceFrame[2]][1],
-            pts[referenceFrame[2]][2], pts[referenceFrame[3]][0],
-            pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
-        );
+    scalarSquareMatrix J = jacobi(pts,referenceFrame);
+
+    JInvI = JacobiInverse(J);
 
     refDetI =
         determinantJacInv
@@ -531,22 +519,15 @@ Foam::geometryWENO::scalarMatrix Foam::geometryWENO::transformIntegral
 
 bool Foam::geometryWENO::checkRefFrame
 (
-    const scalar x0, const scalar y0, const scalar z0,
-    const scalar x1, const scalar y1, const scalar z1,
-    const scalar x2, const scalar y2, const scalar z2,
-    const scalar x3, const scalar y3, const scalar z3,
+    const scalarSquareMatrix&& J,
     const scalar cellDimension
 )
 {
-	// Calculate determinante of Jacobian matrix 
+    // Calculate determinante of Jacobian matrix 
+    // Determinante has to be greater than zero to calculate the inverse
     if
     (
-        mag(x2*y1*z0 - x3*y1*z0 - x1*y2*z0 + x3*y2*z0 + x1*y3*z0
-      - x2*y3*z0 - x2*y0*z1 + x3*y0*z1 + x0*y2*z1 - x3*y2*z1
-      - x0*y3*z1 + x2*y3*z1 + x1*y0*z2 - x3*y0*z2 - x0*y1*z2
-      + x3*y1*z2 + x0*y3*z2 - x1*y3*z2 - x1*y0*z3 + x2*y0*z3
-      + x0*y1*z3 - x2*y1*z3 - x0*y2*z3 + x1*y2*z3 )
-        < cellDimension
+        det(J) < cellDimension
     )
     {
         return false;
@@ -560,40 +541,30 @@ bool Foam::geometryWENO::checkRefFrame
 
 Foam::scalarRectangularMatrix Foam::geometryWENO::JacobiInverse
 (
-    const scalar x0, const scalar y0, const scalar z0,
-    const scalar x1, const scalar y1, const scalar z1,
-    const scalar x2, const scalar y2, const scalar z2,
-    const scalar x3, const scalar y3, const scalar z3
+    const scalarSquareMatrix& J
 )
 {
     scalarRectangularMatrix JacobiInv(3,3,0.0);
 
-    scalar det =
-    (
-        x2*y1*z0 - x3*y1*z0 - x1*y2*z0 + x3*y2*z0 + x1*y3*z0
-      - x2*y3*z0 - x2*y0*z1 + x3*y0*z1 + x0*y2*z1 - x3*y2*z1
-      - x0*y3*z1 + x2*y3*z1 + x1*y0*z2 - x3*y0*z2 - x0*y1*z2
-      + x3*y1*z2 + x0*y3*z2 - x1*y3*z2 - x1*y0*z3 + x2*y0*z3
-      + x0*y1*z3 - x2*y1*z3 - x0*y2*z3 + x1*y2*z3
-    );
+    scalar det = Foam::det(J);
 
-    JacobiInv[0][0] = (-(y2*z0) + y3*z0 + y0*z2 - y3*z2 - y0*z3 + y2*z3)/det;
+    JacobiInv[0][0] = (J(1,1)*J(2,2)-J(1,2)*J(2,1))/det;
 
-    JacobiInv[0][1] = (x2*z0 - x3*z0 - x0*z2 + x3*z2 + x0*z3 - x2*z3)/det;
+    JacobiInv[0][1] = (J(0,2)*J(2,1)-J(0,1)*J(2,2))/det;
 
-    JacobiInv[0][2] = (-(x2*y0) + x3*y0 + x0*y2 - x3*y2 - x0*y3 + x2*y3)/det;
+    JacobiInv[0][2] = (J(0,1)*J(1,2)-J(0,2)*J(1,1))/det;
 
-    JacobiInv[1][0] = (y1*z0 - y3*z0 - y0*z1 + y3*z1 + y0*z3 - y1*z3)/det;
+    JacobiInv[1][0] = (J(1,2)*J(2,0)-J(1,0)*J(2,2))/det;
 
-    JacobiInv[1][1] = (-(x1*z0) + x3*z0 + x0*z1 - x3*z1 - x0*z3 + x1*z3)/det;
+    JacobiInv[1][1] = (J(0,0)*J(2,2)-J(0,2)*J(2,0))/det;
 
-    JacobiInv[1][2] = (x1*y0 - x3*y0 - x0*y1 + x3*y1 + x0*y3 - x1*y3)/det;
+    JacobiInv[1][2] = (J(0,2)*J(1,0)-J(0,0)*J(1,2))/det;
 
-    JacobiInv[2][0] = (-(y1*z0) + y2*z0 + y0*z1 - y2*z1 - y0*z2 + y1*z2)/det;
+    JacobiInv[2][0] = (J(1,0)*J(2,1)-J(1,1)*J(2,0))/det;
 
-    JacobiInv[2][1] = (x1*z0 - x2*z0 - x0*z1 + x2*z1 + x0*z2 - x1*z2)/det;
+    JacobiInv[2][1] = (J(0,1)*J(2,0)-J(0,0)*J(2,1))/det;
 
-    JacobiInv[2][2] = (-(x1*y0) + x2*y0 + x0*y1 - x2*y1 - x0*y2 + x1*y2)/det;
+    JacobiInv[2][2] = (J(0,0)*J(1,1)-J(0,1)*J(1,0))/det;
 
     return JacobiInv;
 }
@@ -1180,5 +1151,24 @@ Foam::vector Foam::geometryWENO::compCheck
     return result;
 }
 
+
+Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
+(
+    const pointField& pts,
+    const labelList& referenceFrame
+)
+{
+    scalarSquareMatrix J(3,0);
+    
+    for (int i = 0;i<3;i++)
+    {
+        for (int j = 0; j<3;j++)
+        {
+            J(i,j) = pts[referenceFrame[j+1]][i] - pts[referenceFrame[0]][i];
+        }
+    }
+    
+    return J;
+}
 
 // ************************************************************************* //
