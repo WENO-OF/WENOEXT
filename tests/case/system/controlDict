@@ -1,0 +1,66 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application             compressiblePhaseChangeFoam;
+
+startFrom               startTime;
+
+startTime               0;
+
+stopAt                  endTime;
+
+endTime                 0.01;
+
+deltaT                  5e-7;
+
+writeControl            adjustableRunTime;
+
+writeInterval           0.0005;
+
+purgeWrite              100;
+
+writeFormat             ascii;
+
+writePrecision          6;
+
+writeCompression        uncompressed;
+
+timeFormat              general;
+
+runTimeModifiable       yes;
+
+adjustTimeStep          on;
+
+maxCo                   0.25;
+
+maxAlphaCo                  0.5;
+
+maxDeltaT               5e-7;
+
+
+libs (
+        "libcustomBoundary.so"
+     );
+
+
+
+
+// Enable debug messages
+DebugSwitches
+{
+  phaseChangeMixtureThermo 0;
+}
+// ************************************************************************* //3

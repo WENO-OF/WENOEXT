@@ -4,6 +4,7 @@ EXE_INC = \
     -I$(LIB_SRC)/surfMesh/lnInclude \
     -I$(LIB_SRC)/sampling/lnInclude \
     -I$(LIB_SRC)/triSurface/lnInclude \
+    -I../Catch2SingleHeader \
     -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO
 
 EXE_LIBS = \

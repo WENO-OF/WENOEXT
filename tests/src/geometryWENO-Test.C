@@ -35,7 +35,7 @@ Author
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 
 
-#include <catch2/catch.hpp>
+#include "catch.hpp"
 
 #include "fvCFD.H"
 #include "geometryWENO.H"
@@ -44,7 +44,7 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("geometryWENO Jacobi Class")
+TEST_CASE("geometryWENO: Jacobi Matrix")
 {
     using scalarSquareMatrix = SquareMatrix<scalar>;
     
@@ -59,7 +59,10 @@ TEST_CASE("geometryWENO Jacobi Class")
     labelList referenceFrame(4);
     std::iota(referenceFrame.begin(), referenceFrame.end(),0);
     
-    scalarSquareMatrix J = geometryWENO::jacobi(pts,referenceFrame);
+    // Construct empty geometryWENO object
+    geometryWENO geo;
+    
+    scalarSquareMatrix J = geo.jacobi(pts,referenceFrame);
     
     for (int i = 0; i<J.n();i++)
     {
@@ -72,11 +75,34 @@ TEST_CASE("geometryWENO Jacobi Class")
         }
     }
     
+    // Create Jacobi from components
+    scalarSquareMatrix J2 = geo.jacobi
+    (
+        pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
+        pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
+        pts[referenceFrame[1]][1], pts[referenceFrame[1]][2],
+        pts[referenceFrame[2]][0], pts[referenceFrame[2]][1],
+        pts[referenceFrame[2]][2], pts[referenceFrame[3]][0],
+        pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
+    );
+    
+    for (int i = 0; i<J2.n();i++)
+    {
+        for (int j = 0; j < J2.n(); j++)
+        {
+            if (i==j)
+                CHECK(Approx(J2(i,j)) == i+1);
+            else
+                CHECK(Approx(J2(i,j)) == 0);
+        }
+    }
+    
+    
     // Check the determinante
     CHECK(Approx(det(J)) == 6);
     
     // Check the inverse
-    scalarRectangularMatrix JInv = geometryWENO::JacobiInverse(J);
+    scalarSquareMatrix JInv = geo.JacobiInverse(J);
     
         for (int i = 0; i<J.n();i++)
     {
@@ -89,4 +115,51 @@ TEST_CASE("geometryWENO Jacobi Class")
         }
     }
     
+    
+    // Check transform point
+    const point x0(1,0,0);
+    const point xp(2,2,3);
+    const point res = geo.transformPoint(JInv,xp,x0);
+    
+    CHECK(Approx(res[0])==1);
+    CHECK(Approx(res[1])==1);
+    CHECK(Approx(res[2])==1);
+
 }
+
+
+
+TEST_CASE("geometryWENO: Integration")
+{
+    // Replace setRootCase.H for Catch2   
+    int argc = 1;
+    char **argv = static_cast<char**>(malloc(sizeof(char*)));
+    char executable[] = {'m','a','i','n'};
+    argv[0] = executable;
+    Foam::argList args(argc, argv,false,false,false);
+        
+        
+    #include "createTime.H"
+    #include "createMesh.H"
+    #include "createControl.H"
+    
+    geometryWENO geo;
+    
+    using scalarMatrix = List< List< List<scalar> > > ;
+    using scalarSquareMatrix = SquareMatrix<scalar>;
+    
+    //const fvMesh& mesh,
+    const label cellI = 33;
+    const label polOrder = 2;
+    scalarMatrix Integral;
+    scalarSquareMatrix JInvI;
+    point refPointI;
+    scalar refDetI;
+    
+    geo.initIntegrals(mesh,cellI,polOrder,Integral,JInvI,refPointI,refDetI);
+    
+    Info << Integral << endl;
+    
+}
+
+

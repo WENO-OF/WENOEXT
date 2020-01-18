@@ -1,0 +1,147 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    "alpha.liquid.*"
+    {
+        nAlphaCorr      2;
+        nAlphaSubCycles 1;
+        
+        cAlpha 		0;
+
+        MULESCorr       yes;
+        nLimiterIter    5;
+
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
+    }
+
+    p_rgh
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.0001;
+
+        smoother        DILUGaussSeidel;
+
+
+        minIter         1;
+        maxIter         20;
+    };
+
+    p_rghFinal
+    {
+        solver          PBiCGStab;
+        preconditioner
+        {
+            preconditioner  GAMG;
+
+            tolerance       1e-6;
+            relTol          0;
+
+            nVcycles        2;
+
+            smoother        DILUGaussSeidel;
+
+        };
+        tolerance       1e-6;
+        relTol          0;
+        maxIter         50;
+        minIter         1;
+    };
+
+
+
+    "pcorr.*"
+    {
+        $p_rgh;
+        relTol          0;
+    };
+
+    Phi
+    {
+        $p_rgh;
+        relTol          0;
+    };
+
+
+
+
+    "(U|epsilon|omega).*"
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-09;
+        relTol          0;
+        nSweeps         1;
+    }
+
+    "(T|rho|k|B|nuTilda).*"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-09;
+        relTol          0;
+    }
+}
+
+PIMPLE
+{
+    momentumPredictor yes;
+    transonic       no;
+    nOuterCorrectors 5;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+
+    residualControl
+    {
+        "(U|k|epsilon|T).*"
+        {
+                tolerance   1e-3;
+                relTol      0;
+        }
+
+        "alpha.liquid.*"
+        {
+                tolerance   1e-3;
+                relTol      0;
+        }
+
+        "p_rgh"
+        {
+              tolerance     1e-3;
+              relTol        0;
+        }
+   }
+
+}
+
+
+relaxationFactors
+{
+    equations
+    {
+	"U.*"		0.9;
+        "UFinal"        1.0;
+    }
+
+}
+
+// ************************************************************************* //

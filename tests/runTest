@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+currDir=$(pwd)
+
+# Check that the library is compiled
+cd ../ && ./Allwmake
+
+
+cd ${currDir}/src && wmake
+
+cp ${currDir}/src/tests.exe ${currDir}/case
+
+cd ${currDir}/case && ./tests.exe
