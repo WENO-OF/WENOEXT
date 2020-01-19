@@ -51,7 +51,7 @@ void Foam::WENOBase::splitStencil
     const pointField& pts = mesh.points();
     const cell& faces = mesh.cells()[cellI];
 
-    List<List<scalarRectangularMatrix> > JacobiInvQ(nStencilsI - 1);
+    List<List<scalarSquareMatrix> > JacobiInvQ(nStencilsI - 1);
 
     label exludeFace = 0;
 
@@ -93,15 +93,15 @@ void Foam::WENOBase::splitStencil
             {
                 const triFace& tri(triFaces[i]);
 
-                JacobiInvQ[faceI - exludeFace][i] =
-                    Foam::geometryWENO::JacobiInverse
-                    (
-                        mesh.C()[cellI][0], mesh.C()[cellI][1],
-                        mesh.C()[cellI][2],
-                        pts[tri[0]][0], pts[tri[0]][1], pts[tri[0]][2],
-                        pts[tri[1]][0], pts[tri[1]][1], pts[tri[1]][2],
-                        pts[tri[2]][0], pts[tri[2]][1], pts[tri[2]][2]
-                    );
+                scalarSquareMatrix J = geometryWENO::jacobi(
+                    mesh.C()[cellI][0], mesh.C()[cellI][1],
+                    mesh.C()[cellI][2],
+                    pts[tri[0]][0], pts[tri[0]][1], pts[tri[0]][2],
+                    pts[tri[1]][0], pts[tri[1]][1], pts[tri[1]][2],
+                    pts[tri[2]][0], pts[tri[2]][1], pts[tri[2]][2]
+                );
+
+                JacobiInvQ[faceI - exludeFace][i] = Foam::geometryWENO::JacobiInverse(J);
             }
         }
         else

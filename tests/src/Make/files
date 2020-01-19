@@ -1,4 +1,4 @@
-
-geometryWENO-Test.C
+main.C
+geometryWENO-BasicFunc-Test.C
 
 EXE = tests.exe 

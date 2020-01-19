@@ -75,7 +75,11 @@ private:
     //- Private Data
 
         //- Typedef for 3D scalar matrix
-        typedef List< List< List<scalar> > > scalarMatrix;
+        using scalarMatrix = List< List< List<scalar> > > ;
+        
+        //- C++11 typedef for squareMatrix
+        //  This is used for Jacobian matrix
+        using scalarSquareMatrix = SquareMatrix<scalar>;
 
         //- Path to lists in constant folder
         fileName Dir_;
@@ -120,7 +124,7 @@ private:
         List<scalarList> refFacAr_;
 
         //- Lists of inverse Jacobians for each cell
-        List<scalarRectangularMatrix> JInv_;
+        List<scalarSquareMatrix> JInv_;
 
         //- Lists of determinants of inverse Jacobian for each cell
         List<scalar> refDet_;
