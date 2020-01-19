@@ -224,13 +224,13 @@ void Foam::geometryWENO::initIntegrals
         // Initialize size of integral list
         Integral.resize((polOrder + 1));
 
-        for (label i = 0; i <= polOrder; i++)
+        for (label i = 0; i < (polOrder+1); i++)
         {
-            Integral[i].resize((polOrder+ 1));
+            Integral[i].resize((polOrder+ 1)-i);
 
-            for (label j = 0; j <= polOrder; j++)
+            for (label j = 0; j < ((polOrder+1)-i); j++)
             {
-                Integral[i][j].resize((polOrder + 1), 0.0);
+                Integral[i][j].resize((polOrder + 1)-i, 0.0);
             }
         }
 
