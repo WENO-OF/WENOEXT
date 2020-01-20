@@ -689,17 +689,6 @@ Foam::WENOBase::WENOBase
         labelList nStencils(mesh.nCells(),0);
 
         scalarMatrix geometryMatrix;
-        geometryMatrix.resize((polOrder_ + 1));
-
-        for (label i = 0; i <= polOrder; i++)
-        {
-            geometryMatrix[i].resize((polOrder_ + 1));
-
-            for (label j = 0; j <= polOrder; j++)
-            {
-                geometryMatrix[i][j].resize((polOrder_ + 1), 0.0);
-            }
-        }
 
         volMom_.setSize(mesh.nCells(), geometryMatrix);
 
@@ -1157,17 +1146,6 @@ bool Foam::WENOBase::readList
         // faster than writting and reading
 
         scalarMatrix geometryMatrix;
-        geometryMatrix.resize((polOrder_+1));
-
-        for (label i = 0; i <= polOrder_; i++)
-        {
-            geometryMatrix[i].resize((polOrder_ + 1));
-
-            for (label j = 0; j <= polOrder_; j++)
-            {
-                geometryMatrix[i][j].resize((polOrder_ + 1), 0.0);
-            }
-        }
 
         volMom_.setSize(mesh.nCells(),geometryMatrix);
         JInv_.setSize(mesh.nCells());
