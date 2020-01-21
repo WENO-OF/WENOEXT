@@ -690,6 +690,19 @@ Foam::WENOBase::WENOBase
 
         volIntegralType volIntegrals;
 
+        volIntegrals.resize((polOrder_ + 1));
+
+        for (label i = 0; i <= polOrder; i++)
+        {
+            volIntegrals[i].resize((polOrder_ + 1));
+
+            for (label j = 0; j <= polOrder; j++)
+            {
+                volIntegrals[i][j].resize((polOrder_ + 1), 0.0);
+            }
+        }
+
+
         volIntegralsList_.setSize(mesh.nCells(), volIntegrals);
 
         labelListList lastNeighbours(mesh.nCells());
@@ -1145,7 +1158,20 @@ bool Foam::WENOBase::readList
         // Calculating volume integrals in transformed coordinates,
         // faster than writting and reading
 
+
         volIntegralType volIntegrals;
+
+        volIntegrals.resize((polOrder_+1));
+
+        for (label i = 0; i <= polOrder_; i++)
+        {
+            volIntegrals[i].resize((polOrder_ + 1));
+
+            for (label j = 0; j <= polOrder_; j++)
+            {
+                volIntegrals[i][j].resize((polOrder_ + 1), 0.0);
+            }
+        }
 
         volIntegralsList_.setSize(mesh.nCells(),volIntegrals);
         JInv_.setSize(mesh.nCells());
