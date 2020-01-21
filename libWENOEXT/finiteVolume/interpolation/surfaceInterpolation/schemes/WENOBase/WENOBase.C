@@ -692,13 +692,13 @@ Foam::WENOBase::WENOBase
 
         volIntegrals.resize((polOrder_ + 1));
 
-        for (label i = 0; i <= polOrder; i++)
+        for (label i = 0; i < (polOrder_+1); i++)
         {
-            volIntegrals[i].resize((polOrder_ + 1));
+            volIntegrals[i].resize((polOrder_+ 1)-i);
 
-            for (label j = 0; j <= polOrder; j++)
+            for (label j = 0; j < ((polOrder_+1)-i); j++)
             {
-                volIntegrals[i][j].resize((polOrder_ + 1), 0.0);
+                volIntegrals[i][j].resize((polOrder_ + 1)-i, 0.0);
             }
         }
 
@@ -1163,13 +1163,13 @@ bool Foam::WENOBase::readList
 
         volIntegrals.resize((polOrder_+1));
 
-        for (label i = 0; i <= polOrder_; i++)
+        for (label i = 0; i < (polOrder_+1); i++)
         {
-            volIntegrals[i].resize((polOrder_ + 1));
+            volIntegrals[i].resize((polOrder_+ 1)-i);
 
-            for (label j = 0; j <= polOrder_; j++)
+            for (label j = 0; j < ((polOrder_+1)-i); j++)
             {
-                volIntegrals[i][j].resize((polOrder_ + 1), 0.0);
+                volIntegrals[i][j].resize((polOrder_ + 1)-i, 0.0);
             }
         }
 
