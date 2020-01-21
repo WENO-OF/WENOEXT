@@ -75,7 +75,7 @@ private:
     //- Private Data
 
         //- Typedef for 3D scalar matrix
-        using scalarMatrix = List< List< List<scalar> > > ;
+        using volIntegralType = List< List< List<scalar> > > ;
         
         //- C++11 typedef for squareMatrix
         //  This is used for Jacobian matrix
@@ -114,11 +114,11 @@ private:
 
         //- List of volume integrals over basis functions
         //  Calculated in the reference space
-        List<scalarMatrix> volMom_;
+        List<volIntegralType> volIntegralsList_;
 
         //- Lists of surface integrals of basis functions
         //  Calculated in the reference space
-        List<List<scalarMatrix> > intBasTrans_;
+        List<List<volIntegralType> > intBasTrans_;
 
         //- List of face areas in the reference space
         List<scalarList> refFacAr_;
@@ -200,8 +200,8 @@ private:
             const label m,
             const label n,
             const label o,
-            const scalarMatrix& integralsj,
-            const scalarMatrix& integralsi
+            const volIntegralType& integralsj,
+            const volIntegralType& integralsi
         );
 
         //- Check for existing lists in constant folder and read them
@@ -269,7 +269,7 @@ public:
         {
             return &B_;
         }
-        inline List<List<scalarMatrix> >* getPointerIntBasTrans()
+        inline List<List<volIntegralType> >* getPointerIntBasTrans()
         {
             return &intBasTrans_;
         };

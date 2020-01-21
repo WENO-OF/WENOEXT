@@ -56,7 +56,7 @@ namespace geometryWENO
 {
 
     //- Typedef for 3D scalar matrix
-    using scalarMatrix = List< List< List<scalar> > > ;
+    using volIntegralType = List< List< List<scalar> > > ;
     using scalarSquareMatrix = SquareMatrix<scalar>;
 
     // Member Functions
@@ -73,14 +73,14 @@ namespace geometryWENO
             const vector v2
         );
 
-        //- Build the transformation and calculate the volume integral for
-        //- each cell
+        //- Calculate integral of Eq. (3.20) in Master Thesis 
+        //  for any combination of l,m,n with the restrain '(l+m+n) < r'
         void initIntegrals
         (
             const fvMesh& mesh,
             const label cellI,
             const label polOrder,
-            scalarMatrix& Integral,
+            volIntegralType& volIntegrals,
             scalarSquareMatrix& JInvI,
             point& refPointI,
             scalar& refDetI
@@ -95,7 +95,7 @@ namespace geometryWENO
 
         //- Calculate volume integrals of halo cells in reference space of
         //- owner cell
-        scalarMatrix getHaloMoments
+        volIntegralType getHaloMoments
         (
             const fvMesh& mesh,
             const point transCenterJ,
@@ -107,7 +107,7 @@ namespace geometryWENO
 
         //- Calculate the volume integrals of stencil cells in reference space
         //- of owner cell
-        scalarMatrix transformIntegral
+        volIntegralType transformIntegral
         (
             const fvMesh& mesh,
             const label cellJ,
@@ -152,7 +152,7 @@ namespace geometryWENO
         );
 
         //- Calculate the volume integrals for the smoothness indicator matrix
-        scalarMatrix smoothIndIntegrals
+        volIntegralType smoothIndIntegrals
         (
             const fvMesh& mesh,
             const label cellI,
@@ -184,10 +184,10 @@ namespace geometryWENO
         (
             const fvMesh& mesh,
             const label polOrder,
-            const List<scalarMatrix>& volMom,
+            const List<volIntegralType>& volIntegralsList,
             const List<scalarSquareMatrix>& JInv,
             const List<point>& refPoint,
-            List<List<scalarMatrix> >& intBasTrans,
+            List<List<volIntegralType> >& intBasTrans,
             List<scalarList>& refFacAr
         );
 
@@ -196,7 +196,7 @@ namespace geometryWENO
             const label n,
             const label m,
             const label l,
-            const scalarMatrix& intBasisfI
+            const volIntegralType& intBasisfI
         );
         
         //- Create Jacobi matrix from pointField and label

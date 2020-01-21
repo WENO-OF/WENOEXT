@@ -100,7 +100,7 @@ void Foam::geometryWENO::initIntegrals
     const fvMesh& mesh,
     const label cellI,
     const label polOrder,
-    scalarMatrix& Integral,
+    volIntegralType& volIntegrals,
     scalarSquareMatrix& JInvI,
     point& refPointI,
     scalar& refDetI
@@ -222,15 +222,15 @@ void Foam::geometryWENO::initIntegrals
         }
 
         // Initialize size of integral list
-        Integral.resize((polOrder + 1));
+        volIntegrals.resize((polOrder + 1));
 
         for (label i = 0; i < (polOrder+1); i++)
         {
-            Integral[i].resize((polOrder+ 1)-i);
+            volIntegrals[i].resize((polOrder+ 1)-i);
 
             for (label j = 0; j < ((polOrder+1)-i); j++)
             {
-                Integral[i][j].resize((polOrder + 1)-i, 0.0);
+                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
             }
         }
 
@@ -243,19 +243,19 @@ void Foam::geometryWENO::initIntegrals
                 {
                     if ((n + m + l) <= polOrder && n > 0)
                     {
-                        Integral[n][m][l] +=
+                        volIntegrals[n][m][l] +=
                             1.0/(n + 1)*area*vn.x()
                             *gaussQuad(n + 1, m, l, refPointTrans, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder && m > 0)
                     {
-                        Integral[n][m][l] +=
+                        volIntegrals[n][m][l] +=
                             1.0/(m + 1)*area*vn.y()
                             *gaussQuad(n, m + 1, l, refPointTrans, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder)
                     {
-                        Integral[n][m][l] +=
+                        volIntegrals[n][m][l] +=
                             1.0/(l + 1)*area*vn.z()
                             *gaussQuad(n, m, l + 1, refPointTrans, v0, v1, v2);
                     }
@@ -272,7 +272,7 @@ void Foam::geometryWENO::initIntegrals
             {
                 if ((n + m + l) <= polOrder)
                 {
-                    Integral[n][m][l] *=
+                    volIntegrals[n][m][l] *=
                         1.0/(mag(refDetI)*mesh.cellVolumes()[cellI]);
                 }
             }
@@ -318,7 +318,7 @@ Foam::List<Foam::point> Foam::geometryWENO::getTriFaces
 }
 
 
-Foam::geometryWENO::scalarMatrix Foam::geometryWENO::getHaloMoments
+Foam::geometryWENO::volIntegralType Foam::geometryWENO::getHaloMoments
 (
     const fvMesh& mesh,
     const point transCenterJ,
@@ -328,7 +328,7 @@ Foam::geometryWENO::scalarMatrix Foam::geometryWENO::getHaloMoments
     const point refPointI
 )
 {
-    scalarMatrix Integral;
+    volIntegralType Integral;
 
     Integral.resize((polOrder + 1));
     for (label i = 0; i < (polOrder + 1); i++)
@@ -416,7 +416,7 @@ Foam::geometryWENO::scalarMatrix Foam::geometryWENO::getHaloMoments
 }
 
 
-Foam::geometryWENO::scalarMatrix Foam::geometryWENO::transformIntegral
+Foam::geometryWENO::volIntegralType Foam::geometryWENO::transformIntegral
 (
     const fvMesh& mesh,
     const label cellJ,
@@ -429,7 +429,7 @@ Foam::geometryWENO::scalarMatrix Foam::geometryWENO::transformIntegral
 {
     const pointField& pts = mesh.points();
 
-    scalarMatrix Integral;
+    volIntegralType Integral;
 
     Integral.resize((polOrder + 1));
     for (label i = 0; i <= polOrder; i++)
@@ -683,7 +683,7 @@ Foam::scalar Foam::geometryWENO::gaussQuadB
 
 
 
-Foam::geometryWENO::scalarMatrix Foam::geometryWENO::smoothIndIntegrals
+Foam::geometryWENO::volIntegralType Foam::geometryWENO::smoothIndIntegrals
 (
     const fvMesh& mesh,
     const label cellI,
@@ -695,7 +695,7 @@ Foam::geometryWENO::scalarMatrix Foam::geometryWENO::smoothIndIntegrals
     const pointField& pts = mesh.points();
     const label maxOrder = 2*polOrder - 2;
 
-    scalarMatrix Integral;
+    volIntegralType Integral;
     Integral.setSize((maxOrder + 1));
 
     for (label i = 0; i < (maxOrder + 1); i++)
@@ -830,7 +830,7 @@ Foam::scalarRectangularMatrix Foam::geometryWENO::getB
     );
 
     // Get all necessary volume integrals
-    scalarMatrix intB =
+    volIntegralType intB =
         smoothIndIntegrals
         (
             mesh,
@@ -935,10 +935,10 @@ void Foam::geometryWENO::surfIntTrans
 (
     const fvMesh& mesh,
     const label polOrder,
-    const List<scalarMatrix>& volMom,
+    const List<volIntegralType>& volIntegralsList,
     const List<scalarSquareMatrix>& JInv,
     const List<point>& refPoint,
-    List<List<scalarMatrix> >& intBasTrans,
+    List<List<volIntegralType> >& intBasTrans,
     List<scalarList>& refFacAr
 )
 {
@@ -1073,7 +1073,7 @@ void Foam::geometryWENO::surfIntTrans
                             intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] -=
                             (
                                 refFacAr[faces[faceI]][OwnNeighIndex]
-                               *volMom[cellI][n][m][l]
+                               *volIntegralsList[cellI][n][m][l]
                             );
                         }
                     }
@@ -1112,7 +1112,7 @@ Foam::vector Foam::geometryWENO::compCheck
     const label n,
     const label m,
     const label l,
-    const scalarMatrix& intBasisfI
+    const volIntegralType& intBasisfI
 )
 {
     vector result(0.0,0.0,0.0);
