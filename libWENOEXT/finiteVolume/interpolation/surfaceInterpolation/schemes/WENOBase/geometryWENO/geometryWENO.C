@@ -1016,17 +1016,23 @@ void Foam::geometryWENO::surfIntTrans
 
         for (label faceI = 0; faceI < faces.size(); faceI++)
         {
-            label OwnNeighIndex = 3;
+            // initialize 
+            label OwnNeighIndex = -1;
 
-            if (cellI == P[faces[faceI]])
+            if (faces[faceI] < P.size() && cellI == P[faces[faceI]])
             {
                 OwnNeighIndex = 0;
             }
-            else if (cellI == N[faces[faceI]])
+            else if (faces[faceI] < N.size() && cellI == N[faces[faceI]])
             {
                 OwnNeighIndex = 1;
             }
-
+            else
+            {
+                // If face is neither in owner or neighbour it is at the boundary
+                // and thus an owner 
+                OwnNeighIndex = 0;
+            }
             // Triangulate the faces
             List<tetIndices> faceTets =
                 polyMeshTetDecomposition::faceTetIndices
