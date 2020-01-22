@@ -965,7 +965,7 @@ Foam::WENOBase::WENOBase
 
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
         {
-            label exludeFace = 0;
+            label excludeFace = 0;
 
             LSmatrix_[cellI].setSize(nStencils[cellI]);
 
@@ -973,7 +973,7 @@ Foam::WENOBase::WENOBase
             {
                 if (stencilsID_[cellI][stencilI][0] != -1)
                 {
-                    LSmatrix_[cellI][stencilI - exludeFace] =
+                    LSmatrix_[cellI][stencilI - excludeFace] =
                         calcMatrix
                         (
                             mesh,
@@ -984,7 +984,7 @@ Foam::WENOBase::WENOBase
                 }
                 else
                 {
-                    exludeFace++;
+                    excludeFace++;
                 }
             }
 
