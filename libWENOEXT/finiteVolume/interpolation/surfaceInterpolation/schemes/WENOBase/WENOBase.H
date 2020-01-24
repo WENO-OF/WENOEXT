@@ -219,6 +219,16 @@ private:
             const fvMesh& mesh,
             const fileName DirBase
         );
+        
+        //- Add the coefficients to the matrix A for each row
+        void addCoeffs
+        (
+            scalarRectangularMatrix& A,
+            const label cellj,
+            const label polOrder,
+            const labelList& dim,
+            const volIntegralType& volIntegralsIJ
+        );
 
 
 public:

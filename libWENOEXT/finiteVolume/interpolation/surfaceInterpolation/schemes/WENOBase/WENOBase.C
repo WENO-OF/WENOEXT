@@ -28,7 +28,6 @@ Author
 
 #include "codeRules.H"
 #include "WENOBase.H"
-#include "WENOPolynomial.H"
 #include "geometryWENO.H"
 #include "SVD.H"
 #include "processorFvPatch.H"
@@ -578,14 +577,9 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                 }
             }
         }
-
-        WENOPolynomial::addCoeffs
-        (
-            A[cellJ - 1],
-            polOrder_,
-            dimList_[cellI],
-            volIntegralsIJ
-        );
+        
+        // Populate the matrix A
+        addCoeffs(A,cellJ,polOrder_,dimList_[cellI],volIntegralsIJ);
     }
 
     // Returning pseudoinverse using SVD
@@ -627,6 +621,35 @@ Foam::scalar Foam::WENOBase::calcGeom
     return (geom - volMomI[n][m][o]);
 }
 
+
+void Foam::WENOBase::addCoeffs
+(
+    scalarRectangularMatrix& A,
+    const label cellj,
+    const label polOrder,
+    const labelList& dim,
+    const volIntegralType& volIntegralsIJ 
+)
+{
+    for (int k = 0;k < A.n(); k++)
+        {
+            for (label n=0 ; n <= dim[0] ; n++)
+            {
+                for (label m=0 ; m <= dim[1] ; m++)
+                {
+                    for (label l=0 ; l <= dim[2] ; l++)
+                    {
+                        if( (n+m+l) <= polOrder_ && (n+m+l) > 0 )
+                        {
+                            A[cellj-1][k] = volIntegralsIJ[n][m][l];
+                        }
+                    }
+                }
+            }
+        }
+}
+
+// ---------------------------- Constructor ------------------------------------
 
 Foam::WENOBase::WENOBase
 (
