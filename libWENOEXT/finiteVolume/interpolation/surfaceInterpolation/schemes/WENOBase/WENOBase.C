@@ -638,18 +638,8 @@ Foam::WENOBase::WENOBase
 
     Dir_ = mesh.time().path()/"constant"/"WENOBase" + Foam::name(polOrder_);
 
-    labelList dummyList(3,0);
-    dimList_.setSize(mesh.nCells(),dummyList);
-
-    for (label i = 0; i < mesh.nCells(); i++)
-    {
-        dimList_[i][0] = polOrder_;
-        dimList_[i][1] = polOrder_;
-        dimList_[i][2] = polOrder_;
-    }
-
     // 3D version
-    if (mesh.nGeometricD() == 3)
+    if (mesh.nSolutionD() == 3)
     {
         nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)*(polOrder_ + 3.0)/6.0 - 1.0;
     }
@@ -657,6 +647,21 @@ Foam::WENOBase::WENOBase
     {
         nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)/2.0 - 1.0;
     }
+
+    // Set the dimList
+    labelList dummyList(3,0);
+    dimList_.setSize(mesh.nCells(),dummyList);
+    
+    // Vector with valid dimensions
+    vector dimMesh = mesh.solutionD();
+    
+    for (label i = 0; i < mesh.nCells(); i++)
+    {
+        dimList_[i][0] = (dimMesh[0] == 1 ? polOrder_ : 0);
+        dimList_[i][1] = (dimMesh[1] == 1 ? polOrder_ : 0);
+        dimList_[i][2] = (dimMesh[2] == 1 ? polOrder_ : 0);
+    }
+
 
     // Check for existing lists
     bool listExist = readList(mesh);
@@ -916,46 +921,6 @@ Foam::WENOBase::WENOBase
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
         {
             splitStencil(mesh, cellI, nStencils[cellI]);
-        }
-
-
-        // Get dimensionality in transformed space,
-        // Necessary for 2D version
-
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-        {
-            point transCI =
-                Foam::geometryWENO::transformPoint
-                (
-                    JInv_[cellI],
-                    mesh.C()[stencilsID_[cellI][0][0]],
-                    refPoint_[cellI]
-                );
-
-            bool dimXi = false;
-            bool dimEta = false;
-            bool dimZeta = false;
-
-            for (label q = 1; q < stencilsID_[cellI][0].size(); q++)
-            {
-                point transCJ =
-                    Foam::geometryWENO::transformPoint
-                    (
-                        JInv_[cellI],
-                        mesh.C()[stencilsID_[cellI][0][q]],
-                        refPoint_[cellI]
-                    );
-
-                if(mag(transCJ.x()-transCI.x()) > 1e-10) dimXi = true;
-
-                if(mag(transCJ.y()-transCI.y()) > 1e-10) dimEta = true;
-
-                if(mag(transCJ.z()-transCI.z()) > 1e-10) dimZeta = true;
-            }
-
-            if (dimXi != true) dimList_[cellI][0] = 0;
-            if (dimEta != true) dimList_[cellI][1] = 0;
-            if (dimZeta != true) dimList_[cellI][2] = 0;
         }
 
 
