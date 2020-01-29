@@ -22,6 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Author
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
 
 \*---------------------------------------------------------------------------*/

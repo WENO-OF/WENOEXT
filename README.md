@@ -7,6 +7,13 @@ Tested versions:
     - OpenFOAM-dev
     - OpenFOAM-5.x
 
+Authors
+=======
+
+ * Tobias Martin <tobimartin2@googlemail.com>
+ * Jan Wilhelm Gärtner <jan.gaertner@outlook.de>
+
+
 Installation
 ============
 1. rename the folder in "WENOEXT"
