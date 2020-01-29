@@ -58,6 +58,8 @@ private:
         //- Typedef for 3D scalar matrix
         typedef List< List< List<scalar> > > scalarMatrix;
 
+        const scalar epsilon_ = 1E-40;
+
         //- WENO weighting factors
         scalar p_;
         scalar dm_;
@@ -223,11 +225,11 @@ public:
 
                 if (stencilI == 0)
                 {
-                    gamma = dm_/(pow(10e-6 + smoothInd,p_));
+                    gamma = dm_/(pow(epsilon_ + smoothInd,p_));
                 }
                 else
                 {
-                    gamma = 1.0/(pow(10e-6 + smoothInd,p_));
+                    gamma = 1.0/(pow(epsilon_ + smoothInd,p_));
                 }
 
                 gammaSum += gamma;
