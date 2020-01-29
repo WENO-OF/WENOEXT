@@ -100,8 +100,8 @@ void Foam::geometryWENO::initIntegrals
     const fvMesh& mesh,
     const label cellI,
     const label polOrder,
-    scalarMatrix& Integral,
-    scalarRectangularMatrix& JInvI,
+    volIntegralType& volIntegrals,
+    scalarSquareMatrix& JInvI,
     point& refPointI,
     scalar& refDetI
 )
@@ -112,6 +112,10 @@ void Foam::geometryWENO::initIntegrals
 
     const labelList pLabels(cc.labels(fcs));
     const labelList pEdge = mesh.pointPoints()[pLabels[0]];
+
+    const scalar cellDimension = cc.mag(pts,fcs);
+
+
 
     // Create reference frame of new space
 
@@ -138,14 +142,11 @@ void Foam::geometryWENO::initIntegrals
     (
         checkRefFrame
         (
-            pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
-            pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
-            pts[referenceFrame[1]][1], pts[referenceFrame[1]][2],
-            pts[referenceFrame[2]][0], pts[referenceFrame[2]][1],
-            pts[referenceFrame[2]][2], pts[referenceFrame[3]][0],
-            pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
+            jacobi(pts,referenceFrame),
+            cellDimension
         )
         != true
+        && (k < pLabels.size())
     )
     {
         const labelList pEdgeMod = mesh.pointPoints()[pLabels[k]];
@@ -170,27 +171,13 @@ void Foam::geometryWENO::initIntegrals
         referenceFrame = modrefFrame;
     }
 
-    JInvI =
-        JacobiInverse
-        (
-            pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
-            pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
-            pts[referenceFrame[1]][1], pts[referenceFrame[1]][2],
-            pts[referenceFrame[2]][0], pts[referenceFrame[2]][1],
-            pts[referenceFrame[2]][2], pts[referenceFrame[3]][0],
-            pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
-        );
+    scalarSquareMatrix J = jacobi(pts,referenceFrame);
 
-    refDetI =
-        determinantJacInv
-        (
-            pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
-            pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
-            pts[referenceFrame[1]][1], pts[referenceFrame[1]][2],
-            pts[referenceFrame[2]][0], pts[referenceFrame[2]][1],
-            pts[referenceFrame[2]][2], pts[referenceFrame[3]][0],
-            pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
-        );
+    // We have to live with a copy assignment as Foam::Matrix() does not have
+    // a move assignment operator... 
+    JInvI = JacobiInverse(J);
+
+    refDetI = det(JInvI);
 
     const point refPointTrans =
         Foam::geometryWENO::transformPoint
@@ -234,6 +221,19 @@ void Foam::geometryWENO::initIntegrals
             vn /= mag(vn);
         }
 
+        // Initialize size of integral list
+        volIntegrals.resize((polOrder + 1));
+
+        for (label i = 0; i < (polOrder+1); i++)
+        {
+            volIntegrals[i].resize((polOrder+ 1)-i);
+
+            for (label j = 0; j < ((polOrder+1)-i); j++)
+            {
+                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
+            }
+        }
+
         // Evaluate integral using Gaussian quadratures
         for (label n = 0; n <= polOrder; n++)
         {
@@ -243,19 +243,19 @@ void Foam::geometryWENO::initIntegrals
                 {
                     if ((n + m + l) <= polOrder && n > 0)
                     {
-                        Integral[n][m][l] +=
+                        volIntegrals[n][m][l] +=
                             1.0/(n + 1)*area*vn.x()
                             *gaussQuad(n + 1, m, l, refPointTrans, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder && m > 0)
                     {
-                        Integral[n][m][l] +=
+                        volIntegrals[n][m][l] +=
                             1.0/(m + 1)*area*vn.y()
                             *gaussQuad(n, m + 1, l, refPointTrans, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder)
                     {
-                        Integral[n][m][l] +=
+                        volIntegrals[n][m][l] +=
                             1.0/(l + 1)*area*vn.z()
                             *gaussQuad(n, m, l + 1, refPointTrans, v0, v1, v2);
                     }
@@ -272,7 +272,7 @@ void Foam::geometryWENO::initIntegrals
             {
                 if ((n + m + l) <= polOrder)
                 {
-                    Integral[n][m][l] *=
+                    volIntegrals[n][m][l] *=
                         1.0/(mag(refDetI)*mesh.cellVolumes()[cellI]);
                 }
             }
@@ -318,17 +318,17 @@ Foam::List<Foam::point> Foam::geometryWENO::getTriFaces
 }
 
 
-Foam::geometryWENO::scalarMatrix Foam::geometryWENO::getHaloMoments
+Foam::geometryWENO::volIntegralType Foam::geometryWENO::getHaloMoments
 (
     const fvMesh& mesh,
     const point transCenterJ,
     const List<point>& triFaceCoord,
     const label polOrder,
-    const scalarRectangularMatrix& JInvI,
+    const scalarSquareMatrix& JInvI,
     const point refPointI
 )
 {
-    scalarMatrix Integral;
+    volIntegralType Integral;
 
     Integral.resize((polOrder + 1));
     for (label i = 0; i < (polOrder + 1); i++)
@@ -416,20 +416,20 @@ Foam::geometryWENO::scalarMatrix Foam::geometryWENO::getHaloMoments
 }
 
 
-Foam::geometryWENO::scalarMatrix Foam::geometryWENO::transformIntegral
+Foam::geometryWENO::volIntegralType Foam::geometryWENO::transformIntegral
 (
     const fvMesh& mesh,
     const label cellJ,
     const point transCenterJ,
     const label polOrder,
-    const scalarRectangularMatrix& JInvI,
+    const scalarSquareMatrix& JInvI,
     const point refPointI,
     const scalar refDetI
 )
 {
     const pointField& pts = mesh.points();
 
-    scalarMatrix Integral;
+    volIntegralType Integral;
 
     Integral.resize((polOrder + 1));
     for (label i = 0; i <= polOrder; i++)
@@ -526,20 +526,15 @@ Foam::geometryWENO::scalarMatrix Foam::geometryWENO::transformIntegral
 
 bool Foam::geometryWENO::checkRefFrame
 (
-    const scalar x0, const scalar y0, const scalar z0,
-    const scalar x1, const scalar y1, const scalar z1,
-    const scalar x2, const scalar y2, const scalar z2,
-    const scalar x3, const scalar y3, const scalar z3
+    const scalarSquareMatrix&& J,
+    const scalar cellDimension
 )
 {
+    // Calculate determinante of Jacobian matrix 
+    // Determinante has to be greater than zero to calculate the inverse
     if
     (
-        mag(x2*y1*z0 - x3*y1*z0 - x1*y2*z0 + x3*y2*z0 + x1*y3*z0
-      - x2*y3*z0 - x2*y0*z1 + x3*y0*z1 + x0*y2*z1 - x3*y2*z1
-      - x0*y3*z1 + x2*y3*z1 + x1*y0*z2 - x3*y0*z2 - x0*y1*z2
-      + x3*y1*z2 + x0*y3*z2 - x1*y3*z2 - x1*y0*z3 + x2*y0*z3
-      + x0*y1*z3 - x2*y1*z3 - x0*y2*z3 + x1*y2*z3 )
-        < 1e-10
+        det(J) < cellDimension
     )
     {
         return false;
@@ -551,84 +546,40 @@ bool Foam::geometryWENO::checkRefFrame
 }
 
 
-Foam::scalarRectangularMatrix Foam::geometryWENO::JacobiInverse
+Foam::scalarSquareMatrix Foam::geometryWENO::JacobiInverse
 (
-    const scalar x0, const scalar y0, const scalar z0,
-    const scalar x1, const scalar y1, const scalar z1,
-    const scalar x2, const scalar y2, const scalar z2,
-    const scalar x3, const scalar y3, const scalar z3
+    const scalarSquareMatrix& J
 )
 {
-    scalarRectangularMatrix JacobiInv(3,3,0.0);
+    scalarSquareMatrix JacobiInv(3,0.0);
 
-    scalar det =
-    (
-        x2*y1*z0 - x3*y1*z0 - x1*y2*z0 + x3*y2*z0 + x1*y3*z0
-      - x2*y3*z0 - x2*y0*z1 + x3*y0*z1 + x0*y2*z1 - x3*y2*z1
-      - x0*y3*z1 + x2*y3*z1 + x1*y0*z2 - x3*y0*z2 - x0*y1*z2
-      + x3*y1*z2 + x0*y3*z2 - x1*y3*z2 - x1*y0*z3 + x2*y0*z3
-      + x0*y1*z3 - x2*y1*z3 - x0*y2*z3 + x1*y2*z3
-    );
+    scalar det = Foam::det(J);
 
-    JacobiInv[0][0] = (-(y2*z0) + y3*z0 + y0*z2 - y3*z2 - y0*z3 + y2*z3)/det;
+    JacobiInv[0][0] = (J(1,1)*J(2,2)-J(1,2)*J(2,1))/det;
 
-    JacobiInv[0][1] = (x2*z0 - x3*z0 - x0*z2 + x3*z2 + x0*z3 - x2*z3)/det;
+    JacobiInv[0][1] = (J(0,2)*J(2,1)-J(0,1)*J(2,2))/det;
 
-    JacobiInv[0][2] = (-(x2*y0) + x3*y0 + x0*y2 - x3*y2 - x0*y3 + x2*y3)/det;
+    JacobiInv[0][2] = (J(0,1)*J(1,2)-J(0,2)*J(1,1))/det;
 
-    JacobiInv[1][0] = (y1*z0 - y3*z0 - y0*z1 + y3*z1 + y0*z3 - y1*z3)/det;
+    JacobiInv[1][0] = (J(1,2)*J(2,0)-J(1,0)*J(2,2))/det;
 
-    JacobiInv[1][1] = (-(x1*z0) + x3*z0 + x0*z1 - x3*z1 - x0*z3 + x1*z3)/det;
+    JacobiInv[1][1] = (J(0,0)*J(2,2)-J(0,2)*J(2,0))/det;
 
-    JacobiInv[1][2] = (x1*y0 - x3*y0 - x0*y1 + x3*y1 + x0*y3 - x1*y3)/det;
+    JacobiInv[1][2] = (J(0,2)*J(1,0)-J(0,0)*J(1,2))/det;
 
-    JacobiInv[2][0] = (-(y1*z0) + y2*z0 + y0*z1 - y2*z1 - y0*z2 + y1*z2)/det;
+    JacobiInv[2][0] = (J(1,0)*J(2,1)-J(1,1)*J(2,0))/det;
 
-    JacobiInv[2][1] = (x1*z0 - x2*z0 - x0*z1 + x2*z1 + x0*z2 - x1*z2)/det;
+    JacobiInv[2][1] = (J(0,1)*J(2,0)-J(0,0)*J(2,1))/det;
 
-    JacobiInv[2][2] = (-(x1*y0) + x2*y0 + x0*y1 - x2*y1 - x0*y2 + x1*y2)/det;
+    JacobiInv[2][2] = (J(0,0)*J(1,1)-J(0,1)*J(1,0))/det;
 
     return JacobiInv;
 }
 
 
-Foam::scalar Foam::geometryWENO::determinantJacInv
-(
-    const scalar x0, const scalar y0, const scalar z0,
-    const scalar x1, const scalar y1, const scalar z1,
-    const scalar x2, const scalar y2, const scalar z2,
-    const scalar x3, const scalar y3, const scalar z3
-)
-{
-    return
-    (
-        ((-(y1*z0) + y2*z0 + y0*z1 - y2*z1 - y0*z2 + y1*z2)*
-        (-((-(x2*y0) + x3*y0 + x0*y2 - x3*y2 - x0*y3 + x2*y3)*
-        (-(x1*z0) + x3*z0 + x0*z1 - x3*z1 - x0*z3 +
-        x1*z3)) + (x1*y0 - x3*y0 - x0*y1 + x3*y1 +
-        x0*y3 - x1*y3)*(x2*z0 - x3*z0 - x0*z2 + x3*z2 + x0*z3
-        - x2*z3)) - (x1*z0 - x2*z0 - x0*z1 + x2*z1 + x0*z2 - x1*z2)*
-        (-((-(x2*y0) + x3*y0 + x0*y2 - x3*y2 - x0*y3 + x2*y3)*
-        (y1*z0 - y3*z0 - y0*z1 + y3*z1 + y0*z3 - y1*z3))
-        + (x1*y0 - x3*y0 - x0*y1 + x3*y1 + x0*y3 - x1*y3)*
-        (-(y2*z0) + y3*z0 + y0*z2 - y3*z2 - y0*z3 + y2*z3))
-        + (-(x1*y0) + x2*y0 + x0*y1 - x2*y1 - x0*y2 + x1*y2)*
-        (-((x2*z0 - x3*z0 - x0*z2 + x3*z2 + x0*z3 - x2*z3)*
-        (y1*z0 - y3*z0 - y0*z1 + y3*z1 + y0*z3 - y1*z3))
-        + (-(x1*z0) + x3*z0 + x0*z1 - x3*z1 - x0*z3 +
-        x1*z3)*(-(y2*z0) + y3*z0 + y0*z2 - y3*z2 -
-        y0*z3 + y2*z3)))/pow(x2*y1*z0 - x3*y1*z0 - x1*y2*z0 + x3*y2*z0 +
-        x1*y3*z0 - x2*y3*z0 - x2*y0*z1 + x3*y0*z1 + x0*y2*z1 -
-        x3*y2*z1 - x0*y3*z1 + x2*y3*z1 + x1*y0*z2 - x3*y0*z2 -
-        x0*y1*z2 + x3*y1*z2 + x0*y3*z2 - x1*y3*z2 - x1*y0*z3 +
-        x2*y0*z3 + x0*y1*z3 - x2*y1*z3 - x0*y2*z3 + x1*y2*z3, 3.0)
-    );
-}
-
-
 Foam::point Foam::geometryWENO::transformPoint
 (
-    const scalarRectangularMatrix& Jinv,
+    const scalarSquareMatrix& Jinv,
     const point xP,
     const point x0
 )
@@ -732,19 +683,19 @@ Foam::scalar Foam::geometryWENO::gaussQuadB
 
 
 
-Foam::geometryWENO::scalarMatrix Foam::geometryWENO::smoothIndIntegrals
+Foam::geometryWENO::volIntegralType Foam::geometryWENO::smoothIndIntegrals
 (
     const fvMesh& mesh,
     const label cellI,
     const label polOrder,
-    const scalarRectangularMatrix& JInvI,
+    const scalarSquareMatrix& JInvI,
     const point refPointI
 )
 {
     const pointField& pts = mesh.points();
     const label maxOrder = 2*polOrder - 2;
 
-    scalarMatrix Integral;
+    volIntegralType Integral;
     Integral.setSize((maxOrder + 1));
 
     for (label i = 0; i < (maxOrder + 1); i++)
@@ -866,7 +817,7 @@ Foam::scalarRectangularMatrix Foam::geometryWENO::getB
     const label cellI,
     const label polOrder,
     const label nDvt,
-    const scalarRectangularMatrix& JInvI,
+    const scalarSquareMatrix& JInvI,
     const point refPointI,
     const labelList& dim
 )
@@ -879,7 +830,7 @@ Foam::scalarRectangularMatrix Foam::geometryWENO::getB
     );
 
     // Get all necessary volume integrals
-    scalarMatrix intB =
+    volIntegralType intB =
         smoothIndIntegrals
         (
             mesh,
@@ -984,10 +935,10 @@ void Foam::geometryWENO::surfIntTrans
 (
     const fvMesh& mesh,
     const label polOrder,
-    const List<scalarMatrix>& volMom,
-    const List<scalarRectangularMatrix>& JInv,
+    const List<volIntegralType>& volIntegralsList,
+    const List<scalarSquareMatrix>& JInv,
     const List<point>& refPoint,
-    List<List<scalarMatrix> >& intBasTrans,
+    List<List<volIntegralType> >& intBasTrans,
     List<scalarList>& refFacAr
 )
 {
@@ -1009,17 +960,23 @@ void Foam::geometryWENO::surfIntTrans
 
         for (label faceI = 0; faceI < faces.size(); faceI++)
         {
-            label OwnNeighIndex = 3;
+            // initialize 
+            label OwnNeighIndex = -1;
 
-            if (cellI == P[faces[faceI]])
+            if (faces[faceI] < P.size() && cellI == P[faces[faceI]])
             {
                 OwnNeighIndex = 0;
             }
-            else if (cellI == N[faces[faceI]])
+            else if (faces[faceI] < N.size() && cellI == N[faces[faceI]])
             {
                 OwnNeighIndex = 1;
             }
-
+            else
+            {
+                // If face is neither in owner or neighbour it is at the boundary
+                // and thus an owner 
+                OwnNeighIndex = 0;
+            }
             // Triangulate the faces
             List<tetIndices> faceTets =
                 polyMeshTetDecomposition::faceTetIndices
@@ -1116,7 +1073,7 @@ void Foam::geometryWENO::surfIntTrans
                             intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] -=
                             (
                                 refFacAr[faces[faceI]][OwnNeighIndex]
-                               *volMom[cellI][n][m][l]
+                               *volIntegralsList[cellI][n][m][l]
                             );
                         }
                     }
@@ -1155,7 +1112,7 @@ Foam::vector Foam::geometryWENO::compCheck
     const label n,
     const label m,
     const label l,
-    const scalarMatrix& intBasisfI
+    const volIntegralType& intBasisfI
 )
 {
     vector result(0.0,0.0,0.0);
@@ -1167,5 +1124,50 @@ Foam::vector Foam::geometryWENO::compCheck
     return result;
 }
 
+
+Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
+(
+    const pointField& pts,
+    const labelList& referenceFrame
+)
+{
+    scalarSquareMatrix J(3,0);
+    
+    for (int i = 0;i<3;i++)
+    {
+        for (int j = 0; j<3;j++)
+        {
+            J(i,j) = pts[referenceFrame[j+1]][i] - pts[referenceFrame[0]][i];
+        }
+    }
+    
+    return J;
+}
+
+
+Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
+(
+    const scalar x0, const scalar y0, const scalar z0,
+    const scalar x1, const scalar y1, const scalar z1,
+    const scalar x2, const scalar y2, const scalar z2,
+    const scalar x3, const scalar y3, const scalar z3
+)
+{
+    scalarSquareMatrix J(3,0);
+    
+    J(0,0) = x1-x0;
+    J(0,1) = x2-x0;
+    J(0,2) = x3-x0;
+    
+    J(1,0) = y1-y0;
+    J(1,1) = y2-y0;
+    J(1,2) = y3-y0;
+    
+    J(2,0) = z1-z0;
+    J(2,1) = z2-z0;
+    J(2,2) = z3-z0;
+    
+    return J;
+}
 
 // ************************************************************************* //

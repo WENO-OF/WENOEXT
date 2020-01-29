@@ -32,6 +32,7 @@ SourceFiles
 
 Author
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
 
 \*---------------------------------------------------------------------------*/
 
@@ -51,20 +52,17 @@ namespace Foam
                         Class geometryWENO Declaration
 \*---------------------------------------------------------------------------*/
 
-class geometryWENO
+namespace geometryWENO
 {
-private:
 
     //- Typedef for 3D scalar matrix
-    typedef List< List< List<scalar> > > scalarMatrix;
-
-
-public:
+    using volIntegralType = List< List< List<scalar> > > ;
+    using scalarSquareMatrix = SquareMatrix<scalar>;
 
     // Member Functions
 
         //- Evaluate the surface integral using Gaussian quadrature
-        static scalar gaussQuad
+        scalar gaussQuad
         (
             const scalar n,
             const scalar m,
@@ -75,21 +73,21 @@ public:
             const vector v2
         );
 
-        //- Build the transformation and calculate the volume integral for
-        //- each cell
-        static void initIntegrals
+        //- Calculate integral of Eq. (3.20) in Master Thesis 
+        //  for any combination of l,m,n with the restrain '(l+m+n) < r'
+        void initIntegrals
         (
             const fvMesh& mesh,
             const label cellI,
             const label polOrder,
-            scalarMatrix& Integral,
-            scalarRectangularMatrix& JInvI,
+            volIntegralType& volIntegrals,
+            scalarSquareMatrix& JInvI,
             point& refPointI,
             scalar& refDetI
         );
 
         //- Calculate triangulation of halo faces
-        static List<point> getTriFaces
+        List<point> getTriFaces
         (
             const fvMesh& mesh,
             const label cellI
@@ -97,66 +95,52 @@ public:
 
         //- Calculate volume integrals of halo cells in reference space of
         //- owner cell
-        static scalarMatrix getHaloMoments
+        volIntegralType getHaloMoments
         (
             const fvMesh& mesh,
             const point transCenterJ,
             const List<point>& triFaces,
             const label polOrder,
-            const scalarRectangularMatrix& JInvI,
+            const scalarSquareMatrix& JInvI,
             const point refPointI
         );
 
         //- Calculate the volume integrals of stencil cells in reference space
         //- of owner cell
-        static scalarMatrix transformIntegral
+        volIntegralType transformIntegral
         (
             const fvMesh& mesh,
             const label cellJ,
             const point transCenterJ,
             const label polOrder,
-            const scalarRectangularMatrix& JInvI,
+            const scalarSquareMatrix& JInvI,
             const point refPointI,
             const scalar refDetI
         );
 
         //- Check validity of chosen reference frame
-        static bool checkRefFrame
+        bool checkRefFrame
         (
-            const scalar x0, const scalar y0, const scalar z0,
-            const scalar x1, const scalar y1, const scalar z1,
-            const scalar x2, const scalar y2, const scalar z2,
-            const scalar x3, const scalar y3, const scalar z3
+            const scalarSquareMatrix&& J, // use forward referencing 
+            const scalar cellDimension
         );
 
         //- Calculate inverse of Jacobian matrix
-        static scalarRectangularMatrix JacobiInverse
+        scalarSquareMatrix JacobiInverse
         (
-            const scalar x0, const scalar y0, const scalar z0,
-            const scalar x1, const scalar y1, const scalar z1,
-            const scalar x2, const scalar y2, const scalar z2,
-            const scalar x3, const scalar y3, const scalar z3
-        );
-
-        //- Calculate determinant of inverse Jacobian matrix
-        static scalar determinantJacInv
-        (
-            const scalar x0, const scalar y0, const scalar z0,
-            const scalar x1, const scalar y1, const scalar z1,
-            const scalar x2, const scalar y2, const scalar z2,
-            const scalar x3, const scalar y3, const scalar z3
+            const scalarSquareMatrix& J
         );
 
         //- Transform an arbitrary point into reference space of owner cell
-        static point transformPoint
+        point transformPoint
         (
-            const scalarRectangularMatrix& Jinv,
+            const scalarSquareMatrix& Jinv,
             const point xP,
             const point x0
         );
 
         //- Evaluate the surface integrals for smoothness indicator
-        static scalar gaussQuadB
+        scalar gaussQuadB
         (
             const scalar n,
             const scalar m,
@@ -168,54 +152,70 @@ public:
         );
 
         //- Calculate the volume integrals for the smoothness indicator matrix
-        static scalarMatrix smoothIndIntegrals
+        volIntegralType smoothIndIntegrals
         (
             const fvMesh& mesh,
             const label cellI,
             const label polOrder,
-            const scalarRectangularMatrix& JacobianI,
+            const scalarSquareMatrix& JacobianI,
             const point refPointI
         );
 
         //- Calculate the smoothness indicator matrices
-        static scalarRectangularMatrix getB
+        scalarRectangularMatrix getB
         (
             const fvMesh& mesh,
             const label cellI,
             const label polOrder,
             const label nDvt,
-            const scalarRectangularMatrix& JInvI,
+            const scalarSquareMatrix& JInvI,
             const point refPointI,
             const labelList& dim
         );
 
         //- Check sign of variable
-        static scalar Pos(scalar x);
+        scalar Pos(scalar x);
 
         //- Calculate factorials of variable
-        static scalar Fac(label x);
+        scalar Fac(label x);
 
         //- Calculation of surface integrals for convective terms
-        static void surfIntTrans
+        void surfIntTrans
         (
             const fvMesh& mesh,
             const label polOrder,
-            const List<scalarMatrix>& volMom,
-            const List<scalarRectangularMatrix>& JInv,
+            const List<volIntegralType>& volIntegralsList,
+            const List<scalarSquareMatrix>& JInv,
             const List<point>& refPoint,
-            List<List<scalarMatrix> >& intBasTrans,
+            List<List<volIntegralType> >& intBasTrans,
             List<scalarList>& refFacAr
         );
 
-        static vector compCheck
+        vector compCheck
         (
             const label n,
             const label m,
             const label l,
-            const scalarMatrix& intBasisfI
+            const volIntegralType& intBasisfI
         );
-};
+        
+        //- Create Jacobi matrix from pointField and label
+        scalarSquareMatrix jacobi
+        (
+            const pointField& pts,
+            const labelList& referenceFrame
+        );
+        
+        //- Create Jacobi matrix from entry list
+        scalarSquareMatrix jacobi
+        (
+            const scalar x0, const scalar y0, const scalar z0,
+            const scalar x1, const scalar y1, const scalar z1,
+            const scalar x2, const scalar y2, const scalar z2,
+            const scalar x3, const scalar y3, const scalar z3
+        );
 
+} // End namespace geometryWENO
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

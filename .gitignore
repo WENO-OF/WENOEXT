@@ -40,3 +40,8 @@ tutorials/cavity/0.1
 
 logs
 .vscode
+
+
+# ignore all lnIncludes
+lnInclude/
+*.exe
