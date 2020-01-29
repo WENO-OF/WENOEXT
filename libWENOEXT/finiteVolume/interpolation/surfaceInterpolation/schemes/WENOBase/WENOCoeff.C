@@ -270,8 +270,9 @@ Foam::WENOCoeff<Type>::getWENOPol
 }
 
 
-template<class Type>
-void Foam::WENOCoeff<Type>::calcWeight
+// Specialisation for scalar
+template<>
+void Foam::WENOCoeff<Foam::scalar>::calcWeight
 (
     Field<scalar>& coeffsWeightedI,
     const label cellI,
@@ -332,7 +333,7 @@ void Foam::WENOCoeff<Type>::calcWeight
 
 
 template<class Type>
-void Foam::WENOCoeff<Type>::calcWeightComp
+void Foam::WENOCoeff<Type>::calcWeight
 (
     Field<Type>& coeffsWeightedI,
     const label cellI,
