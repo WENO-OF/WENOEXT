@@ -41,6 +41,7 @@ Author
 
 #include "codeRules.H"
 #include "surfaceInterpolationScheme.H"
+#include "WENOCoeff.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -59,18 +60,11 @@ class WENOUpwindFit
     // Private Data
 
         //- Typedef for 3D scalar matrix
-        typedef List< List< List<scalar> > > scalarMatrix;
-
-        //- Lists of surface integrals of basis functions
-        //  Calculated in the reference space
-        List<List<scalarMatrix> >** intBasTrans_;
-
-        //- List of face areas in the reference space
-        List<scalarList>** refFacAr_;
-
-        //- Dimensionality of the geometry
-        //  Individual for each stencil
-        labelListList** dimList_;
+        using volIntegralType = List< List< List<scalar> > > ;
+        
+        //- C++11 typedef for squareMatrix
+        //  This is used for Jacobian matrix
+        using scalarSquareMatrix = SquareMatrix<scalar>;
 
         //- SurfaceScalarField of U() & Sf()
         const surfaceScalarField& faceFlux_;
@@ -84,6 +78,12 @@ class WENOUpwindFit
         //  -  0: not limited
         //  - +1: limited
         const scalar limFac_;
+
+        //- Reference to WENOCoeff class
+        WENOCoeff<Type> WENOCoeff_;
+
+        //- Reference to WENOBase
+        const WENOBase& WENOBase_;
 
 
     // Private Member Functions
@@ -133,7 +133,9 @@ public:
             surfaceInterpolationScheme<Type>(mesh),
             faceFlux_(zeroFlux()),
             polOrder_(polOrder),
-            limFac_(0)
+            limFac_(0),
+            WENOCoeff_(mesh,polOrder_),
+            WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
 
         //- Construct from mesh and Istream
@@ -152,7 +154,9 @@ public:
                 )
             ) ,
             polOrder_(readScalar(is)),
-            limFac_(readScalar(is))
+            limFac_(readScalar(is)),
+            WENOCoeff_(mesh,polOrder_),
+            WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
 
         //- Construct from mesh, faceFlux and Istream
@@ -166,7 +170,9 @@ public:
             surfaceInterpolationScheme<Type>(mesh),
             faceFlux_(faceFlux),
             polOrder_(readScalar(is)),
-            limFac_(readScalar(is))
+            limFac_(readScalar(is)),
+            WENOCoeff_(mesh,polOrder_),
+            WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
 
 
@@ -212,14 +218,14 @@ public:
         correction
         (
             const GeometricField<Type, fvPatchField, volMesh>& vf
-        )    const ;
+        ) const ;
 
         //- Calculating the face flux values
         Type sumFlux
         (
             const labelList& dim,
             const Field<Type>& coeffcI,
-            const scalarMatrix intBasiscIfI
+            const volIntegralType intBasiscIfI
         )     const;
 
         //- Calculating the polynomial limiters
