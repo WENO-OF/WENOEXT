@@ -280,11 +280,11 @@ void Foam::WENOCoeff<Type>::calcWeightComp
 
             if (stencilI == 0)
             {
-                gamma = dm_/(pow(10e-6 + smoothInd,p_));
+                gamma = dm_/(pow(epsilon_ + smoothInd,p_));
             }
             else
             {
-                gamma = 1.0/(pow(10e-6 + smoothInd,p_));
+                gamma = 1.0/(pow(epsilon_ + smoothInd,p_));
             }
 
             gammaSum += gamma;
