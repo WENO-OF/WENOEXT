@@ -250,47 +250,58 @@ public:
             return instance_;
         }
 
+    // Accessor functions for member variables as const reference
+
         //- Get necessary lists for runtime operations
-        inline List<labelListList>* getPointerStencilID()
+        inline const List<labelListList>& stencilsID() const
         {
-            return &stencilsID_;
-        };
-        inline List<labelListList>* getPointerCellToPatchMap()
-        {
-            return &cellToPatchMap_;
-        };
-        inline labelList* getPointerPatchToProcMap()
-        {
-            return &patchToProcMap_;
-        };
-        inline List<List<point> >* getPointerHaloCenters()
-        {
-            return &haloCenters_;
-        } ;
-        inline labelListList* getPointerOwnHalos()
-        {
-            return &ownHalos_;
-        } ;
-        inline List<List<scalarRectangularMatrix> >* getPointerLSmatrix()
-        {
-            return &LSmatrix_;
-        } ;
-        inline List<scalarRectangularMatrix>* getPointerB()
-        {
-            return &B_;
+            return stencilsID_;
         }
-        inline List<List<volIntegralType> >* getPointerIntBasTrans()
+        
+        inline const List<labelListList>& cellToPatchMap() const 
         {
-            return &intBasTrans_;
-        };
-        inline List<scalarList>* getPointerRefFacAr()
+            return cellToPatchMap_;
+        }
+        
+        inline const labelList& patchToProcMap() const
         {
-            return &refFacAr_;
-        };
-        inline labelListList* getPointerDimList()
+            return patchToProcMap_;
+        }
+        
+        inline const List<List<point> > haloCenters() const 
         {
-            return &dimList_;
-        };
+            return haloCenters_;
+        }
+        
+        inline const labelListList& ownHalos() const 
+        {
+            return ownHalos_;
+        }
+        
+        inline const List<List<scalarRectangularMatrix> >& LSmatrix() const
+        {
+            return LSmatrix_;
+        }
+        
+        inline const List<scalarRectangularMatrix>& B() const 
+        {
+            return B_;
+        }
+        
+        inline const List<List<volIntegralType> >& intBasTrans() const 
+        {
+            return intBasTrans_;
+        }
+        
+        inline const List<scalarList>& refFacAr() const 
+        {
+            return refFacAr_;
+        }
+        
+        inline const labelListList& dimList() const 
+        {
+            return dimList_;
+        }
 };
 
 

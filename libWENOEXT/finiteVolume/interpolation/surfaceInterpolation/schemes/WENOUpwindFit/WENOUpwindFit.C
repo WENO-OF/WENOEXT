@@ -27,7 +27,6 @@ Author
 \*---------------------------------------------------------------------------*/
 
 #include "codeRules.H"
-#include "WENOCoeff.H"
 #include "WENOUpwindFit.H"
 #include "processorFvPatch.H"
 
@@ -38,23 +37,16 @@ Foam::tmp<Foam::GeometricField<Type, Foam::fvsPatchField, Foam::surfaceMesh> >
 Foam::WENOUpwindFit<Type>::correction
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf
-)   const
+) const
 {
     const fvMesh& mesh = this->mesh();
 
     // Get degrees of freedom from WENOCoeff class
     
-    Foam::WENOCoeff<Type> getWeights(mesh, polOrder_);
-    Field<Field<Type> > coeffsWeighted = getWeights.getWENOPol(vf);
-
-    WENOUpwindFit *ptr = const_cast<WENOUpwindFit*>(this);
-    ptr->intBasTrans_ = getWeights.getPointerIntBasTrans();
-    ptr->refFacAr_ = getWeights.getPointerRefFacAr();
-    ptr->dimList_ = getWeights.getPointerDimList();
+    Field<Field<Type> > coeffsWeighted = WENOCoeff_.getWENOPol(vf);
 
 
     // Calculate the interpolated face values
-
     const labelUList& P = mesh.owner();
     const labelUList& N = mesh.neighbour();
 
@@ -94,20 +86,20 @@ Foam::WENOUpwindFit<Type>::correction
                 tsfP[faceI] =
                     sumFlux
                     (
-                        (**dimList_)[P[faceI]],
+                        WENOBase_.dimList()[P[faceI]],
                         coeffsWeighted[P[faceI]],
-                        (**intBasTrans_)[faceI][0]
-                    )  /(**refFacAr_)[faceI][0];
+                        WENOBase_.intBasTrans()[faceI][0]
+                    ) / WENOBase_.refFacAr()[faceI][0];
             }
             else if (faceFlux_[faceI] < 0)
             {
                 tsfP[faceI] =
                     sumFlux
                     (
-                        (**dimList_)[N[faceI]],
+                        WENOBase_.dimList()[N[faceI]],
                         coeffsWeighted[N[faceI]],
-                        (**intBasTrans_)[faceI][1]
-                    )  /(**refFacAr_)[faceI][1];
+                        WENOBase_.intBasTrans()[faceI][1]
+                    )  /WENOBase_.refFacAr()[faceI][1];
             }
             else
             {
@@ -173,18 +165,18 @@ Foam::WENOUpwindFit<Type>::correction
             tsfP[faceI] =
                 vf[P[faceI]] + sumFlux
                 (
-                    (**dimList_)[P[faceI]],
+                    WENOBase_.dimList()[P[faceI]],
                     coeffsWeighted[P[faceI]],
-                    (**intBasTrans_)[faceI][0]
-                )  /(**refFacAr_)[faceI][0];
+                    WENOBase_.intBasTrans()[faceI][0]
+                )  /WENOBase_.refFacAr()[faceI][0];
 
             tsfN[faceI] =
                 vf[N[faceI]] + sumFlux
                 (
-                    (**dimList_)[N[faceI]],
+                    WENOBase_.dimList()[N[faceI]],
                     coeffsWeighted[N[faceI]],
-                    (**intBasTrans_)[faceI][1]
-                )  /(**refFacAr_)[faceI][1];
+                    WENOBase_.intBasTrans()[faceI][1]
+                )  /WENOBase_.refFacAr()[faceI][1];
         }
 
         forAll(btsfN, patchI)
@@ -205,10 +197,10 @@ Foam::WENOUpwindFit<Type>::correction
                     pbtsfN[faceI] =
                         vf[own] + sumFlux
                         (
-                            (**dimList_)[own],
+                            WENOBase_.dimList()[own],
                             coeffsWeighted[own],
-                            (**intBasTrans_)[faceI + startFace][0]
-                        )  /(**refFacAr_)[faceI + startFace][0] ;
+                            WENOBase_.intBasTrans()[faceI + startFace][0]
+                        )  /WENOBase_.refFacAr()[faceI + startFace][0] ;
 
                     pbtsfP[faceI] = pbtsfN[faceI];
                 }
@@ -231,7 +223,7 @@ Type Foam::WENOUpwindFit<Type>::sumFlux
 (
     const labelList& dim,
     const Field<Type>& coeffcI,
-    const scalarMatrix intBasiscIfI
+    const volIntegralType intBasiscIfI
 )    const
 {
     Type flux = pTraits<Type>::zero;
@@ -393,10 +385,10 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
                     btsfUD[patchI][faceI] =
                         sumFlux
                         (
-                            (**dimList_)[own],
+                            WENOBase_.dimList()[own],
                             coeffsWeighted[own],
-                            (**intBasTrans_)[faceI + startFace][0]
-                        )  /(**refFacAr_)[faceI + startFace][0] ;
+                            WENOBase_.intBasTrans()[faceI + startFace][0]
+                        )  /WENOBase_.refFacAr()[faceI + startFace][0] ;
 
                     pSfCorr[faceI] = btsfUD[patchI][faceI];
                 }
