@@ -31,6 +31,7 @@ SourceFiles
     WENOBase.C
 
 Author
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020de>
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
 
 \*---------------------------------------------------------------------------*/

@@ -31,7 +31,8 @@ SourceFiles
     WENOCoeff.C
 
 Author
-    Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
+    Tobias Martin, <tobimartin2@googlemail.com>
 
 \*---------------------------------------------------------------------------*/
 
