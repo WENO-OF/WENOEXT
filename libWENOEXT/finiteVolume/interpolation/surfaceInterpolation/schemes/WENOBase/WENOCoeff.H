@@ -133,94 +133,16 @@ public:
             const label excludeStencils
         ) const;
 
-        //- Get weighted combination for scalar fields
-        void calcWeight
-        (
-            Field<scalar>& coeffsWeightedI,
-            const label cellI,
-            const GeometricField<scalar, fvPatchField, volMesh>& vf,
-            const List<List<scalar> >& coeffsI
-        ) const;
 
-        //- Get weighted combination for non-scalar fields
-        void calcWeightComp
+        //- Get weighted combination for any other type
+        void calcWeight
         (
             Field<Type>& coeffsWeightedI,
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
             const List<List<Type> >& coeffsI
         ) const;
-
-
-    // Templates for calcWeight 
-    
-        void calcWeight
-        (
-            Field<vector>& coeffsWeightedI,
-            const label cellI,
-            const GeometricField<vector, fvPatchField, volMesh>& vf,
-            const List<List<vector> >& coeffsI
-        ) const
-        {
-            calcWeightComp
-            (
-                coeffsWeightedI,
-                cellI,
-                vf,
-                coeffsI
-            );
-        }
-
-        void calcWeight
-        (
-            Field<tensor>& coeffsWeightedI,
-            const label cellI,
-            const GeometricField<tensor, fvPatchField, volMesh>& vf,
-            const List<List<tensor> >& coeffsI
-        ) const
-        {
-            calcWeightComp
-            (
-                coeffsWeightedI,
-                cellI,
-                vf,
-                coeffsI
-            );
-        }
-
-        void calcWeight
-        (
-            Field<symmTensor>& coeffsWeightedI,
-            const label cellI,
-            const GeometricField<symmTensor, fvPatchField, volMesh>& vf,
-            const List<List<symmTensor> >& coeffsI
-        ) const
-        {
-            calcWeightComp
-            (
-                coeffsWeightedI,
-                cellI,
-                vf,
-                coeffsI
-            );
-        }
-
-        void calcWeight
-        (
-            Field<sphericalTensor>& coeffsWeightedI,
-            const label cellI,
-            const GeometricField<sphericalTensor, fvPatchField, volMesh>& vf,
-            const List<List<sphericalTensor> >& coeffsI
-        ) const
-        {
-            calcWeightComp
-            (
-                coeffsWeightedI,
-                cellI,
-                vf,
-                coeffsI
-            );
-        }
+        
 };
 
 
