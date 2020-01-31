@@ -100,11 +100,11 @@ class WENOUpwindFit
         (
             const fvMesh& mesh,
             typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-#ifdef FOAM_NEW_GEOMFIELD_RULES
+            #ifdef FOAM_NEW_GEOMFIELD_RULES
                 Boundary& btsf
-#else 
+            #else 
                 GeometricBoundaryField& btsf
-#endif
+            #endif
         )   const;
 
         void coupledRiemannSolver
