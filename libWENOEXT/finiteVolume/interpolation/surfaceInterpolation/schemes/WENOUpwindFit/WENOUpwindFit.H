@@ -115,6 +115,45 @@ class WENOUpwindFit
             const Field<Field<Type> >& coeffsWeighted
         )   const;
 
+        //- Calculating the face flux values
+        Type sumFlux
+        (
+            const labelList& dim,
+            const Field<Type>& coeffcI,
+            const volIntegralType& intBasiscIfI
+        ) const;
+
+        //- Calculating the polynomial limiters
+        void calcLimiter
+        (
+            const fvMesh& mesh,
+            const GeometricField<Type, fvPatchField, volMesh>& vf,
+            GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP,
+            const GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN
+        ) const;
+
+
+        //- Return a zero surfaceScalarField
+        //  Required for construct from mesh constructor
+        tmp<surfaceScalarField> zeroFlux() const
+        {
+            tmp<surfaceScalarField> zeroFlux
+            (
+                new surfaceScalarField
+                (
+                    IOobject
+                    (
+                        "zeroFlux",
+                        this->mesh().time().timeName(),
+                        this->mesh()
+                    ),
+                    this->mesh(),
+                    dimensionedScalar("zeroFlux",dimless,0.0)
+                )
+            );
+            return zeroFlux;
+        }
+
 
 public:
 
@@ -124,7 +163,7 @@ public:
 
     // Constructors
 
-        //- Construct from mesh    (not used)
+        //- Construct from mesh (not used)
         WENOUpwindFit
         (
             const fvMesh& mesh,
@@ -179,26 +218,6 @@ public:
 
     // Member Functions
 
-        //- Return a zero surfaceScalarField
-        tmp<surfaceScalarField> zeroFlux() const
-        {
-            tmp<surfaceScalarField> zeroFlux
-            (
-                new surfaceScalarField
-                (
-                    IOobject
-                    (
-                        "zeroFlux",
-                        this->mesh().time().timeName(),
-                        this->mesh()
-                    ),
-                    this->mesh(),
-                    dimensionedScalar("zeroFlux",dimless,0.0)
-                )
-            );
-            return zeroFlux;
-        }
-
         //- Return the interpolation weighting factors for implicit part
         tmp<surfaceScalarField> weights
         (
@@ -219,25 +238,7 @@ public:
         correction
         (
             const GeometricField<Type, fvPatchField, volMesh>& vf
-        ) const ;
-
-        //- Calculating the face flux values
-        Type sumFlux
-        (
-            const labelList& dim,
-            const Field<Type>& coeffcI,
-            const volIntegralType& intBasiscIfI
         ) const;
-
-        //- Calculating the polynomial limiters
-        void calcLimiter
-        (
-            const fvMesh& mesh,
-            const GeometricField<Type, fvPatchField, volMesh>& vf,
-            GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP,
-            const GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN
-        ) const;
-
 };
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
