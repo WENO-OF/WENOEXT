@@ -632,22 +632,20 @@ void Foam::WENOBase::addCoeffs
     const volIntegralType& volIntegralsIJ 
 )
 {
-    for (int k = 0;k < A.n(); k++)
+    label currIdx = 0;
+    for (label n=0 ; n <= dim[0] ; n++)
+    {
+        for (label m=0 ; m <= dim[1] ; m++)
         {
-            for (label n=0 ; n <= dim[0] ; n++)
+            for (label l=0 ; l <= dim[2] ; l++)
             {
-                for (label m=0 ; m <= dim[1] ; m++)
+                if( (n+m+l) <= polOrder_ && (n+m+l) > 0 )
                 {
-                    for (label l=0 ; l <= dim[2] ; l++)
-                    {
-                        if( (n+m+l) <= polOrder_ && (n+m+l) > 0 )
-                        {
-                            A[cellj-1][k] = volIntegralsIJ[n][m][l];
-                        }
-                    }
+                    A[cellj-1][currIdx++] = volIntegralsIJ[n][m][l];
                 }
             }
         }
+    }
 }
 
 // ---------------------------- Constructor ------------------------------------
