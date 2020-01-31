@@ -41,6 +41,7 @@ tutorials/cavity/0.1
 logs
 .vscode
 
+tests/case/constant/polyMesh
 
 # ignore all lnIncludes
 lnInclude/
