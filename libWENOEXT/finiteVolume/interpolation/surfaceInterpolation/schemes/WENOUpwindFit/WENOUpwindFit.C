@@ -584,7 +584,7 @@ Type Foam::WENOUpwindFit<Type>::sumFlux
 (
     const labelList& dim,
     const Field<Type>& coeffcI,
-    const volIntegralType intBasiscIfI
+    const volIntegralType& intBasiscIfI
 )    const
 {
     Type flux = pTraits<Type>::zero;
@@ -680,7 +680,7 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
     const fvMesh& mesh,
     GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    Field<Field<Type> > coeffsWeighted
+    const Field<Field<Type> >& coeffsWeighted
 )   const
 {
     const fvPatchList& patches = mesh.boundary();

@@ -112,7 +112,7 @@ class WENOUpwindFit
             const fvMesh& mesh,
             GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            Field<Field<Type> > coeffsWeighted
+            const Field<Field<Type> >& coeffsWeighted
         )   const;
 
 
@@ -226,7 +226,7 @@ public:
         (
             const labelList& dim,
             const Field<Type>& coeffcI,
-            const volIntegralType intBasiscIfI
+            const volIntegralType& intBasiscIfI
         ) const;
 
         //- Calculating the polynomial limiters
