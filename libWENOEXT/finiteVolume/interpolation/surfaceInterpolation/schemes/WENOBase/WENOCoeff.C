@@ -85,6 +85,7 @@ Foam::WENOCoeff<Type>::WENOCoeff
 
     p_ = WENODict.lookupOrDefault<scalar>("p", 4.0);
     dm_ = WENODict.lookupOrDefault<scalar>("dm", 1000.0);
+    epsilon_ = WENODict.lookupOrDefault<scalar>("epsilon",1E-40);
 }
 
 
