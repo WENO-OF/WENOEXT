@@ -64,7 +64,7 @@ private:
         //  This is used for Jacobian matrix
         using scalarSquareMatrix = SquareMatrix<scalar>;
 
-        const scalar epsilon_ = 1E-40;
+        scalar epsilon_;
         
         //- Order of polynomials
         const label polOrder_;
