@@ -64,6 +64,9 @@ private:
         //  This is used for Jacobian matrix
         using scalarSquareMatrix = SquareMatrix<scalar>;
 
+        //- Static variable to print WENODict just once during runtime
+        static bool printWENODict_;
+
         scalar epsilon_;
         
         //- Order of polynomials
