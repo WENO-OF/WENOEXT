@@ -33,6 +33,10 @@ Author
 
 #include "processorFvPatch.H"
 
+// * * * * * * * * * * * * * *  Static Variables * * * * * * * * * * * * * * //
+template<class Type>
+bool Foam::WENOCoeff<Type>::printWENODict_=false;
+
 // * * * * * * * * * * * * * * * * * Constructor * * * * * * * * * * * * * * //
 
 template<class Type>
@@ -83,9 +87,16 @@ Foam::WENOCoeff<Type>::WENOCoeff
         )
     );
 
-    p_ = WENODict.lookupOrDefault<scalar>("p", 4.0);
-    dm_ = WENODict.lookupOrDefault<scalar>("dm", 1000.0);
-    epsilon_ = WENODict.lookupOrDefault<scalar>("epsilon",1E-40);
+    p_ = WENODict.lookupOrAddDefault<scalar>("p", 4.0);
+    dm_ = WENODict.lookupOrAddDefault<scalar>("dm", 1000.0);
+    epsilon_ = WENODict.lookupOrAddDefault<scalar>("epsilon",1E-40);
+    
+    if (!printWENODict_)
+    {
+        Info << "WENODict:"
+             << WENODict << endl;
+        printWENODict_=true;
+    }
 }
 
 
