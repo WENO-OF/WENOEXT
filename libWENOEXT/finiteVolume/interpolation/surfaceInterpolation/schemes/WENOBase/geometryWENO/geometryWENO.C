@@ -939,12 +939,11 @@ void Foam::geometryWENO::surfIntTrans
     const List<volIntegralType>& volIntegralsList,
     const List<scalarSquareMatrix>& JInv,
     const List<point>& refPoint,
-    List<List<volIntegralType> >& intBasTrans,
-    List<scalarList>& refFacAr
+    List<volIntegralType>& intBasTrans,
+    List<scalar>& refFacAr
 )
 {
     const pointField& pts = mesh.points();
-    const labelUList& P = mesh.owner();
     const labelUList& N = mesh.neighbour();
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
@@ -961,23 +960,17 @@ void Foam::geometryWENO::surfIntTrans
 
         for (label faceI = 0; faceI < faces.size(); faceI++)
         {
-            // initialize 
-            label OwnNeighIndex = -1;
+            /*****************************************************************\
+              Note: The face is the same for the neighbour and the owner
+                    Therefore integration is the same and looping over all
+                    owner faces will include all faces.
+            \*****************************************************************/
+            if (faces[faceI] < N.size() && cellI == N[faces[faceI]])
+            {
+                // If neighbour face jump the loop
+                continue;
+            }
 
-            if (faces[faceI] < P.size() && cellI == P[faces[faceI]])
-            {
-                OwnNeighIndex = 0;
-            }
-            else if (faces[faceI] < N.size() && cellI == N[faces[faceI]])
-            {
-                OwnNeighIndex = 1;
-            }
-            else
-            {
-                // If face is neither in owner or neighbour it is at the boundary
-                // and thus an owner 
-                OwnNeighIndex = 0;
-            }
             // Triangulate the faces
             List<tetIndices> faceTets =
                 polyMeshTetDecomposition::faceTetIndices
@@ -1025,7 +1018,7 @@ void Foam::geometryWENO::surfIntTrans
 
                 scalar area = 0.5*mag(vn);
 
-                refFacAr[faces[faceI]][OwnNeighIndex] += area;
+                refFacAr[faces[faceI]] += area;
 
                 if (sign(vn & (v0 - refPointTrans)) < 0.0)
                 {
@@ -1044,7 +1037,7 @@ void Foam::geometryWENO::surfIntTrans
                         {
                             if ((n + m + l) <= polOrder)
                             {
-                                intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] +=
+                                intBasTrans[faces[faceI]][n][m][l] +=
                                     area
                                    *geometryWENO::gaussQuad
                                     (
@@ -1071,9 +1064,9 @@ void Foam::geometryWENO::surfIntTrans
                     {
                         if ((n + m + l) <= polOrder)
                         {
-                            intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] -=
+                            intBasTrans[faces[faceI]][n][m][l] -=
                             (
-                                refFacAr[faces[faceI]][OwnNeighIndex]
+                                refFacAr[faces[faceI]]
                                *volIntegralsList[cellI][n][m][l]
                             );
                         }

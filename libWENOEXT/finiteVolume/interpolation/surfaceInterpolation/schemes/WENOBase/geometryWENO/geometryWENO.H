@@ -187,8 +187,8 @@ namespace geometryWENO
             const List<volIntegralType>& volIntegralsList,
             const List<scalarSquareMatrix>& JInv,
             const List<point>& refPoint,
-            List<List<volIntegralType> >& intBasTrans,
-            List<scalarList>& refFacAr
+            List<volIntegralType>& intBasTrans,
+            List<scalar>& refFacAr
         );
 
         vector compCheck

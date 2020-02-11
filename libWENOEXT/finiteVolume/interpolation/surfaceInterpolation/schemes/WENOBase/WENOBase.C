@@ -1000,15 +1000,12 @@ Foam::WENOBase::WENOBase
         // Get surface integrals over basis functions in transformed coordinates
 
         intBasTrans_.setSize(mesh.nFaces());
-
-        scalarList dummy(2,0.0);
-        refFacAr_.setSize(mesh.nFaces(),dummy);
+        
+        refFacAr_.setSize(mesh.nFaces());
 
         for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
         {
-            intBasTrans_[faceI].setSize(2);
-            intBasTrans_[faceI][0] = volIntegrals;
-            intBasTrans_[faceI][1] = volIntegrals;
+            intBasTrans_[faceI] = volIntegrals;
         }
 
         Foam::geometryWENO::surfIntTrans
@@ -1183,14 +1180,11 @@ bool Foam::WENOBase::readList
 
         intBasTrans_.setSize(mesh.nFaces());
 
-        scalarList dummy(2,0.0);
-        refFacAr_.setSize(mesh.nFaces(),dummy);
+        refFacAr_.setSize(mesh.nFaces());
 
         for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
         {
-            intBasTrans_[faceI].setSize(2);
-            intBasTrans_[faceI][0] = volIntegrals;
-            intBasTrans_[faceI][1] = volIntegrals;
+            intBasTrans_[faceI] = volIntegrals;
         }
 
         Foam::geometryWENO::surfIntTrans
