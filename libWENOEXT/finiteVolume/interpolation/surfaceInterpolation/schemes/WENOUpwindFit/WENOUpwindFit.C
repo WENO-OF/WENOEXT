@@ -449,8 +449,8 @@ Foam::WENOUpwindFit<Type>::correction
                     (
                         WENOBase_.dimList()[P[faceI]],
                         coeffsWeighted[P[faceI]],
-                        WENOBase_.intBasTrans()[faceI][0]
-                    ) / WENOBase_.refFacAr()[faceI][0];
+                        WENOBase_.intBasTrans()[faceI]
+                    ) / WENOBase_.refFacAr()[faceI];
             }
             else if (faceFlux_[faceI] < 0)
             {
@@ -459,8 +459,8 @@ Foam::WENOUpwindFit<Type>::correction
                     (
                         WENOBase_.dimList()[N[faceI]],
                         coeffsWeighted[N[faceI]],
-                        WENOBase_.intBasTrans()[faceI][1]
-                    )  /WENOBase_.refFacAr()[faceI][1];
+                        WENOBase_.intBasTrans()[faceI]
+                    )  /WENOBase_.refFacAr()[faceI];
             }
             else
             {
@@ -528,16 +528,16 @@ Foam::WENOUpwindFit<Type>::correction
                 (
                     WENOBase_.dimList()[P[faceI]],
                     coeffsWeighted[P[faceI]],
-                    WENOBase_.intBasTrans()[faceI][0]
-                )  /WENOBase_.refFacAr()[faceI][0];
+                    WENOBase_.intBasTrans()[faceI]
+                )  /WENOBase_.refFacAr()[faceI];
 
             tsfN[faceI] =
                 vf[N[faceI]] + sumFlux
                 (
                     WENOBase_.dimList()[N[faceI]],
                     coeffsWeighted[N[faceI]],
-                    WENOBase_.intBasTrans()[faceI][1]
-                )  /WENOBase_.refFacAr()[faceI][1];
+                    WENOBase_.intBasTrans()[faceI]
+                )  /WENOBase_.refFacAr()[faceI];
         }
 
         forAll(btsfN, patchI)
@@ -560,8 +560,8 @@ Foam::WENOUpwindFit<Type>::correction
                         (
                             WENOBase_.dimList()[own],
                             coeffsWeighted[own],
-                            WENOBase_.intBasTrans()[faceI + startFace][0]
-                        )  /WENOBase_.refFacAr()[faceI + startFace][0] ;
+                            WENOBase_.intBasTrans()[faceI + startFace]
+                        )  /WENOBase_.refFacAr()[faceI + startFace];
 
                     pbtsfP[faceI] = pbtsfN[faceI];
                 }
@@ -748,8 +748,8 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
                         (
                             WENOBase_.dimList()[own],
                             coeffsWeighted[own],
-                            WENOBase_.intBasTrans()[faceI + startFace][0]
-                        )  /WENOBase_.refFacAr()[faceI + startFace][0] ;
+                            WENOBase_.intBasTrans()[faceI + startFace]
+                        )  /WENOBase_.refFacAr()[faceI + startFace];
 
                     pSfCorr[faceI] = btsfUD[patchI][faceI];
                 }

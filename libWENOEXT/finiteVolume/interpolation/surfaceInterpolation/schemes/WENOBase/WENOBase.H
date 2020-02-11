@@ -119,10 +119,10 @@ private:
 
         //- Lists of surface integrals of basis functions
         //  Calculated in the reference space
-        List<List<volIntegralType> > intBasTrans_;
+        List<volIntegralType> intBasTrans_;
 
         //- List of face areas in the reference space
-        List<scalarList> refFacAr_;
+        List<scalar> refFacAr_;
 
         //- Lists of inverse Jacobians for each cell
         List<scalarSquareMatrix> JInv_;
@@ -289,12 +289,12 @@ public:
             return B_;
         }
         
-        inline const List<List<volIntegralType> >& intBasTrans() const 
+        inline const List<volIntegralType>& intBasTrans() const 
         {
             return intBasTrans_;
         }
         
-        inline const List<scalarList>& refFacAr() const 
+        inline const List<scalar>& refFacAr() const 
         {
             return refFacAr_;
         }
