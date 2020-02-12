@@ -1025,6 +1025,15 @@ Foam::WENOBase::WENOBase
             mesh
         );
     }
+    
+    // Clear all unwanted fields:
+    volIntegralsList_.clear();
+
+    JInv_.clear();
+
+    refDet_.clear();
+
+    refPoint_.clear();
 }
 
 
