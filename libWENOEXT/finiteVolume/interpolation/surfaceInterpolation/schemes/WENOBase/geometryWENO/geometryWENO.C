@@ -939,7 +939,7 @@ void Foam::geometryWENO::surfIntTrans
     const List<volIntegralType>& volIntegralsList,
     const List<scalarSquareMatrix>& JInv,
     const List<point>& refPoint,
-    List<volIntegralType>& intBasTrans,
+    List<Pair<volIntegralType>>& intBasTrans,
     List<scalar>& refFacAr
 )
 {
@@ -960,17 +960,15 @@ void Foam::geometryWENO::surfIntTrans
 
         for (label faceI = 0; faceI < faces.size(); faceI++)
         {
-            /*****************************************************************\
-              Note: The face is the same for the neighbour and the owner
-                    Therefore integration is the same and looping over all
-                    owner faces will include all faces.
-            \*****************************************************************/
+            // If face is neither in owner or neighbour it is at the boundary
+            // and thus an owner 
+            label OwnNeighIndex = 0;
+            
             if (faces[faceI] < N.size() && cellI == N[faces[faceI]])
             {
-                // If neighbour face jump the loop
-                continue;
+                OwnNeighIndex = 1;
             }
-
+            
             // Triangulate the faces
             List<tetIndices> faceTets =
                 polyMeshTetDecomposition::faceTetIndices
@@ -986,6 +984,8 @@ void Foam::geometryWENO::surfIntTrans
             {
                 triFaces[cTI] = faceTets[cTI].faceTriIs(mesh);
             }
+
+            scalar area = 0;
 
             // Evaluate surface integral using Gaussian quadratures
             forAll(triFaces, i)
@@ -1016,9 +1016,15 @@ void Foam::geometryWENO::surfIntTrans
 
                 vector vn = (v1 - v0) ^ (v2 - v0);
 
-                scalar area = 0.5*mag(vn);
+                area = 0.5*mag(vn);
 
-                refFacAr[faces[faceI]] += area;
+                /**************************************************************\
+                Note: The face is the same for the neighbour and the owner
+                      Therefore integration is the same and looping over all
+                      owner faces will include all faces.
+                \**************************************************************/
+                if (OwnNeighIndex == 0)                
+                    refFacAr[faces[faceI]] += area;
 
                 if (sign(vn & (v0 - refPointTrans)) < 0.0)
                 {
@@ -1037,7 +1043,7 @@ void Foam::geometryWENO::surfIntTrans
                         {
                             if ((n + m + l) <= polOrder)
                             {
-                                intBasTrans[faces[faceI]][n][m][l] +=
+                                intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] +=
                                     area
                                    *geometryWENO::gaussQuad
                                     (
@@ -1064,10 +1070,9 @@ void Foam::geometryWENO::surfIntTrans
                     {
                         if ((n + m + l) <= polOrder)
                         {
-                            intBasTrans[faces[faceI]][n][m][l] -=
+                            intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] -=
                             (
-                                refFacAr[faces[faceI]]
-                               *volIntegralsList[cellI][n][m][l]
+                                area*volIntegralsList[cellI][n][m][l]
                             );
                         }
                     }

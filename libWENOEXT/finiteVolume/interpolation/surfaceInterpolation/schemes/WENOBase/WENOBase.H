@@ -118,8 +118,9 @@ private:
         List<volIntegralType> volIntegralsList_;
 
         //- Lists of surface integrals of basis functions
-        //  Calculated in the reference space
-        List<volIntegralType> intBasTrans_;
+        //  Calculated in the reference space stored for the owner and neighbour
+        //  side. Owner side is the first entry and neighbour side the second
+        List<Pair<volIntegralType> > intBasTrans_;
 
         //- List of face areas in the reference space
         List<scalar> refFacAr_;
@@ -289,7 +290,7 @@ public:
             return B_;
         }
         
-        inline const List<volIntegralType>& intBasTrans() const 
+        inline const List<Pair<volIntegralType>>& intBasTrans() const 
         {
             return intBasTrans_;
         }

@@ -1005,7 +1005,8 @@ Foam::WENOBase::WENOBase
 
         for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
         {
-            intBasTrans_[faceI] = volIntegrals;
+            intBasTrans_[faceI][0] = volIntegrals;
+            intBasTrans_[faceI][1] = volIntegrals;
         }
 
         Foam::geometryWENO::surfIntTrans
@@ -1193,7 +1194,8 @@ bool Foam::WENOBase::readList
 
         for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
         {
-            intBasTrans_[faceI] = volIntegrals;
+            intBasTrans_[faceI][0] = volIntegrals;
+            intBasTrans_[faceI][1] = volIntegrals;
         }
 
         Foam::geometryWENO::surfIntTrans
