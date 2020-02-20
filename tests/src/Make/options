@@ -5,7 +5,13 @@ EXE_INC = \
     -I$(LIB_SRC)/sampling/lnInclude \
     -I$(LIB_SRC)/triSurface/lnInclude \
     -I../Catch2SingleHeader \
-    -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO
+    -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO\
+    -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOUpwindFit \
+    -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase \
+    -I$(LIB_SRC)/dynamicMesh/lnInclude \
+    -I$(LIB_SRC)/fileFormats/lnInclude \
+    -I../../versionRules
+
 
 EXE_LIBS = \
     -lfiniteVolume \
@@ -13,6 +19,8 @@ EXE_LIBS = \
     -lsurfMesh \
     -lsampling \
     -ltriSurface \
-    -L$(FOAM_USER_LIBBIN)\
+    -lfileFormats \
+    -ldynamicMesh \
+    -L$(FOAM_USER_LIBBIN) \
     -lWENOEXT 
 

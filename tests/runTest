@@ -10,6 +10,16 @@ cd ../ && ./Allwmake
 
 cd ${currDir}/src && wmake
 
-cp ${currDir}/src/tests.exe ${currDir}/case
+cp ${currDir}/src/tests.exe ${currDir}/case-3D
 
-cd ${currDir}/case && ./tests.exe
+cd ${currDir}/case-3D && blockMesh > /dev/null &&./tests.exe [3D]
+
+
+# Prepare test case
+cp ${currDir}/src/tests.exe ${currDir}/case-1D
+cd ${currDir}/case-1D
+blockMesh > /dev/null
+[[ -d 0 ]] && rm -r 0
+[[ -d 1 ]] && rm -r 1
+cp -r 0.orig 0 
+./tests.exe [1D] 

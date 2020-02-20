@@ -53,21 +53,10 @@
 
 # 8 "<command-line>" 2
 # 1 "Make/options"
-EXE_INC = -I$(LIB_SRC)/finiteVolume/lnInclude -I$(LIB_SRC)/meshTools/lnInclude -I$(LIB_SRC)/surfMesh/lnInclude -I$(LIB_SRC)/sampling/lnInclude -I$(LIB_SRC)/triSurface/lnInclude -I../Catch2SingleHeader -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO
+EXE_INC = -I$(LIB_SRC)/finiteVolume/lnInclude -I$(LIB_SRC)/meshTools/lnInclude -I$(LIB_SRC)/surfMesh/lnInclude -I$(LIB_SRC)/sampling/lnInclude -I$(LIB_SRC)/triSurface/lnInclude -I../Catch2SingleHeader -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOUpwindFit -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase -I$(LIB_SRC)/dynamicMesh/lnInclude -I$(LIB_SRC)/fileFormats/lnInclude -I../../versionRules
+# 14 "Make/options"
 
 
-
-
-
-
-
-
-EXE_LIBS = -lfiniteVolume -lmeshTools -lsurfMesh -lsampling -ltriSurface -L$(FOAM_USER_LIBBIN) -lWENOEXT 
-
-
-
-
-
-
-
+EXE_LIBS = -lfiniteVolume -lmeshTools -lsurfMesh -lsampling -ltriSurface -lfileFormats -ldynamicMesh -L$(FOAM_USER_LIBBIN) -lWENOEXT 
+# 26 "Make/options"
 

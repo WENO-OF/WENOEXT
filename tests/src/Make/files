@@ -1,4 +1,5 @@
 main.C
 geometryWENO-BasicFunc-Test.C
+WENOUpwindFit-transport-Test.C
 
 EXE = tests.exe 

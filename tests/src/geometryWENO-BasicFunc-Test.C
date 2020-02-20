@@ -41,7 +41,7 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("geometryWENO: Jacobi Matrix")
+TEST_CASE("geometryWENO: Jacobi Matrix","[3D]")
 {
     using scalarSquareMatrix = SquareMatrix<scalar>;
     

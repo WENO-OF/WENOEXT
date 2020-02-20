@@ -1,3 +1,4 @@
 SOURCE = \
 main.C \
-geometryWENO-BasicFunc-Test.C 
+geometryWENO-BasicFunc-Test.C \
+WENOUpwindFit-transport-Test.C 
