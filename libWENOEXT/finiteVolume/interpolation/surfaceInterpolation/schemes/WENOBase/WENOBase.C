@@ -893,39 +893,39 @@ Foam::WENOBase::WENOBase
             );
 
             // Add halo cells to stencils
-            forAll(stencilsID_, stencilI)
+            forAll(stencilsID_, cellI)
             {
-                forAll(stencilNeedsHalo[stencilI], patchI)
+                forAll(stencilNeedsHalo[cellI], patchI)
                 {
-                    if (stencilNeedsHalo[stencilI][patchI] != -1)
+                    if (stencilNeedsHalo[cellI][patchI] != -1)
                     {
                         scalar radius =
                             mag
                             (
-                                mesh.C()[stencilsID_[stencilI][0][0]]
-                              - mesh.C()[stencilsID_[stencilI][0]
-                                    [stencilsID_[stencilI][0].size()-1]]
+                                mesh.C()[stencilsID_[cellI][0][0]]
+                              - mesh.C()[stencilsID_[cellI][0]
+                                    [stencilsID_[cellI][0].size()-1]]
                             );
 
                         labelList haloLayer =
-                            haloCells[stencilNeedsHalo[stencilI][patchI]];
+                            haloCells[stencilNeedsHalo[cellI][patchI]];
 
                         List<point> centers =
-                            haloCenters_[stencilNeedsHalo[stencilI][patchI]];
+                            haloCenters_[stencilNeedsHalo[cellI][patchI]];
 
                         forAll(haloLayer,i)
                         {
                             scalar radiusI =
                                 mag
                                 (
-                                    mesh.C()[stencilsID_[stencilI][0][0]]
+                                    mesh.C()[stencilsID_[cellI][0][0]]
                                   - centers[i]
                                 );
 
                             if (radiusI <= radius)
                             {
-                                stencilsID_[stencilI][0].append(haloLayer[i]);
-                                cellToPatchMap_[stencilI][0].append(patchI);
+                                stencilsID_[cellI][0].append(haloLayer[i]);
+                                cellToPatchMap_[cellI][0].append(patchI);
                             }
                         }
                     }
