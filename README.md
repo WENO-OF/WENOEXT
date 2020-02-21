@@ -33,5 +33,5 @@ For some general functions of the solver a unit test file is created, however te
 ## Execute Tests
 
 Testing is performed with the CATCH2 framework. You can compile and execute the tests
-by executing `./runTest` in the test directory. 
+by executing `./runTest` in the test directory. Further instructions are found in [here](tests/TestInstructions.md) 
 

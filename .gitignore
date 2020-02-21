@@ -50,3 +50,10 @@ tests/case/constant/polyMesh
 # ignore all lnIncludes
 lnInclude/
 *.exe
+
+# Ignore the polyMesh files
+tests/case-1D/constant/polyMesh
+tests/case-3D/constant/polyMesh
+
+# ignore WENO directories
+tests/**/WENO*
