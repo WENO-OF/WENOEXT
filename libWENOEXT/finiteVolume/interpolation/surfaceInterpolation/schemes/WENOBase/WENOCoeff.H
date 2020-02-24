@@ -96,7 +96,10 @@ private:
         void operator=(const WENOCoeff&);
 
         //- Distribute data if multiple processors are involved
-        void collectData(const fvMesh& mesh) const;
+        void collectData
+        (
+            const GeometricField<Type, fvPatchField, volMesh>& vf
+        ) const;
 
 
 public:

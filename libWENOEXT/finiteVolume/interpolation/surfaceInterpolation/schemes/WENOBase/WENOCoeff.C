@@ -157,13 +157,41 @@ void Foam::WENOCoeff<Type>::calcCoeff
 
 
 template<class Type>
-void Foam::WENOCoeff<Type>::collectData(const fvMesh& mesh) const
+void Foam::WENOCoeff<Type>::collectData
+(
+    const GeometricField<Type, fvPatchField, volMesh>& vf
+) const
 {
-#ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
-    PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
-#else
-    PstreamBuffers pBufs(Pstream::nonBlocking);
-#endif
+    const fvMesh& mesh = vf.mesh();
+    const fvPatchList& patches = mesh.boundary();
+
+    // Distribute data to neighbour processors
+
+    haloData_.setSize(WENOBase_.ownHalos().size());
+
+    forAll(patches, patchI)
+    {
+        if (isA<processorFvPatch>(patches[patchI]))
+        {
+            forAll(haloData_, patchI)
+            {
+                haloData_[patchI].setSize(WENOBase_.ownHalos()[patchI].size());
+
+                forAll(haloData_[patchI], cellI)
+                {
+                    haloData_[patchI][cellI] =
+                        vf.internalField()[WENOBase_.ownHalos()[patchI][cellI]];
+                }
+            }
+        }
+    }
+    
+    
+    #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
+        PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+    #else
+        PstreamBuffers pBufs(Pstream::nonBlocking);
+    #endif
 
     // Distribute data
     forAll(WENOBase_.patchToProcMap(), patchI)
@@ -200,31 +228,9 @@ Foam::WENOCoeff<Type>::getWENOPol
 ) const
 {
     const fvMesh& mesh = vf.mesh();
-    const fvPatchList& patches = mesh.boundary();
-
-    // Distribute data to neighbour processors
-
-    haloData_.setSize(WENOBase_.ownHalos().size());
-
-    forAll(patches, patchI)
-    {
-        if (isA<processorFvPatch>(patches[patchI]))
-        {
-            forAll(haloData_, patchI)
-            {
-                haloData_[patchI].setSize(WENOBase_.ownHalos()[patchI].size());
-
-                forAll(haloData_[patchI], cellI)
-                {
-                    haloData_[patchI][cellI] =
-                        vf.internalField()[WENOBase_.ownHalos()[patchI][cellI]];
-                }
-            }
-        }
-    }
-
-    collectData(mesh);
-
+    
+    if (Pstream::parRun())
+        collectData(vf);
 
 
     // Runtime operations
