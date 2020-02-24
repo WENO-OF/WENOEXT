@@ -37,6 +37,10 @@ tutorials/cavity/constant/polyMesh/*
 tutorials/cavity/constant/WENO*
 !tutorials/cavity/constant/polyMesh/blockMeshDict
 tutorials/cavity/0.1
+tutorials/wedge/constant/polyMesh
+tutorials/wedge/constant/WENOBase*
+tutorials/wedge/0.1
+
 
 logs
 .vscode
