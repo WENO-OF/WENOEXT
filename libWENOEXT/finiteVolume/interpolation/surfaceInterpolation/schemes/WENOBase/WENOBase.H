@@ -108,6 +108,7 @@ private:
         //  Could be extended to boundary conditions
         //  - -1 : local cell
         //  - >-1: halo cell
+        //  - -4:  if the stencil is deleted see splitStencil()
         List<labelListList> cellToPatchMap_;
 
         //- Information about processor neighbours of patches
