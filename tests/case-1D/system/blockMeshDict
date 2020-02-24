@@ -29,7 +29,7 @@ vertices
   blocks
     (
         hex (0 1 2 3 4 5 6 7)    // vertex numbers
-        (100 1 1)               // numbers of cells in each direction
+        (40 1 1)               // numbers of cells in each direction
         simpleGrading (1 1 1)    // cell expansion ratios
     );
 
