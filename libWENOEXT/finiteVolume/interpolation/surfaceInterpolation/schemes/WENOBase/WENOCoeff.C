@@ -57,7 +57,7 @@ Foam::WENOCoeff<Type>::WENOCoeff
     )
 {
     // 3D version
-    if (mesh.nGeometricD() == 3)
+    if (mesh.nSolutionD() == 3)
     {
         nDvt_ =
             (polOrder_ + 1.0)*(polOrder_ + 2.0)*(polOrder_ + 3.0)
@@ -66,7 +66,7 @@ Foam::WENOCoeff<Type>::WENOCoeff
         Info<< "Reconstruction using WENO"
             << polOrder_ << " (3D version)" << endl;
     }
-    else // 2D version (always only one cell in z-direction)
+    else // 2D version
     {
         nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)/2.0 - 1.0;
 
