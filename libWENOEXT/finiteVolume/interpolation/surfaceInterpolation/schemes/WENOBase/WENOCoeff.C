@@ -253,7 +253,7 @@ Foam::WENOCoeff<Type>::getWENOPol
         while (stencilI < nStencilsI)
         {
             // Offset for deleted stencils
-            if (WENOBase_.stencilsID()[cellI][stencilI+excludeStencils][0] == -1)
+            if (WENOBase_.stencilsID()[cellI][stencilI+excludeStencils][0] == -4)
             {
                 excludeStencils++;
             }
