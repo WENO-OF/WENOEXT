@@ -63,7 +63,7 @@ void Foam::WENOBase::splitStencil
     )
     {
         cellToPatchMap_[cellI][stencilI].setSize(1);
-        cellToPatchMap_[cellI][stencilI][0] = -1;
+        cellToPatchMap_[cellI][stencilI][0] = int(Cell::local);
     }
 
     // Fill lists with inverse jacobians J_Q for each subsector
@@ -199,8 +199,8 @@ void Foam::WENOBase::splitStencil
         {
             stencilsID_[cellI][stencilI].resize(1);
             cellToPatchMap_[cellI][stencilI].resize(1);
-            stencilsID_[cellI][stencilI][0] = -1;
-            cellToPatchMap_[cellI][stencilI][0] = static_cast<int>(Cell::deleted);
+            stencilsID_[cellI][stencilI][0] = int(Cell::deleted);
+            cellToPatchMap_[cellI][stencilI][0] = int(Cell::deleted);
 
             nStencilsI--;
         }
@@ -275,7 +275,7 @@ void Foam::WENOBase::sortStencil
 
     scalarField distField(stencilsID_[cellI][0].size(), 0.0);
     scalarField numberField(stencilsID_[cellI][0].size(), cellI);
-    scalarField mapField(stencilsID_[cellI][0].size(), -1);
+    scalarField mapField(stencilsID_[cellI][0].size(), int(Cell::deleted));
 
     for (label i = 1; i < stencilsID_[cellI][0].size(); i++)
     {
@@ -302,7 +302,7 @@ void Foam::WENOBase::sortStencil
                     refPoint_[cellI]
                 );
 
-            distField[i] = mag(    transCJ - transCcellI);
+            distField[i] = mag(transCJ - transCcellI);
         }
 
         numberField[i] = stencilsID_[cellI][0][i];
@@ -388,7 +388,7 @@ void Foam::WENOBase::distributeStencils
     {
         haloCells[patchI].clear();
 
-        if (patchToProcMap_[patchI] != -1)
+        if (patchToProcMap_[patchI] != int(Cell::local))
         {
             UIPstream fromBuffer(patchToProcMap_[patchI], pBufs);
             fromBuffer >> haloCells[patchI];
@@ -412,7 +412,7 @@ void Foam::WENOBase::distributeStencils
     // Distribute halo cell center coordinates
     forAll(patchToProcMap_, patchI)
     {
-        if (patchToProcMap_[patchI] != -1)
+        if (patchToProcMap_[patchI] != int(Cell::local))
         {
             UOPstream toBuffer(patchToProcMap_[patchI], pBufs);
             toBuffer << haloCenters_[patchI];
@@ -425,7 +425,7 @@ void Foam::WENOBase::distributeStencils
     {
         haloCenters_[patchI].clear();
 
-        if (patchToProcMap_[patchI] != -1)
+        if (patchToProcMap_[patchI] != int(Cell::local))
         {
             UIPstream fromBuffer(patchToProcMap_[patchI], pBufs);
             fromBuffer >> haloCenters_[patchI];
@@ -449,7 +449,7 @@ void Foam::WENOBase::distributeStencils
     {
         haloTriFaceCoord[patchI].clear();
 
-        if (patchToProcMap_[patchI] != -1)
+        if (patchToProcMap_[patchI] != int(Cell::local))
         {
             UIPstream fromBuffer(patchToProcMap_[patchI], pBufs);
             fromBuffer >> haloTriFaceCoord[patchI];
@@ -975,7 +975,7 @@ Foam::WENOBase::WENOBase
 
             forAll(stencilsID_[cellI], stencilI)
             {
-                if (stencilsID_[cellI][stencilI][0] != -1)
+                if (stencilsID_[cellI][stencilI][0] != int(Cell::deleted))
                 {
                     LSmatrix_[cellI][stencilI - excludeFace] =
                         calcMatrix

@@ -58,7 +58,7 @@ class WENOBase
         //  halo cells have positive IDs that correspond with their cellID
         enum class Cell
         {
-            local    = -1,   // is a local cell
+            local    = -1,   // is a local cell, in e.g.: cellToPatchMap
             deleted  = -4    // was deleted in splitStencil
         };
 
