@@ -57,6 +57,9 @@ private:
 
     // Private Data
 
+        //- Store reference to mesh 
+        const fvMesh& mesh_;
+
         //- Typedef for 3D scalar matrix
         using volIntegralType = List< List< List<scalar> > > ;
         
@@ -100,6 +103,13 @@ private:
         (
             const GeometricField<Type, fvPatchField, volMesh>& vf
         ) const;
+        
+        //- Function to store or retrieve fields from the database 
+        GeometricField<Type, fvPatchField, volMesh>& storeOrRetrieve
+        (
+            const word fieldName
+        ) const;
+
 
 
 public:

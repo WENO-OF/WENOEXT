@@ -52,7 +52,16 @@ namespace Foam
 
 class WENOBase
 {
-private:
+    private:
+
+        //- Enumerator for halo cells
+        //  halo cells have positive IDs that correspond with their cellID
+        enum class Cell
+        {
+            local    = -1,   // is a local cell
+            deleted  = -4    // was deleted in splitStencil
+        };
+
 
     //- Constructors
 

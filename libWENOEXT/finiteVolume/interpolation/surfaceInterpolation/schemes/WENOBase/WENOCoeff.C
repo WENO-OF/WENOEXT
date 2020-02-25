@@ -46,6 +46,7 @@ Foam::WENOCoeff<Type>::WENOCoeff
     const label polOrder
 )
 :
+    mesh_(mesh),
     polOrder_(polOrder),
     WENOBase_
     (
@@ -127,12 +128,11 @@ void Foam::WENOCoeff<Type>::calcCoeff
 
     Type bJ = pTraits<Type>::zero;
 
-
     for (label j = 1; j < stencilsIDI.size(); j++)
     {
 
         // Distinguish between local and halo cells
-        if (cellToPatchMapI[j] == -1)
+        if (cellToPatchMapI[j] == int(WENOBase::Cell::local))
         {
             bJ = vf[stencilsIDI[j]] - vf[cellI];
 
@@ -141,7 +141,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
                 coeff[i] += A[i][j-1]*bJ;
             }
         }
-        else if(cellToPatchMapI[j] > -4)
+        else if(cellToPatchMapI[j] != int(WENOBase::Cell::deleted))
         {
             bJ =
                 haloData_[cellToPatchMapI[j]][stencilsIDI[j]]
@@ -196,7 +196,7 @@ void Foam::WENOCoeff<Type>::collectData
     // Distribute data
     forAll(WENOBase_.patchToProcMap(), patchI)
     {
-        if (WENOBase_.patchToProcMap()[patchI] > -1)
+        if (WENOBase_.patchToProcMap()[patchI] != int(WENOBase::Cell::local))
         {
             UOPstream toBuffer(WENOBase_.patchToProcMap()[patchI], pBufs);
             toBuffer << haloData_[patchI];
@@ -209,7 +209,7 @@ void Foam::WENOCoeff<Type>::collectData
 
     forAll(WENOBase_.patchToProcMap(), patchI)
     {
-        if (WENOBase_.patchToProcMap()[patchI] > -1)
+        if (WENOBase_.patchToProcMap()[patchI] != int(WENOBase::Cell::local))
         {
             haloData_[patchI].clear();
 
@@ -227,17 +227,15 @@ Foam::WENOCoeff<Type>::getWENOPol
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
-    const fvMesh& mesh = vf.mesh();
-    
     if (Pstream::parRun())
         collectData(vf);
 
 
     // Runtime operations
     
-    Field<Field<Type> > coeffsWeighted(mesh.nCells());
+    Field<Field<Type> > coeffsWeighted(mesh_.nCells());
     
-    for (label cellI = 0; cellI < mesh.nCells(); cellI++)
+    for (label cellI = 0; cellI < mesh_.nCells(); cellI++)
     {
         coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
 
@@ -253,7 +251,8 @@ Foam::WENOCoeff<Type>::getWENOPol
         while (stencilI < nStencilsI)
         {
             // Offset for deleted stencils
-            if (WENOBase_.stencilsID()[cellI][stencilI+excludeStencils][0] == -4)
+            if (WENOBase_.stencilsID()[cellI][stencilI+excludeStencils][0] 
+                == int(WENOBase::Cell::deleted))
             {
                 excludeStencils++;
             }
@@ -271,7 +270,6 @@ Foam::WENOCoeff<Type>::getWENOPol
 		        stencilI++;
             }
         }
-
         
         // Get weighted combination
         calcWeight
@@ -359,8 +357,6 @@ void Foam::WENOCoeff<Type>::calcWeight
     const List<List<Type> >& coeffsI
 ) const 
 {
-    // Get weighted combination for each component separately
-
     scalar gamma = 0.0;
 
     for (label compI = 0; compI < vf[0].size(); compI++)
@@ -416,7 +412,41 @@ void Foam::WENOCoeff<Type>::calcWeight
         {
             coeffsWeightedI[coeffI][compI] /= gammaSum;
         }
+        
     }
+}
+
+
+template<class Type>
+Foam::GeometricField<Type, Foam::fvPatchField, Foam::volMesh>& Foam::WENOCoeff<Type>::storeOrRetrieve
+(
+    const word fieldName
+) const
+{
+    if (!mesh_.objectRegistry::foundObject<GeometricField<Type, fvPatchField, volMesh> >(fieldName))
+    {
+        GeometricField<Type, fvPatchField, volMesh>* fPtr
+        (
+            new GeometricField<Type, fvPatchField, volMesh>
+            (
+                IOobject
+                (
+                    fieldName,
+                    mesh_.time().timeName(),
+                    mesh_,
+                    IOobject::NO_READ,
+                    IOobject::AUTO_WRITE
+                ),
+                mesh_,
+                dimensioned<Type>("sensor",dimless,Type())
+            )
+        );
+
+        // Transfer ownership of this object to the objectRegistry
+        fPtr->store(fPtr);
+    }
+
+    return mesh_.objectRegistry::lookupObjectRef<GeometricField<Type, fvPatchField, volMesh> >(fieldName);
 }
 
 

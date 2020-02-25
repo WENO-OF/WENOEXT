@@ -126,7 +126,7 @@ void Foam::WENOBase::splitStencil
                 {
                     point transCenterJ = pTraits<point>::zero;
 
-                    if (cellToPatchMap_[cellI][0][cellJ] == -1)
+                    if (cellToPatchMap_[cellI][0][cellJ] == int(Cell::local))
                     {
                         transCenterJ =
                             Foam::geometryWENO::transformPoint
@@ -136,7 +136,8 @@ void Foam::WENOBase::splitStencil
                                 mesh.C()[cellI]
                             );
                     }
-                    else if (cellToPatchMap_[cellI][0][cellJ] > -1)
+                    else if (cellToPatchMap_[cellI][0][cellJ] != int(Cell::local) 
+                          && cellToPatchMap_[cellI][0][cellJ] != int(Cell::deleted))
                     {
                         transCenterJ =
                             Foam::geometryWENO::transformPoint
@@ -199,7 +200,7 @@ void Foam::WENOBase::splitStencil
             stencilsID_[cellI][stencilI].resize(1);
             cellToPatchMap_[cellI][stencilI].resize(1);
             stencilsID_[cellI][stencilI][0] = -1;
-            cellToPatchMap_[cellI][stencilI][0] = -4;
+            cellToPatchMap_[cellI][stencilI][0] = static_cast<int>(Cell::deleted);
 
             nStencilsI--;
         }
@@ -278,7 +279,7 @@ void Foam::WENOBase::sortStencil
 
     for (label i = 1; i < stencilsID_[cellI][0].size(); i++)
     {
-        if (cellToPatchMap_[cellI][0][i] == -1)
+        if (cellToPatchMap_[cellI][0][i] == int(Cell::local))
         {
             point transCJ =
                 Foam::geometryWENO::transformPoint
@@ -352,11 +353,11 @@ void Foam::WENOBase::distributeStencils
     List<List<List<point> > >& haloTriFaceCoord
 )
 {
-#ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
-    PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
-#else
-    PstreamBuffers pBufs(Pstream::nonBlocking);
-#endif
+    #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
+        PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+    #else
+        PstreamBuffers pBufs(Pstream::nonBlocking);
+    #endif
 
     // Collect centres of halo cells
     forAll(haloCells, patchI)
@@ -374,7 +375,7 @@ void Foam::WENOBase::distributeStencils
     // Assigning new ID, starting at 0
     forAll(patchToProcMap_, patchI)
     {
-        if (patchToProcMap_[patchI] != -1)
+        if (patchToProcMap_[patchI] != int(Cell::local))
         {
             UOPstream toBuffer(patchToProcMap_[patchI], pBufs);
             toBuffer << haloCells[patchI];
@@ -396,7 +397,7 @@ void Foam::WENOBase::distributeStencils
 
     forAll(haloCells, patchI)
     {
-        if (patchToProcMap_[patchI] != -1)
+        if (patchToProcMap_[patchI] != int(Cell::local))
         {
             label newID = 0;
             forAll(haloCells[patchI], ID)
@@ -435,7 +436,7 @@ void Foam::WENOBase::distributeStencils
     // Distribute coordinates of halo faces for calculating volume integrals
     forAll(patchToProcMap_, patchI)
     {
-        if (patchToProcMap_[patchI] != -1)
+        if (patchToProcMap_[patchI] != int(Cell::local))
         {
             UOPstream toBuffer(patchToProcMap_[patchI], pBufs);
             toBuffer << haloTriFaceCoord[patchI];
@@ -486,7 +487,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     // Add one line per cell
     for (label cellJ = 1; cellJ < stencilSize; cellJ++)
     {
-        if (cellToPatchMap_[cellI][stencilI][cellJ] == -1)
+        if (cellToPatchMap_[cellI][stencilI][cellJ] == int(Cell::local))
         {
             point transCenterJ =
                 Foam::geometryWENO::transformPoint
@@ -532,7 +533,8 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
             }
 
         }
-        else if (cellToPatchMap_[cellI][stencilI][cellJ] > -1)
+        else if (cellToPatchMap_[cellI][stencilI][cellJ] != int(Cell::local)
+              && cellToPatchMap_[cellI][stencilI][cellJ] != int(Cell::deleted))
         {
             point transCenterJ =
                 Foam::geometryWENO::transformPoint
@@ -736,7 +738,7 @@ Foam::WENOBase::WENOBase
 
         const fvPatchList& patches = mesh.boundary();
 
-        patchToProcMap_.setSize(patches.size(), -1);
+        patchToProcMap_.setSize(patches.size(), int(Cell::local));
 
         labelListList haloCells(patches.size());
         List<List<List<point> > > haloTriFaceCoord(patches.size());
@@ -809,7 +811,7 @@ Foam::WENOBase::WENOBase
 
             // Sort and cut stencil
 
-            labelList dummyLabels(stencilsID_[cellI][0].size(),-1);
+            labelList dummyLabels(stencilsID_[cellI][0].size(),static_cast<int>(Cell::local));
             cellToPatchMap_[cellI][0] = dummyLabels;
 
             sortStencil(mesh,cellI, extendRatio*nDvt_*nStencils[cellI]);
@@ -823,7 +825,7 @@ Foam::WENOBase::WENOBase
 
             forAll(stencilNeedsHalo, i)
             {
-                stencilNeedsHalo[i].setSize(patches.size(), -1);
+                stencilNeedsHalo[i].setSize(patches.size(), int(Cell::local));
             }
 
             forAll(patches, patchI)
@@ -897,7 +899,7 @@ Foam::WENOBase::WENOBase
             {
                 forAll(stencilNeedsHalo[cellI], patchI)
                 {
-                    if (stencilNeedsHalo[cellI][patchI] != -1)
+                    if (stencilNeedsHalo[cellI][patchI] != int(Cell::local))
                     {
                         scalar radius =
                             mag
