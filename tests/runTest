@@ -19,6 +19,9 @@ cd ${currDir}/case-3D && blockMesh > /dev/null &&./tests.exe [3D]
 cp ${currDir}/src/tests.exe ${currDir}/case-1D
 cd ${currDir}/case-1D
 blockMesh > /dev/null
+for i in 1 2 3; do
+    [[ -d constant/WENOBase${i} ]] && rm -r constant/WENOBase${i}
+done
 [[ -d 0 ]] && rm -r 0
 [[ -d 1 ]] && rm -r 1
 [[ -d 2 ]] && rm -r 2
