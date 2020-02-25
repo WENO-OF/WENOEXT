@@ -796,9 +796,11 @@ Foam::WENOBase::WENOBase
 
 
             // Extend central stencil to neccessary size
-
             label minStencilSize = 0;
-
+            // Maximum number of iterations for extendRatio
+            const label maxIter = 100;
+            label iter = 0;
+            
             while (minStencilSize < 1.2*extendRatio*nDvt_*nStencils[cellI])
             {
                 extendStencils
@@ -808,6 +810,15 @@ Foam::WENOBase::WENOBase
                     lastNeighbours[cellI],
                     minStencilSize
                 );
+                iter++;
+                if (iter > maxIter)
+                {
+                    Pout << "ExtendStencil failed to reach criteria " 
+                         << minStencilSize << " < " << 1.2*extendRatio*nDvt_*nStencils[cellI]
+                         << "  for cell: " << cellI << nl
+                         << "Maximum iteration reached. Continue with this stencil size..."<<endl;
+                    break;
+                }
             }
 
             // Sort and cut stencil
