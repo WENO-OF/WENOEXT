@@ -584,9 +584,8 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         // Populate the matrix A
         addCoeffs(A,cellJ,polOrder_,dimList_[cellI],volIntegralsIJ);
     }
-
+    
     // Returning pseudoinverse using SVD
-
     SVD svd(A, 1e-5);
 
     return svd.VSinvUt();
@@ -751,6 +750,8 @@ Foam::WENOBase::WENOBase
         refPoint_.setSize(mesh.nCells());
         refDet_.setSize(mesh.nCells());
 
+        Info << "\t1)Create local stencils..." << endl;
+
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
         {
             const cell& faces = mesh.cells()[cellI];
@@ -821,6 +822,8 @@ Foam::WENOBase::WENOBase
 
         if(Pstream::parRun())
         {
+            Info << "\t2) Create haloCells ... " << endl;
+            
             labelListList stencilNeedsHalo(mesh.nCells());
 
             forAll(stencilNeedsHalo, i)
@@ -941,6 +944,7 @@ Foam::WENOBase::WENOBase
             }
         }
 
+        Info << "\t3) Split stencil ... " << endl;
         // Split the stencil in several sectorial stencils
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
         {
@@ -948,8 +952,8 @@ Foam::WENOBase::WENOBase
         }
 
 
+        Info << "\t4) Calculate LS matrix ..." << endl;
         // Get the least squares matrices and their pseudoinverses
-
         LSmatrix_.setSize(mesh.nCells());
 
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
@@ -979,8 +983,8 @@ Foam::WENOBase::WENOBase
 
         }
 
+        Info << "\t5) Calcualte smoothness indicator B..."<<endl;
         // Get the smoothness indicator matrices
-
         B_.setSize(mesh.nCells());
 
         for(label cellI = 0; cellI < mesh.nCells(); cellI++)
