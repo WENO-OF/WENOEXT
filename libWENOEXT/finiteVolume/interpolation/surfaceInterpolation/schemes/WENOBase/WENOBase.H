@@ -40,6 +40,7 @@ Author
 #define WENOBase_H
 
 #include "linear.H"
+#include "globalfvMesh.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -101,7 +102,7 @@ class WENOBase
         //- Order of polynomials
         label polOrder_;
 
-        //- Number of derivatives
+        //- Number of derivatives (degree of freedom)
         label nDvt_;
 
         //- Lists of central and sectorial stencil ID's for each cell
@@ -156,8 +157,9 @@ class WENOBase
         //- Split big central stencil into sectorial stencils
         void splitStencil
         (
-            const fvMesh& mesh,
-            const label cellI,
+            const fvMesh& globalMesh,
+            const label localCellI,
+            const label globalCellI,
             label& nStencilsI
         );
 
@@ -182,24 +184,15 @@ class WENOBase
         //- Distribute data between processors
         void distributeStencils
         (
-            const fvMesh& mesh,
-            labelListList& haloCells,
-            List<List<List<point> > >& haloTriFaces
-        );
-
-        //- Distribute data between local boundaries
-        void distributeLocalStencils
-        (
-            const fvMesh& mesh,
-            labelListList& haloCells,
-            List<List<List<point> > >& haloTriFaces
+            labelListList& haloCells
         );
 
         //- Fill the least squares matrices and calculate the
         //- pseudoinverses for each cell
         scalarRectangularMatrix calcMatrix
         (
-            const fvMesh& mesh,
+            const fvMesh& globalMesh,
+            const fvMesh& localMesh,
             const label cellI,
             const label stencilI,
             const List<List<List<point> > >& haloTriFaces
@@ -241,6 +234,37 @@ class WENOBase
             const labelList& dim,
             const volIntegralType& volIntegralsIJ
         );
+        
+        //- Correct the stencilID index for parallel runs and adds them to 
+        //  halo cells
+        void correctParallelRun
+        (
+            WENO::globalfvMesh& globalfvMesh,
+            List<List<List<point> > >& haloTriFaceCoord,
+            const labelList& nStencils,
+            const scalar extendRatio
+        );
+        
+        
+        //- Generate stencilID list
+        void createStencilID
+        (
+            const fvMesh& mesh,
+            const labelList& cellID,
+            labelList& nStencils,
+            const scalar extendRatio
+        );
+        
+        //- Set the dimensions and the degree of freedom 
+        //  See Eq. (3.3) and (3.4) in Development of a Finite Solver ...
+        void setDegreeOfFreedom(const fvMesh& mesh);
+        
+        //- Initialize the volume integrals 
+        void initVolIntegrals
+        (
+            const WENO::globalfvMesh& globalfvMesh,
+            volIntegralType& volIntegrals
+        );
 
 
 public:
@@ -278,11 +302,6 @@ public:
         inline const labelList& patchToProcMap() const
         {
             return patchToProcMap_;
-        }
-        
-        inline const List<List<point> > haloCenters() const 
-        {
-            return haloCenters_;
         }
         
         inline const labelListList& ownHalos() const 

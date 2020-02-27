@@ -43,13 +43,14 @@ Author
 
 void Foam::WENOBase::splitStencil
 (
-    const fvMesh& mesh,
-    const label cellI,
+    const fvMesh& globalMesh,
+    const label localCellI,
+    const label globalCellI,
     label& nStencilsI
 )
 {
-    const pointField& pts = mesh.points();
-    const cell& faces = mesh.cells()[cellI];
+    const pointField& pts = globalMesh.points();
+    const cell& faces = globalMesh.cells()[globalCellI];
 
     List<List<scalarSquareMatrix> > JacobiInvQ(nStencilsI - 1);
 
@@ -58,33 +59,32 @@ void Foam::WENOBase::splitStencil
     for
     (
         label stencilI = 1;
-        stencilI < cellToPatchMap_[cellI].size();
+        stencilI < cellToPatchMap_[localCellI].size();
         stencilI ++
     )
     {
-        cellToPatchMap_[cellI][stencilI].setSize(1);
-        cellToPatchMap_[cellI][stencilI][0] = int(Cell::local);
+        cellToPatchMap_[localCellI][stencilI].setSize(1);
+        cellToPatchMap_[localCellI][stencilI][0] = int(Cell::local);
     }
 
     // Fill lists with inverse jacobians J_Q for each subsector
-
     forAll(faces, faceI)
     {
-        if (faces[faceI] < mesh.nInternalFaces())
+        if (faces[faceI] < globalMesh.nInternalFaces())
         {
             List<tetIndices> faceTets =
                 polyMeshTetDecomposition::faceTetIndices
                 (
-                    mesh,
+                    globalMesh,
                     faces[faceI],
-                    cellI
+                    globalCellI
                 );
 
             triFaceList triFaces(faceTets.size());
 
             forAll(faceTets, cTI)
             {
-                triFaces[cTI] = faceTets[cTI].faceTriIs(mesh);
+                triFaces[cTI] = faceTets[cTI].faceTriIs(globalMesh);
             }
 
             JacobiInvQ[faceI - exludeFace].setSize(triFaces.size());
@@ -94,8 +94,9 @@ void Foam::WENOBase::splitStencil
                 const triFace& tri(triFaces[i]);
 
                 scalarSquareMatrix J = geometryWENO::jacobi(
-                    mesh.C()[cellI][0], mesh.C()[cellI][1],
-                    mesh.C()[cellI][2],
+                    globalMesh.C()[globalCellI][0],
+                    globalMesh.C()[globalCellI][1],
+                    globalMesh.C()[globalCellI][2],
                     pts[tri[0]][0], pts[tri[0]][1], pts[tri[0]][2],
                     pts[tri[1]][0], pts[tri[1]][1], pts[tri[1]][2],
                     pts[tri[2]][0], pts[tri[2]][1], pts[tri[2]][2]
@@ -111,8 +112,7 @@ void Foam::WENOBase::splitStencil
     }
 
     // Distribute cells from big central stencil to the appropriate sector
-
-    for (label cellJ = 1; cellJ <stencilsID_[cellI][0].size(); cellJ++)
+    for (label cellJ = 1; cellJ <stencilsID_[localCellI][0].size(); cellJ++)
     {
         bool attached = false;
 
@@ -120,32 +120,32 @@ void Foam::WENOBase::splitStencil
 
         while (attached == false)
         {
-            if (stencilsID_[cellI][actualFace + 1].size() < 2.1*nDvt_)
+            if (stencilsID_[localCellI][actualFace + 1].size() < 2.1*nDvt_)
             {
                 forAll(JacobiInvQ[actualFace], triangleI)
                 {
                     point transCenterJ = pTraits<point>::zero;
 
-                    if (cellToPatchMap_[cellI][0][cellJ] == int(Cell::local))
+                    if (cellToPatchMap_[localCellI][0][cellJ] == int(Cell::local))
                     {
                         transCenterJ =
                             Foam::geometryWENO::transformPoint
                             (
                                 JacobiInvQ[actualFace][triangleI],
-                                mesh.C()[stencilsID_[cellI][0][cellJ]],
-                                mesh.C()[cellI]
+                                globalMesh.C()[stencilsID_[localCellI][0][cellJ]],
+                                globalMesh.C()[globalCellI]
                             );
                     }
-                    else if (cellToPatchMap_[cellI][0][cellJ] != int(Cell::local) 
-                          && cellToPatchMap_[cellI][0][cellJ] != int(Cell::deleted))
+                    else if (cellToPatchMap_[localCellI][0][cellJ] != int(Cell::local) 
+                          && cellToPatchMap_[localCellI][0][cellJ] != int(Cell::deleted))
                     {
                         transCenterJ =
                             Foam::geometryWENO::transformPoint
                             (
                                 JacobiInvQ[actualFace][triangleI],
-                                haloCenters_[cellToPatchMap_[cellI][0][cellJ]]
-                                    [stencilsID_[cellI][0][cellJ]],
-                                mesh.C()[cellI]
+                                haloCenters_[cellToPatchMap_[localCellI][0][cellJ]]
+                                    [stencilsID_[localCellI][0][cellJ]],
+                                globalMesh.C()[globalCellI]
                             );
                     }
 
@@ -156,14 +156,14 @@ void Foam::WENOBase::splitStencil
                      && sign(transCenterJ.z()) > 0
                     )
                     {
-                        stencilsID_[cellI][actualFace + 1].append
+                        stencilsID_[localCellI][actualFace + 1].append
                         (
-                            stencilsID_[cellI][0][cellJ]
+                            stencilsID_[localCellI][0][cellJ]
                         );
 
-                        cellToPatchMap_[cellI][actualFace + 1].append
+                        cellToPatchMap_[localCellI][actualFace + 1].append
                         (
-                            cellToPatchMap_[cellI][0][cellJ]
+                            cellToPatchMap_[localCellI][0][cellJ]
                         );
 
                         attached = true;
@@ -188,19 +188,19 @@ void Foam::WENOBase::splitStencil
 
     const scalar necSize = 2.0*nDvt_ + 1;
 
-    forAll(stencilsID_[cellI], stencilI)
+    forAll(stencilsID_[localCellI], stencilI)
     {
-        if (stencilsID_[cellI][stencilI].size() >= necSize)
+        if (stencilsID_[localCellI][stencilI].size() >= necSize)
         {
-            stencilsID_[cellI][stencilI].resize(necSize);
-            cellToPatchMap_[cellI][stencilI].resize(necSize);
+            stencilsID_[localCellI][stencilI].resize(necSize);
+            cellToPatchMap_[localCellI][stencilI].resize(necSize);
         }
         else
         {
-            stencilsID_[cellI][stencilI].resize(1);
-            cellToPatchMap_[cellI][stencilI].resize(1);
-            stencilsID_[cellI][stencilI][0] = int(Cell::deleted);
-            cellToPatchMap_[cellI][stencilI][0] = int(Cell::deleted);
+            stencilsID_[localCellI][stencilI].resize(1);
+            cellToPatchMap_[localCellI][stencilI].resize(1);
+            stencilsID_[localCellI][stencilI][0] = int(Cell::deleted);
+            cellToPatchMap_[localCellI][stencilI][0] = int(Cell::deleted);
 
             nStencilsI--;
         }
@@ -260,7 +260,7 @@ void Foam::WENOBase::extendStencils
 
 void Foam::WENOBase::sortStencil
 (
-    const fvMesh& mesh,
+    const fvMesh& globalMesh,
     const label cellI,
     const label maxSize
 )
@@ -269,7 +269,7 @@ void Foam::WENOBase::sortStencil
         Foam::geometryWENO::transformPoint
         (
             JInv_[cellI],
-            mesh.C()[stencilsID_[cellI][0][0]],
+            globalMesh.C()[stencilsID_[cellI][0][0]],
             refPoint_[cellI]
         );
 
@@ -281,11 +281,13 @@ void Foam::WENOBase::sortStencil
     {
         if (cellToPatchMap_[cellI][0][i] == int(Cell::local))
         {
+            //Pout << "cellID "<< stencilsID_[cellI][0][i] 
+            //     << "  mesh.C(): " << mesh.C()[stencilsID_[cellI][0][i]]<<endl;
             point transCJ =
                 Foam::geometryWENO::transformPoint
                 (
                     JInv_[cellI],
-                    mesh.C()[stencilsID_[cellI][0][i]],
+                    globalMesh.C()[stencilsID_[cellI][0][i]],
                     refPoint_[cellI]
                 );
 
@@ -348,9 +350,7 @@ void Foam::WENOBase::sortStencil
 
 void Foam::WENOBase::distributeStencils
 (
-    const fvMesh& mesh,
-    labelListList& haloCells,
-    List<List<List<point> > >& haloTriFaceCoord
+    labelListList& haloCells
 )
 {
     #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
@@ -358,18 +358,6 @@ void Foam::WENOBase::distributeStencils
     #else
         PstreamBuffers pBufs(Pstream::nonBlocking);
     #endif
-
-    // Collect centres of halo cells
-    forAll(haloCells, patchI)
-    {
-        forAll(haloCells[patchI], cellI)
-        {
-            haloCenters_[patchI].append
-            (
-                mesh.C()[haloCells[patchI][cellI]]
-            );
-        }
-    }
 
     // Distribute halo cell ID's
     // Assigning new ID, starting at 0
@@ -394,79 +382,19 @@ void Foam::WENOBase::distributeStencils
             fromBuffer >> haloCells[patchI];
         }
     }
-
-    forAll(haloCells, patchI)
-    {
-        if (patchToProcMap_[patchI] != int(Cell::local))
-        {
-            label newID = 0;
-            forAll(haloCells[patchI], ID)
-            {
-                haloCells[patchI][ID] = newID;
-                newID++;
-            }
-        }
-    }
-
-
-    // Distribute halo cell center coordinates
-    forAll(patchToProcMap_, patchI)
-    {
-        if (patchToProcMap_[patchI] != int(Cell::local))
-        {
-            UOPstream toBuffer(patchToProcMap_[patchI], pBufs);
-            toBuffer << haloCenters_[patchI];
-        }
-    }
-
-    pBufs.finishedSends();
-
-    forAll(patchToProcMap_, patchI)
-    {
-        haloCenters_[patchI].clear();
-
-        if (patchToProcMap_[patchI] != int(Cell::local))
-        {
-            UIPstream fromBuffer(patchToProcMap_[patchI], pBufs);
-            fromBuffer >> haloCenters_[patchI];
-        }
-    }
-
-
-    // Distribute coordinates of halo faces for calculating volume integrals
-    forAll(patchToProcMap_, patchI)
-    {
-        if (patchToProcMap_[patchI] != int(Cell::local))
-        {
-            UOPstream toBuffer(patchToProcMap_[patchI], pBufs);
-            toBuffer << haloTriFaceCoord[patchI];
-        }
-    }
-
-    pBufs.finishedSends();
-
-    forAll(patchToProcMap_, patchI)
-    {
-        haloTriFaceCoord[patchI].clear();
-
-        if (patchToProcMap_[patchI] != int(Cell::local))
-        {
-            UIPstream fromBuffer(patchToProcMap_[patchI], pBufs);
-            fromBuffer >> haloTriFaceCoord[patchI];
-        }
-    }
 }
 
 
 Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
 (
-    const fvMesh& mesh,
-    const label cellI,
+    const fvMesh& globalMesh,
+    const fvMesh& localMesh,
+    const label   localCellI,
     const label stencilI,
     const List<List<List< point> > >& haloTriFaceCoord
 )
 {
-    const label stencilSize = stencilsID_[cellI][stencilI].size();
+    const label stencilSize = stencilsID_[localCellI][stencilI].size();
 
     scalarRectangularMatrix A
     (
@@ -477,43 +405,43 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
 
     point transCenterI = Foam::geometryWENO::transformPoint
     (
-        JInv_[cellI],
-        mesh.C()[cellI],
-        refPoint_[cellI]
+        JInv_[localCellI],
+        localMesh.C()[localCellI],
+        refPoint_[localCellI]
     );
 
-    volIntegralType volIntegralsIJ = volIntegralsList_[cellI];
+    volIntegralType volIntegralsIJ = volIntegralsList_[localCellI];
 
     // Add one line per cell
     for (label cellJ = 1; cellJ < stencilSize; cellJ++)
     {
-        if (cellToPatchMap_[cellI][stencilI][cellJ] == int(Cell::local))
+        if (cellToPatchMap_[localCellI][stencilI][cellJ] == int(Cell::local))
         {
             point transCenterJ =
                 Foam::geometryWENO::transformPoint
                 (
-                    JInv_[cellI],
-                    mesh.C()[stencilsID_[cellI][stencilI][cellJ]],
-                    refPoint_[cellI]
+                    JInv_[localCellI],
+                    localMesh.C()[stencilsID_[localCellI][stencilI][cellJ]],
+                    refPoint_[localCellI]
                 );
 
             volIntegralType transVolMom =
                 Foam::geometryWENO::transformIntegral
                 (
-                    mesh,
-                    stencilsID_[cellI][stencilI][cellJ],
+                    localMesh,
+                    stencilsID_[localCellI][stencilI][cellJ],
                     transCenterJ,
                     polOrder_,
-                    JInv_[cellI],
-                    refPoint_[cellI],
-                    refDet_[cellI]
+                    JInv_[localCellI],
+                    refPoint_[localCellI],
+                    refDet_[localCellI]
                 );
 
-            for (label n = 0; n <= dimList_[cellI][0]; n++)
+            for (label n = 0; n <= dimList_[localCellI][0]; n++)
             {
-                for (label m = 0; m <= dimList_[cellI][1]; m++)
+                for (label m = 0; m <= dimList_[localCellI][1]; m++)
                 {
-                    for (label l = 0; l <= dimList_[cellI][2]; l++)
+                    for (label l = 0; l <= dimList_[localCellI][2]; l++)
                     {
                         if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
                         {
@@ -525,7 +453,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                                     m,
                                     l,
                                     transVolMom,
-                                    volIntegralsList_[cellI]
+                                    volIntegralsList_[localCellI]
                                 );
                         }
                     }
@@ -533,35 +461,35 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
             }
 
         }
-        else if (cellToPatchMap_[cellI][stencilI][cellJ] != int(Cell::local)
-              && cellToPatchMap_[cellI][stencilI][cellJ] != int(Cell::deleted))
+        else if (cellToPatchMap_[localCellI][stencilI][cellJ] != int(Cell::local)
+              && cellToPatchMap_[localCellI][stencilI][cellJ] != int(Cell::deleted))
         {
             point transCenterJ =
                 Foam::geometryWENO::transformPoint
                 (
-                    JInv_[cellI],
-                    haloCenters_[cellToPatchMap_[cellI][stencilI][cellJ]]
-                        [stencilsID_[cellI][stencilI][cellJ]],
-                    refPoint_[cellI]
+                    JInv_[localCellI],
+                    haloCenters_[cellToPatchMap_[localCellI][stencilI][cellJ]]
+                        [stencilsID_[localCellI][stencilI][cellJ]],
+                    refPoint_[localCellI]
                 );
+                
 
             volIntegralType transVolMom =
                 Foam::geometryWENO::getHaloMoments
                 (
-                    mesh,
                     transCenterJ,
-                    haloTriFaceCoord[cellToPatchMap_[cellI][stencilI][cellJ]]
-                        [stencilsID_[cellI][stencilI][cellJ]],
+                    haloTriFaceCoord[cellToPatchMap_[localCellI][stencilI][cellJ]]
+                        [stencilsID_[localCellI][stencilI][cellJ]],
                     polOrder_,
-                    JInv_[cellI],
-                    refPoint_[cellI]
+                    JInv_[localCellI],
+                    refPoint_[localCellI]
                 );
 
-            for (label n = 0; n <= dimList_[cellI][0]; n++)
+            for (label n = 0; n <= dimList_[localCellI][0]; n++)
             {
-                for (label m = 0; m <= dimList_[cellI][1]; m++)
+                for (label m = 0; m <= dimList_[localCellI][1]; m++)
                 {
-                    for (label l = 0; l <= dimList_[cellI][2]; l++)
+                    for (label l = 0; l <= dimList_[localCellI][2]; l++)
                     {
                         if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
                         {
@@ -573,7 +501,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                                     m,
                                     l,
                                     transVolMom,
-                                    volIntegralsList_[cellI]
+                                    volIntegralsList_[localCellI]
                                 );
                         }
                     }
@@ -582,7 +510,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         }
         
         // Populate the matrix A
-        addCoeffs(A,cellJ,polOrder_,dimList_[cellI],volIntegralsIJ);
+        addCoeffs(A,cellJ,polOrder_,dimList_[localCellI],volIntegralsIJ);
     }
     
     // Returning pseudoinverse using SVD
@@ -657,50 +585,31 @@ Foam::WENOBase::WENOBase
     const label polOrder
 )
 {
+    WENO::globalfvMesh globalfvMesh(mesh);
+
+    // Note the local mesh is the mesh of the processor, the global mesh is the
+    // reconstructed mesh from all processors 
+    const fvMesh& localMesh = globalfvMesh.localMesh();
+    const fvMesh& globalMesh = globalfvMesh();
+
     polOrder_ = polOrder;
 
-    Dir_ = mesh.time().path()/"constant"/"WENOBase" + Foam::name(polOrder_);
+    Dir_ = localMesh.time().path()/"constant"/"WENOBase" + Foam::name(polOrder_);
 
-    // 3D version
-    if (mesh.nSolutionD() == 3)
-    {
-        nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)*(polOrder_ + 3.0)/6.0 - 1.0;
-    }
-    else // 2D version (always only one cell in z-direction)
-    {
-        nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)/2.0 - 1.0;
-    }
-
-    // Set the dimList
-    labelList dummyList(3,0);
-    dimList_.setSize(mesh.nCells(),dummyList);
-    
-    // Vector with valid dimensions
-    vector dimMesh = mesh.solutionD();
-    
-    for (label i = 0; i < mesh.nCells(); i++)
-    {
-        dimList_[i][0] = (dimMesh[0] == 1 ? polOrder_ : 0);
-        dimList_[i][1] = (dimMesh[1] == 1 ? polOrder_ : 0);
-        dimList_[i][2] = (dimMesh[2] == 1 ? polOrder_ : 0);
-    }
-
-
-    // Check for existing lists
-    bool listExist = readList(mesh);
+    // Calculate the degrees of freedom and sets the dimensions 
+    setDegreeOfFreedom(localMesh);
 
     // Create new lists if necessary
-    if (listExist == false)
+    if (!readList(localMesh))
     {
         // Read expert factor
-
         IOdictionary WENODict
         (
             IOobject
             (
                 "WENODict",
-                mesh.time().caseSystem(),
-                mesh,
+                localMesh.time().caseSystem(),
+                localMesh,
                 IOobject::READ_IF_PRESENT,
                 IOobject::NO_WRITE
             )
@@ -709,265 +618,56 @@ Foam::WENOBase::WENOBase
         const scalar extendRatio =
             WENODict.lookupOrDefault<scalar>("extendRatio", 2.5);
 
-        // Get big central stencils
+        // ------------- Initialize Lists --------------------------------------
 
-        stencilsID_.setSize(mesh.nCells());
-        cellToPatchMap_.setSize(mesh.nCells());
+        stencilsID_.setSize(localMesh.nCells());
+        cellToPatchMap_.setSize(localMesh.nCells());
 
-        labelList nStencils(mesh.nCells(),0);
+        labelList nStencils(localMesh.nCells(),0);
 
-        volIntegralType volIntegrals;
-
-        volIntegrals.resize((polOrder_ + 1));
-
-        for (label i = 0; i < (polOrder_+1); i++)
-        {
-            volIntegrals[i].resize((polOrder_+ 1)-i);
-
-            for (label j = 0; j < ((polOrder_+1)-i); j++)
-            {
-                volIntegrals[i][j].resize((polOrder_ + 1)-i, 0.0);
-            }
-        }
-
-
-        volIntegralsList_.setSize(mesh.nCells(), volIntegrals);
-
-        labelListList lastNeighbours(mesh.nCells());
-
-        const fvPatchList& patches = mesh.boundary();
+        const fvPatchList& patches = localMesh.boundary();
 
         patchToProcMap_.setSize(patches.size(), int(Cell::local));
 
-        labelListList haloCells(patches.size());
-        List<List<List<point> > > haloTriFaceCoord(patches.size());
-
         haloCenters_.setSize(patches.size());
 
-        ownHalos_ = haloCells;
+        List<List<List<point> > > haloTriFaceCoord(patches.size());
 
-        JInv_.setSize(mesh.nCells());
-        refPoint_.setSize(mesh.nCells());
-        refDet_.setSize(mesh.nCells());
+        // ------------------ Start Processing ---------------------------------
+        
+        // Initialize the volume integrals 
+        volIntegralType volIntegrals;   // Dummy variable for volumeIntegral of one cell
+        initVolIntegrals(globalfvMesh,volIntegrals);
 
-        Info << "\t1)Create local stencils..." << endl;
+        Info << "\t1) Create local stencils..." << endl;
+        createStencilID(globalMesh,globalfvMesh.cellID(),nStencils,extendRatio);
 
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-        {
-            const cell& faces = mesh.cells()[cellI];
-
-            nStencils[cellI] = 1;
-
-            forAll(faces, faceI)
-            {
-                if (faces[faceI] < mesh.nInternalFaces())
-                {
-                    nStencils[cellI]++;
-                }
-            }
-
-            stencilsID_[cellI].setSize(nStencils[cellI]);
-            cellToPatchMap_[cellI].setSize(nStencils[cellI]);
-
-            forAll(stencilsID_[cellI],stencilI)
-            {
-                stencilsID_[cellI][stencilI].append(cellI);
-            }
-            stencilsID_[cellI][0].append(mesh.cellCells()[cellI]);
-
-            lastNeighbours[cellI].setSize(stencilsID_[cellI][0].size());
-            lastNeighbours[cellI][0] = lastNeighbours[cellI].size() - 1;
-
-            for (label i = 1; i < stencilsID_[cellI][0].size(); i++)
-            {
-                lastNeighbours[cellI][i] = stencilsID_[cellI][0][i];
-            }
-
-            Foam::geometryWENO::initIntegrals
-            (
-                mesh,
-                cellI,
-                polOrder_,
-                volIntegralsList_[cellI],
-                JInv_[cellI],
-                refPoint_[cellI],
-                refDet_[cellI]
-            );
-
-
-            // Extend central stencil to neccessary size
-            label minStencilSize = 0;
-            // Maximum number of iterations for extendRatio
-            const label maxIter = 100;
-            label iter = 0;
-            
-            while (minStencilSize < 1.2*extendRatio*nDvt_*nStencils[cellI])
-            {
-                extendStencils
-                (
-                    mesh,
-                    cellI,
-                    lastNeighbours[cellI],
-                    minStencilSize
-                );
-                iter++;
-                if (iter > maxIter)
-                {
-                    Pout << "ExtendStencil failed to reach criteria " 
-                         << minStencilSize << " < " << 1.2*extendRatio*nDvt_*nStencils[cellI]
-                         << "  for cell: " << cellI << nl
-                         << "Maximum iteration reached. Continue with this stencil size..."<<endl;
-                    break;
-                }
-            }
-
-            // Sort and cut stencil
-
-            labelList dummyLabels(stencilsID_[cellI][0].size(),static_cast<int>(Cell::local));
-            cellToPatchMap_[cellI][0] = dummyLabels;
-
-            sortStencil(mesh,cellI, extendRatio*nDvt_*nStencils[cellI]);
-        }
-
+        
         // Extension to halo cells, if neccessary
-
         if(Pstream::parRun())
         {
             Info << "\t2) Create haloCells ... " << endl;
-            
-            labelListList stencilNeedsHalo(mesh.nCells());
-
-            forAll(stencilNeedsHalo, i)
-            {
-                stencilNeedsHalo[i].setSize(patches.size(), int(Cell::local));
-            }
-
-            forAll(patches, patchI)
-            {
-                if(isA<processorFvPatch>(patches[patchI]))
-                {
-                    labelList faceCells = patches[patchI].faceCells();
-
-                    patchToProcMap_[patchI] =
-                        refCast<const processorFvPatch>
-                        (patches[patchI]).neighbProcNo();
-
-                    forAll(faceCells, cellI)
-                    {
-                        // Add halo cells and mark stencils needing halo cells
-                        forAll(stencilsID_[faceCells[cellI]][0], cellJ)
-                        {
-                            label haloCell =
-                                stencilsID_[faceCells[cellI]][0][cellJ];
-
-                            stencilNeedsHalo[haloCell][patchI] = patchI;
-
-                            bool add = true;
-
-                            forAll(haloCells[patchI], cellK)
-                            {
-                                if (haloCells[patchI][cellK] == haloCell)
-                                {
-                                    add = false;
-                                    break;
-                                }
-                            }
-                            if (add == true)
-                            {
-                                haloCells[patchI].append(haloCell);
-                            }
-                        }
-                    }
-                }
-            }
-
-            forAll(haloTriFaceCoord, patchI)
-            {
-                haloTriFaceCoord[patchI].setSize(haloCells[patchI].size());
-
-                forAll(haloCells[patchI], cellI)
-                {
-                    haloTriFaceCoord[patchI][cellI] =
-                        Foam::geometryWENO::getTriFaces
-                        (
-                            mesh,
-                            haloCells[patchI][cellI]
-                        );
-                }
-            }
-
-
-            // Distribute halo cells, triFaces and centres
-            // New cell ID's begin behind the local cells
-            ownHalos_ = haloCells;
-
-            distributeStencils
-            (
-                mesh,
-                haloCells,
-                haloTriFaceCoord
-            );
-
-            // Add halo cells to stencils
-            forAll(stencilsID_, cellI)
-            {
-                forAll(stencilNeedsHalo[cellI], patchI)
-                {
-                    if (stencilNeedsHalo[cellI][patchI] != int(Cell::local))
-                    {
-                        scalar radius =
-                            mag
-                            (
-                                mesh.C()[stencilsID_[cellI][0][0]]
-                              - mesh.C()[stencilsID_[cellI][0]
-                                    [stencilsID_[cellI][0].size()-1]]
-                            );
-
-                        labelList haloLayer =
-                            haloCells[stencilNeedsHalo[cellI][patchI]];
-
-                        List<point> centers =
-                            haloCenters_[stencilNeedsHalo[cellI][patchI]];
-
-                        forAll(haloLayer,i)
-                        {
-                            scalar radiusI =
-                                mag
-                                (
-                                    mesh.C()[stencilsID_[cellI][0][0]]
-                                  - centers[i]
-                                );
-
-                            if (radiusI <= radius)
-                            {
-                                stencilsID_[cellI][0].append(haloLayer[i]);
-                                cellToPatchMap_[cellI][0].append(patchI);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Get final big central stencils
-            for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-            {
-                sortStencil(mesh, cellI, (extendRatio*nDvt_)*nStencils[cellI]);
-            }
+            correctParallelRun(globalfvMesh,haloTriFaceCoord,nStencils,extendRatio);
         }
 
         Info << "\t3) Split stencil ... " << endl;
         // Split the stencil in several sectorial stencils
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
+        const labelList& cellID = globalfvMesh.cellID();
+        for
+        (
+            label localCellI = 0, globalCellI = cellID[localCellI];
+            localCellI < cellID.size();
+            localCellI++, globalCellI=cellID[localCellI < cellID.size() ? localCellI : 0]
+        )
         {
-            splitStencil(mesh, cellI, nStencils[cellI]);
+            splitStencil(globalMesh, localCellI, globalCellI, nStencils[localCellI]);
         }
-
 
         Info << "\t4) Calculate LS matrix ..." << endl;
         // Get the least squares matrices and their pseudoinverses
-        LSmatrix_.setSize(mesh.nCells());
+        LSmatrix_.setSize(localMesh.nCells());
 
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
+        for (label cellI = 0; cellI < localMesh.nCells(); cellI++)
         {
             label excludeFace = 0;
 
@@ -980,7 +680,8 @@ Foam::WENOBase::WENOBase
                     LSmatrix_[cellI][stencilI - excludeFace] =
                         calcMatrix
                         (
-                            mesh,
+                            globalMesh,
+                            localMesh,
                             cellI,
                             stencilI,
                             haloTriFaceCoord
@@ -996,14 +697,14 @@ Foam::WENOBase::WENOBase
 
         Info << "\t5) Calcualte smoothness indicator B..."<<endl;
         // Get the smoothness indicator matrices
-        B_.setSize(mesh.nCells());
+        B_.setSize(localMesh.nCells());
 
-        for(label cellI = 0; cellI < mesh.nCells(); cellI++)
+        for(label cellI = 0; cellI < localMesh.nCells(); cellI++)
         {
             B_[cellI] =
                 Foam::geometryWENO::getB
                 (
-                    mesh,
+                    localMesh,
                     cellI,
                     polOrder_,
                     nDvt_,
@@ -1016,11 +717,11 @@ Foam::WENOBase::WENOBase
 
         // Get surface integrals over basis functions in transformed coordinates
 
-        intBasTrans_.setSize(mesh.nFaces());
+        intBasTrans_.setSize(localMesh.nFaces());
         
-        refFacAr_.setSize(mesh.nFaces());
+        refFacAr_.setSize(localMesh.nFaces());
 
-        for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
+        for (label faceI = 0; faceI < localMesh.nFaces(); faceI++)
         {
             intBasTrans_[faceI][0] = volIntegrals;
             intBasTrans_[faceI][1] = volIntegrals;
@@ -1028,7 +729,7 @@ Foam::WENOBase::WENOBase
 
         Foam::geometryWENO::surfIntTrans
         (
-            mesh,
+            localMesh,
             polOrder_,
             volIntegralsList_,
             JInv_,
@@ -1040,10 +741,36 @@ Foam::WENOBase::WENOBase
         // Write Lists to constant folder
         writeList
         (
-            mesh
+            localMesh
         );
     }
     
+    volScalarField excludedStencils
+    (
+      IOobject
+      (
+       "excludeStencil",
+       localMesh.time().timeName(),
+       localMesh,
+       IOobject::NO_READ,
+       IOobject::NO_WRITE
+      ),
+      localMesh,
+      dimensioned<scalar>("alphaSu", dimless, 0)
+    );
+
+    forAll(stencilsID_,cellI)
+    {
+        forAll(stencilsID_[cellI],stencilI)
+        {
+            if (stencilsID_[cellI][stencilI][0] == int(Cell::deleted))
+                excludedStencils[cellI] = excludedStencils[cellI]+1;
+        }
+
+    }
+
+    excludedStencils.write();
+
     // Clear all unwanted fields:
     volIntegralsList_.clear();
 
@@ -1053,6 +780,315 @@ Foam::WENOBase::WENOBase
 
     refPoint_.clear();
 }
+
+
+void Foam::WENOBase::createStencilID
+(
+    const fvMesh& globalMesh,         // here the global mesh
+    const labelList& cellID,
+    labelList& nStencils,
+    const scalar extendRatio
+    
+)
+{
+    labelListList lastNeighbours(globalMesh.nCells());
+    for
+    (
+        label cellI = 0, globalCellI = cellID[cellI];
+        cellI < cellID.size();
+        cellI++,globalCellI=cellID[cellI < cellID.size() ? cellI : 0]
+    )
+    {
+        // Note: local variables as nStencils or stencilID_ are accessed with 
+        //       cellI. Global mesh values are accessed with globalCellI
+        //       At first the stencil is populated with the globalCellI and is 
+        //       later corrected
+        const cell& faces = globalMesh.cells()[globalCellI];
+
+        nStencils[cellI] = 1;
+
+        forAll(faces, faceI)
+        {
+            if (faces[faceI] < globalMesh.nInternalFaces())
+            {
+                nStencils[cellI]++;
+            }
+        }
+
+        stencilsID_[cellI].setSize(nStencils[cellI]);
+        cellToPatchMap_[cellI].setSize(nStencils[cellI]);
+
+        forAll(stencilsID_[cellI],stencilI)
+        {
+            stencilsID_[cellI][stencilI].append(globalCellI);
+        }
+        stencilsID_[cellI][0].append(globalMesh.cellCells()[globalCellI]);
+
+        lastNeighbours[cellI].setSize(stencilsID_[cellI][0].size());
+        lastNeighbours[cellI][0] = lastNeighbours[cellI].size() - 1;
+
+        for (label i = 1; i < stencilsID_[cellI][0].size(); i++)
+        {
+            lastNeighbours[cellI][i] = stencilsID_[cellI][0][i];
+        }
+
+
+        // Extend central stencil to neccessary size
+        label minStencilSize = 0;
+        // Maximum number of iterations for extendRatio
+        const label maxIter = 100;
+        label iter = 0;
+        while (minStencilSize < 1.2*extendRatio*nDvt_*nStencils[cellI])
+        {
+            extendStencils
+            (
+                globalMesh,
+                cellI,
+                lastNeighbours[cellI],
+                minStencilSize
+            );
+            iter++;
+            if (iter > maxIter)
+            {
+                Pout << "ExtendStencil failed to reach criteria " 
+                     << minStencilSize << " < " << 1.2*extendRatio*nDvt_*nStencils[cellI]
+                     << "  for cell: " << cellI << nl
+                     << "Maximum iteration reached. Continue with this stencil size..."<<endl;
+                break;
+            }
+        }
+
+        // Sort and cut stencil
+        labelList dummyLabels(stencilsID_[cellI][0].size(),static_cast<int>(Cell::local));
+        cellToPatchMap_[cellI][0] = dummyLabels;
+
+        sortStencil(globalMesh,cellI, extendRatio*nDvt_*nStencils[cellI]);
+    }
+}
+
+
+void Foam::WENOBase::correctParallelRun
+(
+    WENO::globalfvMesh& globalfvMesh,
+    List<List<List<point> > >& haloTriFaceCoord,
+    const labelList& nStencils,
+    const scalar extendRatio
+)
+{
+    const fvMesh& localMesh = globalfvMesh.localMesh();
+    
+    const fvPatchList& patches = localMesh.boundary();
+
+    labelList procToPatchMap(Pstream::nProcs(),-1);
+    
+    // labelList of halo cells as their cellID in the local mesh
+    // of their processor domain
+    labelListList haloProcessorCellID(patches.size());
+    
+    // labelList of halo cells as their cellID in the global mesh
+    labelListList haloGlobalCellID(patches.size());
+
+    // List of new halo cell ID starting at zero
+    List<std::map<int,int> > stencilNewHaloID(patches.size());
+    
+    labelList haloCellsPerPatch(patches.size(),0);
+
+    // Fill patchToProcMap
+    forAll(patches, patchI)
+    {
+        if(isA<processorFvPatch>(patches[patchI]))
+        {
+            const processorFvPatch& patch = refCast<const processorFvPatch>(patches[patchI]);
+            
+            patchToProcMap_[patchI] = patch.neighbProcNo();
+                
+            procToPatchMap[patch.neighbProcNo()] = patchI; 
+            
+        }
+    }
+
+    
+    // Loop over all stencil and check if the cells are local or halo
+    forAll(stencilsID_,cellI)
+    {
+        forAll(stencilsID_[cellI],stencilI)
+        {
+            forAll(stencilsID_[cellI][stencilI],i)
+            {
+                if (!globalfvMesh.isLocalCell(stencilsID_[cellI][stencilI][i]))
+                {
+                    int procID = globalfvMesh.getProcID(stencilsID_[cellI][stencilI][i]);
+                    
+                    cellToPatchMap_[cellI][stencilI][i] = procToPatchMap[procID];
+                    
+                    // If the cell has not been added jet add it to the halo Cell 
+                    auto it = stencilNewHaloID[procToPatchMap[procID]].find(stencilsID_[cellI][stencilI][i]);
+                    
+                    if (it == stencilNewHaloID[procToPatchMap[procID]].end())
+                    {
+                        haloProcessorCellID[procToPatchMap[procID]].append
+                        (
+                            globalfvMesh.processorCellID(stencilsID_[cellI][stencilI][i])
+                        );
+                        
+                        
+                        haloGlobalCellID[procToPatchMap[procID]].append
+                        (
+                            stencilsID_[cellI][stencilI][i]
+                        );
+                        
+                        haloCenters_[procToPatchMap[procID]].append
+                        (
+                            globalfvMesh().C()[stencilsID_[cellI][stencilI][i]]
+                        );
+                        
+                        // Create entry in map
+                        stencilNewHaloID[procToPatchMap[procID]].insert
+                        (
+                            std::pair<int,int>
+                            (
+                                stencilsID_[cellI][stencilI][i],
+                                haloCellsPerPatch[procToPatchMap[procID]]++
+                            )
+                        );
+                        stencilsID_[cellI][stencilI][i] 
+                            = stencilNewHaloID[procToPatchMap[procID]][stencilsID_[cellI][stencilI][i]];
+                    }
+                    else
+                    {
+                        stencilsID_[cellI][stencilI][i] 
+                            = stencilNewHaloID[procToPatchMap[procID]][stencilsID_[cellI][stencilI][i]];
+                    }
+                         
+                    
+                }
+                else
+                {
+                    // If cell is a local cell the stencilID has to be changed to a 
+                    // local cellID 
+                    stencilsID_[cellI][stencilI][i] = 
+                        globalfvMesh.processorCellID(stencilsID_[cellI][stencilI][i]);
+                }
+                
+            }
+        }
+    }
+
+    // Calculate and store TriFace coordinates for volume integral of global mesh
+    forAll(haloTriFaceCoord, patchI)
+    {
+        haloTriFaceCoord[patchI].setSize(haloGlobalCellID[patchI].size());
+
+        forAll(haloGlobalCellID[patchI], cellI)
+        {
+            haloTriFaceCoord[patchI][cellI] =
+                Foam::geometryWENO::getTriFaces
+                (
+                    globalfvMesh(),
+                    haloGlobalCellID[patchI][cellI]
+                );
+        }
+    }
+
+
+    // Distribute halo cells
+    distributeStencils
+    (
+        haloProcessorCellID
+    );
+
+    // Store the local cellID of your own halos
+    ownHalos_ = haloProcessorCellID;
+    
+    // Get final big central stencils
+    for (label cellI = 0; cellI < localMesh.nCells(); cellI++)
+    {
+        sortStencil(localMesh, cellI, (extendRatio*nDvt_)*nStencils[cellI]);
+    }
+    
+
+    
+}
+
+
+
+void Foam::WENOBase::setDegreeOfFreedom(const fvMesh& localMesh)
+{
+    // 3D version
+    if (localMesh.nSolutionD() == 3)
+    {
+        nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)*(polOrder_ + 3.0)/6.0 - 1.0;
+    }
+    else // 2D version (always only one cell in z-direction)
+    {
+        nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)/2.0 - 1.0;
+    }
+
+    // Set the dimList
+    labelList dummyList(3,0);
+    dimList_.setSize(localMesh.nCells(),dummyList);
+    
+    // Vector with valid dimensions
+    vector dimMesh = localMesh.solutionD();
+    
+    for (label i = 0; i < localMesh.nCells(); i++)
+    {
+        dimList_[i][0] = (dimMesh[0] == 1 ? polOrder_ : 0);
+        dimList_[i][1] = (dimMesh[1] == 1 ? polOrder_ : 0);
+        dimList_[i][2] = (dimMesh[2] == 1 ? polOrder_ : 0);
+    }
+}
+
+
+void Foam::WENOBase::initVolIntegrals
+(
+    const WENO::globalfvMesh& globalfvMesh,
+    volIntegralType& volIntegrals
+)
+{
+    // local mesh
+    const fvMesh& localMesh = globalfvMesh.localMesh();
+    const fvMesh& globalMesh = globalfvMesh();
+
+    volIntegrals.resize((polOrder_ + 1));
+
+    for (label i = 0; i < (polOrder_+1); i++)
+    {
+        volIntegrals[i].resize((polOrder_+ 1)-i);
+
+        for (label j = 0; j < ((polOrder_+1)-i); j++)
+        {
+            volIntegrals[i][j].resize((polOrder_ + 1)-i, 0.0);
+        }
+    }
+
+    volIntegralsList_.setSize(localMesh.nCells(), volIntegrals);
+
+    JInv_.setSize(localMesh.nCells());
+    refPoint_.setSize(localMesh.nCells());
+    refDet_.setSize(localMesh.nCells());
+    
+    for
+    (
+        label cellI = 0, globalCellI = globalfvMesh.cellID()[cellI];
+        cellI < globalfvMesh.cellID().size();
+        cellI++, globalCellI=globalfvMesh.cellID()[cellI < globalfvMesh.cellID().size() ? cellI : 0]
+    )
+    {
+        // Create the volume integral of each cell
+        Foam::geometryWENO::initIntegrals
+        (
+            globalMesh,
+            globalCellI,
+            polOrder_,
+            volIntegralsList_[cellI],
+            JInv_[cellI],
+            refPoint_[cellI],
+            refDet_[cellI]
+        );
+    }
+}
+
 
 
 bool Foam::WENOBase::readList
@@ -1352,5 +1388,56 @@ void Foam::WENOBase::writeList
     */
 }
 
+
+//void Foam::WENOBase::printStatistics()
+//{
+
+
+
+    //// Get the information of all stencilIDs of all processors 
+    //// Check if parallel 
+    //if (Pstream::parRun())
+    //{
+        //Info << "Processor Statistics:"<<endl;
+        
+        //// Copy the field to avoid overwriting it
+        //List<labelListList> stencilIDList(stencilsID_);
+        
+        //List<List<labelListList> > allValues(Pstream::nProcs());
+
+        //allValues[Pstream::myProcNo()] = stencilIDList;
+
+        //Pstream::gatherList(allValues);
+
+        //if (Pstream::master())
+        //{
+            //// Loop over all processor entries and check how many stencils
+            //// have been excluded
+            //forAll(allValues,i)
+            //{
+                //List<labelListList>& list = allValues[i];
+                
+                //labelList excludedStencils(list.size(),0);
+
+                //forAll(list,cellI)
+                //{
+                    //forAll(list[cellI],stencilI)
+                    //{
+                        //if (list[cellI][stencilI][0] == int(Cell::deleted))
+                        //{
+                            //excludedStencils[cellI]++;
+                        //}
+                    //}
+                //}
+                //Info << "\t" << "Processor"<<i<<":"<<nl
+                     //<< "\t" << "\tExcludedStencils: "<< sum(excludedStencils) << endl;
+
+            //}
+        //}
+        //Info << endl;
+    //}
+    
+    
+//}
 
 // ************************************************************************* //
