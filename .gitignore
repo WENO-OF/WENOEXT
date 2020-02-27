@@ -23,10 +23,8 @@
 **.swp
 **.swo
 
-libWENOEXT-2.3.x/lnInclude
-libWENOEXT-2.3.x/Make
-!libWENOEXT-2.3.x/Make/files
-!libWENOEXT-2.3.x/Make/options
+# Exclude the Make linux files
+libWENOEXT/Make/linux*
 
 versionRules/foamVersion4weno.H
 versionRules/foamVersion

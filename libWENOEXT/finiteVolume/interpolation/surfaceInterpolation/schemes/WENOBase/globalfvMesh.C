@@ -27,9 +27,9 @@ Author
 \*---------------------------------------------------------------------------*/
 
 
-#include "globalMesh.H"
+#include "globalfvMesh.H"
 
-Foam::WENO::globalMesh::globalMesh(const fvMesh& mesh)
+Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
 :
     globalMeshPtr_
     (
@@ -49,11 +49,12 @@ Foam::WENO::globalMesh::globalMesh(const fvMesh& mesh)
                             mesh.time().rootPath(),
                             mesh.time().globalCaseName()
                         ),
-                        IOobject::MUST_READ
+                        IOobject::MUST_READ,
+                        IOobject::NO_WRITE,
+                        false
                     )
                 );
             }
-            
             return nullptr;
         }(mesh) 
     ),
@@ -64,7 +65,7 @@ Foam::WENO::globalMesh::globalMesh(const fvMesh& mesh)
     localMesh_(mesh),
     cellDist_
     (
-        [this](const fvMesh& mesh)
+        [](const fvMesh& mesh)
         {
             if (Pstream::parRun())
             {
@@ -89,6 +90,7 @@ Foam::WENO::globalMesh::globalMesh(const fvMesh& mesh)
                     mesh
                 );
                 
+                
                 scalarField combinedField(cellDistLocal);
                 // Check if parallel 
                 if (Pstream::parRun())
@@ -98,6 +100,8 @@ Foam::WENO::globalMesh::globalMesh(const fvMesh& mesh)
                     allValues[Pstream::myProcNo()] = combinedField;
 
                     Pstream::gatherList(allValues);
+                    
+                    Pstream::scatterList(allValues);
 
                     combinedField =
                         ListListOps::combine<scalarField>
@@ -105,45 +109,76 @@ Foam::WENO::globalMesh::globalMesh(const fvMesh& mesh)
                             allValues,
                             accessOp<scalarField>()
                         );
-                    
                 }
                 return combinedField;
+                
             }
             
             return scalarField(1,1);
         }(mesh)
     )
-{}
-
-
-const Foam::labelList& Foam::WENO::globalMesh::cellID()
 {
-    if (cellID_.empty())
+    // List of processor with a count of cells already found
+    labelList procCount(Pstream::nProcs(),0);
+    
+    forAll(cellDist_,cellI)
     {
-        cellID_.resize(localMesh_.nCells(),-1);
-        
-        if (Pstream::parRun())
+        mapGlobalCellIDToLocal_.insert(std::pair<int,int>(cellI,procCount[cellDist_[cellI]]++));
+    } 
+    
+    // Fill cellID list
+    cellID_.resize(localMesh_.nCells(),-1);
+    if (Pstream::parRun())
+    {
+        // Loop over cellDist and check if it matches with your processorID
+        label j = 0;
+        forAll(cellDist_,celli)
         {
-            // Loop over cellDist and check if it matches with your processorID
-            label j = 0;
-            forAll(cellDist_,celli)
+            if (int(cellDist_[celli]) == Pstream::myProcNo())
             {
-                if (int(cellDist_[celli]) == Pstream::myProcNo())
-                {
-                    cellID_[j] = celli;
-                    j++;
-                }
-            }
-        }
-        else
-        {
-            forAll(cellID_,cellI)
-            {
-                cellID_[cellI] = cellI;
+                cellID_[j] = celli;
+                j++;
             }
         }
     }
-    
+    else
+    {
+        forAll(cellID_,cellI)
+        {
+            cellID_[cellI] = cellI;
+        }
+    }
+}
+
+
+const Foam::labelList& Foam::WENO::globalfvMesh::cellID() const
+{
     return cellID_;
 }
 
+bool Foam::WENO::globalfvMesh::isLocalCell(const int globalCellID) const
+{
+    if (int(cellDist_[globalCellID]) == Pstream::myProcNo())
+        return true;
+    else
+        return false;
+}
+
+
+int Foam::WENO::globalfvMesh::getProcID(const int globalCellID)
+{
+    return cellDist_[globalCellID];
+}
+
+
+int Foam::WENO::globalfvMesh::processorCellID(const int globalCellID)
+{
+    auto it = mapGlobalCellIDToLocal_.find(globalCellID);
+    if (it != mapGlobalCellIDToLocal_.end())
+        return it->second;
+    else
+        FatalErrorInFunction
+        << "Global cell ID cannot be mapped to a local processor cell ID"
+        << exit(FatalError);
+    return -1;
+}

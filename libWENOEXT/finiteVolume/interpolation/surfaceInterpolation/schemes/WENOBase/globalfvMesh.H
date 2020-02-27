@@ -22,23 +22,24 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::globalMesh
+    Foam::WENO::globalfvMesh
 
 Description
     Return the global mesh of the case by constructing a new mesh field if 
     it is a prallel run 
 
 SourceFiles
-    globalMesh.C
+    globalfvMesh.C
 
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef globalMesh_H
-#define globalMesh_H
+#ifndef globalfvMesh_H
+#define globalfvMesh_H
 
+#include <map>
 #include "linear.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -51,7 +52,7 @@ namespace WENO
                             Class WENOBase Declaration
 \*---------------------------------------------------------------------------*/
 
-class globalMesh
+class globalfvMesh
 {
     protected:
         
@@ -70,14 +71,31 @@ class globalMesh
         //- List of cellID corresponding to cellID in global mesh
         labelList cellID_;
         
+        std::map<label,label> mapGlobalCellIDToLocal_;
+        
     public:
     
-        globalMesh(const fvMesh& mesh);
+    // Constructor
+        globalfvMesh(const fvMesh& mesh);
+        
+    // Memeber functions 
+        
+        const fvMesh& localMesh() const {return localMesh_;}
         
         //- Return cellID for processor cells in global mesh
-        const labelList& cellID();
+        const labelList& cellID() const;
         
-        const fvMesh& operator()() {return globalMesh_;}
+        const fvMesh& operator()() const {return globalMesh_;}
+        
+        //- Is cellID a local cell
+        bool isLocalCell(const int globalCellID) const;
+        
+        //- Get the cellID of a global cell in the requested processor
+        //  Returns fatal error if not found
+        int processorCellID(const int globalCellID);
+        
+        //- Get the processor of the local cell
+        int getProcID(const int globalCellID);
 
 };
 

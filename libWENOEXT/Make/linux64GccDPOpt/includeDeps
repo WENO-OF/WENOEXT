@@ -1,3 +1,0 @@
-include finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO/geometryWENO.dep
-include finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/WENOBase.dep
-include finiteVolume/interpolation/surfaceInterpolation/schemes/WENOUpwindFit/makeWENOUpwindFit.dep

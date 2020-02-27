@@ -1,4 +1,0 @@
-OBJECTS = \
-$(OBJECTS_DIR)/geometryWENO.o\
-$(OBJECTS_DIR)/WENOBase.o\
-$(OBJECTS_DIR)/makeWENOUpwindFit.o
