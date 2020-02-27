@@ -321,7 +321,6 @@ Foam::List<Foam::point> Foam::geometryWENO::getTriFaces
 
 Foam::geometryWENO::volIntegralType Foam::geometryWENO::getHaloMoments
 (
-    const fvMesh& mesh,
     const point transCenterJ,
     const List<point>& triFaceCoord,
     const label polOrder,

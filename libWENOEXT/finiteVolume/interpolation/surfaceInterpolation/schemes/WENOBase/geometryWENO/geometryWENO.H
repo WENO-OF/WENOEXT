@@ -97,7 +97,6 @@ namespace geometryWENO
         //- owner cell
         volIntegralType getHaloMoments
         (
-            const fvMesh& mesh,
             const point transCenterJ,
             const List<point>& triFaces,
             const label polOrder,
