@@ -118,8 +118,8 @@ void Foam::WENOCoeff<Type>::calcCoeff
         WENOBase_.stencilsID()[cellI][stencilI + excludeStencils];
     const scalarRectangularMatrix& A =
         WENOBase_.LSmatrix()[cellI][stencilI];
-    const List<label>& cellToPatchMapI =
-        WENOBase_.cellToPatchMap()[cellI][stencilI + excludeStencils];
+    const List<label>& cellToProcMapI =
+        WENOBase_.cellToProcMap()[cellI][stencilI + excludeStencils];
 
     // Calculate degrees of freedom of stencil as a matrix vector product
     // First line is always constraint line
@@ -132,7 +132,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
     {
 
         // Distinguish between local and halo cells
-        if (cellToPatchMapI[j] == int(WENOBase::Cell::local))
+        if (cellToProcMapI[j] == int(WENOBase::Cell::local))
         {
             bJ = vf[stencilsIDI[j]] - vf[cellI];
 
@@ -141,10 +141,10 @@ void Foam::WENOCoeff<Type>::calcCoeff
                 coeff[i] += A[i][j-1]*bJ;
             }
         }
-        else if(cellToPatchMapI[j] != int(WENOBase::Cell::deleted))
+        else if(cellToProcMapI[j] != int(WENOBase::Cell::deleted))
         {
             bJ =
-                haloData_[cellToPatchMapI[j]][stencilsIDI[j]]
+                haloData_[cellToProcMapI[j]][stencilsIDI[j]]
               - vf[cellI];
 
             for (label i = 0; i < nDvt_; i++)
@@ -162,27 +162,18 @@ void Foam::WENOCoeff<Type>::collectData
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
-    const fvMesh& mesh = vf.mesh();
-    const fvPatchList& patches = mesh.boundary();
-
     // Distribute data to neighbour processors
 
     haloData_.setSize(WENOBase_.ownHalos().size());
 
-    forAll(patches, patchI)
+    forAll(haloData_, procI)
     {
-        if (isA<processorFvPatch>(patches[patchI]))
-        {
-            forAll(haloData_, patchI)
-            {
-                haloData_[patchI].setSize(WENOBase_.ownHalos()[patchI].size());
+        haloData_[procI].setSize(WENOBase_.ownHalos()[procI].size());
 
-                forAll(haloData_[patchI], cellI)
-                {
-                    haloData_[patchI][cellI] =
-                        vf.internalField()[WENOBase_.ownHalos()[patchI][cellI]];
-                }
-            }
+        forAll(haloData_[procI], cellI)
+        {
+            haloData_[procI][cellI] =
+                vf.internalField()[WENOBase_.ownHalos()[procI][cellI]];
         }
     }
     
@@ -194,28 +185,22 @@ void Foam::WENOCoeff<Type>::collectData
     #endif
 
     // Distribute data
-    forAll(WENOBase_.patchToProcMap(), patchI)
+    forAll(WENOBase_.procList(), procI)
     {
-        if (WENOBase_.patchToProcMap()[patchI] != int(WENOBase::Cell::local))
-        {
-            UOPstream toBuffer(WENOBase_.patchToProcMap()[patchI], pBufs);
-            toBuffer << haloData_[patchI];
-        }
+        UOPstream toBuffer(WENOBase_.procList()[procI], pBufs);
+        toBuffer << haloData_[procI];
     }
 
     pBufs.finishedSends();
 
     // Collect data
 
-    forAll(WENOBase_.patchToProcMap(), patchI)
+    forAll(WENOBase_.procList(), procI)
     {
-        if (WENOBase_.patchToProcMap()[patchI] != int(WENOBase::Cell::local))
-        {
-            haloData_[patchI].clear();
+        haloData_[procI].clear();
 
-            UIPstream fromBuffer(WENOBase_.patchToProcMap()[patchI], pBufs);
-            fromBuffer >> haloData_[patchI];
-        }
+        UIPstream fromBuffer(WENOBase_.procList()[procI], pBufs);
+        fromBuffer >> haloData_[procI];
     }
 }
 

@@ -114,15 +114,15 @@ class WENOBase
         //- Lists of ID's of halo cells
         labelListList ownHalos_;
 
-        //- Information about cell property
+        //- Mapping cell to halo processor 
         //  Could be extended to boundary conditions
         //  - -1 : local cell
         //  - >-1: halo cell
         //  - -4:  if the stencil is deleted see splitStencil()
-        List<labelListList> cellToPatchMap_;
+        List<labelListList> cellToProcMap_;
 
-        //- Information about processor neighbours of patches
-        labelList patchToProcMap_;
+        //- List of processors 
+        labelList procList_;
 
         //- List of volume integrals over basis functions
         //  Calculated in the reference space
@@ -284,14 +284,14 @@ public:
             return stencilsID_;
         }
         
-        inline const List<labelListList>& cellToPatchMap() const 
+        inline const List<labelListList>& cellToProcMap() const 
         {
-            return cellToPatchMap_;
+            return cellToProcMap_;
         }
         
-        inline const labelList& patchToProcMap() const
+        inline const labelList& procList() const
         {
-            return patchToProcMap_;
+            return procList_;
         }
         
         inline const labelListList& ownHalos() const 
