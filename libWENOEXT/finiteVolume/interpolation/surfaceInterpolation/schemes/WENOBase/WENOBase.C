@@ -745,6 +745,8 @@ Foam::WENOBase::WENOBase
         );
     }
     
+    
+    // -------- for debugging 
     volScalarField excludedStencils
     (
       IOobject
@@ -770,6 +772,8 @@ Foam::WENOBase::WENOBase
     }
 
     excludedStencils.write();
+
+    // ----------- end debugging
 
     // Clear all unwanted fields:
     volIntegralsList_.clear();

@@ -214,16 +214,6 @@ class WENOBase
 
         //- Write lists to constant folder
         void writeList(const fvMesh& mesh);
-
-        //- Draw final stencils for postprocessing
-        void drawStencils
-        (
-            const List<labelListList>& stencilsID,
-            const List<List<point> >& haloCenters,
-            const List<labelListList>& cellToPatchMap,
-            const fvMesh& mesh,
-            const fileName DirBase
-        );
         
         //- Add the coefficients to the matrix A for each row
         void addCoeffs
