@@ -168,7 +168,7 @@ class WENOBase
         (
             const fvMesh& mesh,
             const label cellI,
-            labelList& lastNeighboursI,
+            std::map<int,bool>& stencilCells,
             label& minStencilSize
         );
 

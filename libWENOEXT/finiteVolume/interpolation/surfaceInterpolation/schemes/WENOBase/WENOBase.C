@@ -187,7 +187,7 @@ void Foam::WENOBase::splitStencil
     // and cut the stencils to the necessary size
 
     const scalar necSize = 2.0*nDvt_ + 1;
-
+    //Info << "stencil["<<localCellI<<"] and necSize "<<necSize<<": "<<stencilsID_[localCellI] <<nl<< endl;
     forAll(stencilsID_[localCellI], stencilI)
     {
         if (stencilsID_[localCellI][stencilI].size() >= necSize)
@@ -212,46 +212,41 @@ void Foam::WENOBase::extendStencils
 (
     const fvMesh& mesh,
     const label cellI,
-    labelList& lastNeighboursI,
+    std::map<int,bool>& stencilCells,
     label& minStencilSize
 )
 {
-    const label startEntry = stencilsID_[cellI][0].size() - lastNeighboursI[0];
-    const label lastEntry = stencilsID_[cellI][0].size();
-
-    lastNeighboursI[0] = 0;
-
-    for (label nI = startEntry; nI < lastEntry; nI++)
+    std::map<int,bool> temp = stencilCells;
+    
+    // Iterate over all current neighbours and add there cells to the stencil
+    for (auto it : stencilCells)
     {
-        const labelList& ngbhC = mesh.cellCells()[stencilsID_[cellI][0][nI]];
-
-        forAll(ngbhC, I)
+        // If it is a neighbour cell
+        if (it.second == true)
         {
-            bool add = true;
-
-            for (label J = stencilsID_[cellI][0].size() - 1; J > -1; J--)
+            
+            // Reference for cellIndex
+            const int& cellInd = it.first;
+            
+            const labelList& ngbhC = mesh.cellCells()[cellInd];
+            
+            forAll(ngbhC,i)
             {
-                if (stencilsID_[cellI][0][J] == ngbhC[I])
+                if (temp.find(ngbhC[i]) == temp.end())
                 {
-                    add = false;
-                    break;
+                    stencilsID_[cellI][0].append(ngbhC[i]);
+                    temp.insert(std::pair<int,bool>(ngbhC[i],true));
                 }
             }
-
-            if (add == true)
-            {
-                 stencilsID_[cellI][0].append(ngbhC[I]);
-                 lastNeighboursI[0] += 1;
-            }
+            
+            // Set iterator to false for the next iteration
+            auto itTemp = temp.find(it.first);
+            itTemp->second = false;
         }
     }
-
-    lastNeighboursI.setSize(lastNeighboursI[0] + 1);
-
-    for (label i = lastEntry; i < lastEntry+lastNeighboursI[0]; i++)
-    {
-        lastNeighboursI[i + 1 - lastEntry] = stencilsID_[cellI][0][i];
-    }
+    
+    stencilCells.clear();
+    stencilCells = temp;
 
     minStencilSize = stencilsID_[cellI][0].size();
 }
@@ -275,7 +270,7 @@ void Foam::WENOBase::sortStencil
 
     scalarField distField(stencilsID_[cellI][0].size(), 0.0);
     scalarField numberField(stencilsID_[cellI][0].size(), cellI);
-    scalarField mapField(stencilsID_[cellI][0].size(), int(Cell::deleted));
+    scalarField mapField(stencilsID_[cellI][0].size(), int(Cell::local));
 
     for (label i = 1; i < stencilsID_[cellI][0].size(); i++)
     {
@@ -785,7 +780,6 @@ void Foam::WENOBase::createStencilID
     
 )
 {
-    labelListList lastNeighbours(globalMesh.nCells());
     for
     (
         label cellI = 0, globalCellI = cellID[cellI];
@@ -818,13 +812,17 @@ void Foam::WENOBase::createStencilID
         }
         stencilsID_[cellI][0].append(globalMesh.cellCells()[globalCellI]);
 
-        lastNeighbours[cellI].setSize(stencilsID_[cellI][0].size());
-        lastNeighbours[cellI][0] = lastNeighbours[cellI].size() - 1;
-
-        for (label i = 1; i < stencilsID_[cellI][0].size(); i++)
+        
+        // Store all cells within a map 
+        // Neighbour cells are marked as true
+        std::map<int,bool> stencilCells;
+        
+        stencilCells.insert(std::pair<int,bool>(stencilsID_[cellI][0][0],false));
+        forAll(stencilsID_[cellI][0],i)
         {
-            lastNeighbours[cellI][i] = stencilsID_[cellI][0][i];
+            stencilCells.insert(std::pair<int,bool>(stencilsID_[cellI][0][i],true));
         }
+        
 
 
         // Extend central stencil to neccessary size
@@ -838,7 +836,7 @@ void Foam::WENOBase::createStencilID
             (
                 globalMesh,
                 cellI,
-                lastNeighbours[cellI],
+                stencilCells,
                 minStencilSize
             );
             iter++;
