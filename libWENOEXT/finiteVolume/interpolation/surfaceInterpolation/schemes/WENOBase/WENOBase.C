@@ -639,7 +639,7 @@ Foam::WENOBase::WENOBase
         initVolIntegrals(globalfvMesh,volIntegrals);
 
         Info << "\t1) Create local stencils..." << endl;
-        createStencilID(globalMesh,globalfvMesh.cellID(),nStencils,extendRatio);
+        createStencilID(globalMesh,globalfvMesh.localToGlobalCellID(),nStencils,extendRatio);
 
         
         // Extension to halo cells, if neccessary
@@ -651,12 +651,12 @@ Foam::WENOBase::WENOBase
 
         Info << "\t3) Split stencil ... " << endl;
         // Split the stencil in several sectorial stencils
-        const labelList& cellID = globalfvMesh.cellID();
+        const labelList& localToGlobalCellID = globalfvMesh.localToGlobalCellID();
         for
         (
-            label localCellI = 0, globalCellI = cellID[localCellI];
-            localCellI < cellID.size();
-            localCellI++, globalCellI=cellID[localCellI < cellID.size() ? localCellI : 0]
+            label localCellI = 0, globalCellI = localToGlobalCellID[localCellI];
+            localCellI < localToGlobalCellID.size();
+            localCellI++, globalCellI=localToGlobalCellID[localCellI < localToGlobalCellID.size() ? localCellI : 0]
         )
         {
             splitStencil(globalMesh, localCellI, globalCellI, nStencils[localCellI]);
@@ -1064,9 +1064,9 @@ void Foam::WENOBase::initVolIntegrals
     
     for
     (
-        label cellI = 0, globalCellI = globalfvMesh.cellID()[cellI];
-        cellI < globalfvMesh.cellID().size();
-        cellI++, globalCellI=globalfvMesh.cellID()[cellI < globalfvMesh.cellID().size() ? cellI : 0]
+        label cellI = 0, globalCellI = globalfvMesh.localToGlobalCellID()[cellI];
+        cellI < globalfvMesh.localToGlobalCellID().size();
+        cellI++, globalCellI=globalfvMesh.localToGlobalCellID()[cellI < globalfvMesh.localToGlobalCellID().size() ? cellI : 0]
     )
     {
         // Create the volume integral of each cell
