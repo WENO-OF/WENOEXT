@@ -905,66 +905,63 @@ void Foam::WENOBase::correctParallelRun
     // Loop over all stencil and check if the cells are local or halo
     forAll(stencilsID_,cellI)
     {
-        forAll(stencilsID_[cellI],stencilI)
+        forAll(stencilsID_[cellI][0],i)
         {
-            forAll(stencilsID_[cellI][stencilI],i)
+            if (!globalfvMesh.isLocalCell(stencilsID_[cellI][0][i]))
             {
-                if (!globalfvMesh.isLocalCell(stencilsID_[cellI][stencilI][i]))
-                {
-                    int procID = globalfvMesh.getProcID(stencilsID_[cellI][stencilI][i]);
-                    
-                    cellToProcMap_[cellI][stencilI][i] = procID;
+                int procID = globalfvMesh.getProcID(stencilsID_[cellI][0][i]);
+                
+                cellToProcMap_[cellI][0][i] = procID;
 
-                    // If the cell has not been added jet add it to the halo Cell 
-                    auto it = stencilNewHaloID[procID].find(stencilsID_[cellI][stencilI][i]);
+                // If the cell has not been added jet add it to the halo Cell 
+                auto it = stencilNewHaloID[procID].find(stencilsID_[cellI][0][i]);
+                
+                if (it == stencilNewHaloID[procID].end())
+                {
+                    haloProcessorCellID[procID].append
+                    (
+                        globalfvMesh.processorCellID(stencilsID_[cellI][0][i])
+                    );
                     
-                    if (it == stencilNewHaloID[procID].end())
-                    {
-                        haloProcessorCellID[procID].append
-                        (
-                            globalfvMesh.processorCellID(stencilsID_[cellI][stencilI][i])
-                        );
-                        
-                        
-                        haloGlobalCellID[procID].append
-                        (
-                            stencilsID_[cellI][stencilI][i]
-                        );
-                        
-                        haloCenters_[procID].append
-                        (
-                            globalfvMesh().C()[stencilsID_[cellI][stencilI][i]]
-                        );
-                        
-                        // Create entry in map
-                        stencilNewHaloID[procID].insert
-                        (
-                            std::pair<int,int>
-                            (
-                                stencilsID_[cellI][stencilI][i],
-                                haloCellsPerProcessor[procID]++
-                            )
-                        );
-                        stencilsID_[cellI][stencilI][i] 
-                            = stencilNewHaloID[procID][stencilsID_[cellI][stencilI][i]];
-                    }
-                    else
-                    {
-                        stencilsID_[cellI][stencilI][i] 
-                            = stencilNewHaloID[procID][stencilsID_[cellI][stencilI][i]];
-                    }
-                         
                     
+                    haloGlobalCellID[procID].append
+                    (
+                        stencilsID_[cellI][0][i]
+                    );
+                    
+                    haloCenters_[procID].append
+                    (
+                        globalfvMesh().C()[stencilsID_[cellI][0][i]]
+                    );
+                    
+                    // Create entry in map
+                    stencilNewHaloID[procID].insert
+                    (
+                        std::pair<int,int>
+                        (
+                            stencilsID_[cellI][0][i],
+                            haloCellsPerProcessor[procID]++
+                        )
+                    );
+                    stencilsID_[cellI][0][i] 
+                        = stencilNewHaloID[procID][stencilsID_[cellI][0][i]];
                 }
                 else
                 {
-                    // If cell is a local cell the stencilID has to be changed to a 
-                    // local cellID 
-                    stencilsID_[cellI][stencilI][i] = 
-                        globalfvMesh.processorCellID(stencilsID_[cellI][stencilI][i]);
+                    stencilsID_[cellI][0][i] 
+                        = stencilNewHaloID[procID][stencilsID_[cellI][0][i]];
                 }
+                     
                 
             }
+            else
+            {
+                // If cell is a local cell the stencilID has to be changed to a 
+                // local cellID 
+                stencilsID_[cellI][0][i] = 
+                    globalfvMesh.processorCellID(stencilsID_[cellI][0][i]);
+            }
+            
         }
     }
 
