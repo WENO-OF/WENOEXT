@@ -56,8 +56,7 @@ class globalfvMesh
 {
     protected:
         
-        
-        
+    // Member variables
         //- Pointer to the global mesh
         autoPtr<fvMesh> globalMeshPtr_;
         
@@ -69,9 +68,17 @@ class globalfvMesh
         const scalarField cellDist_;
         
         //- List of cellID corresponding to cellID in global mesh
-        labelList cellID_;
+        const labelList localToGlobalCellID_;
         
         std::map<label,label> mapGlobalCellIDToLocal_;
+        
+    // Member functions
+        
+        //- Sort the local mesh cells to get the global cellID
+        labelList sortLocalCells();
+        
+        //- Get the local cellID of other processors
+        void distributeAndCollect();
         
     public:
     
@@ -82,9 +89,12 @@ class globalfvMesh
         
         const fvMesh& localMesh() const {return localMesh_;}
         
-        //- Return cellID for processor cells in global mesh
-        const labelList& cellID() const;
+        const fvMesh& globalMesh() const {return globalMesh_;}
         
+        //- Return cellID for processor cells in global mesh
+        const labelList& localToGlobalCellID() const {return localToGlobalCellID_;}
+        
+        //- Short hand access to globalMesh
         const fvMesh& operator()() const {return globalMesh_;}
         
         //- Is cellID a local cell

@@ -116,45 +116,102 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
             
             return scalarField(1,1);
         }(mesh)
-    )
+    ),
+    localToGlobalCellID_(sortLocalCells())
 {
-    // List of processor with a count of cells already found
-    labelList procCount(Pstream::nProcs(),0);
-    
-    forAll(cellDist_,cellI)
-    {
-        mapGlobalCellIDToLocal_.insert(std::pair<int,int>(cellI,procCount[cellDist_[cellI]]++));
-    } 
-    
+    distributeAndCollect();
+}
+
+
+Foam::labelList Foam::WENO::globalfvMesh::sortLocalCells()
+{
     // Fill cellID list
-    cellID_.resize(localMesh_.nCells(),-1);
+    labelList localToGlobalCellID(localMesh_.nCells(),-1);
+    
+    // user defined tolerance 
+    const double tol = 1E-15;
+    
+    int startCell = 0;
+    
+    const vectorField& localCellCenters  = localMesh_.C();
+    
+    const vectorField& globalCellCenters = globalMesh_.C();
+    
+    const int nCells = globalMesh_.nCells();
+    
+    // Loop over all local cells and look for cell center
+    forAll(localCellCenters,cellI)
+    {
+        // Search through global mesh
+        for (int j=0; j < nCells; j++)
+        {
+            // Loop forward
+            int globalCellIndex =  
+                (startCell + j) >= nCells ?  (startCell + j - nCells) : (startCell + j);
+                
+            if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
+            {
+                localToGlobalCellID[cellI] = globalCellIndex;
+                startCell = globalCellIndex;
+                break;
+            }
+            
+            // loop backwards
+            globalCellIndex =  
+                (startCell - j) < 0 ? (j - startCell) : (startCell - j);
+                
+            if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
+            {
+                localToGlobalCellID[cellI] = globalCellIndex;
+                startCell = globalCellIndex;
+                break;
+            }
+
+        }
+    }
+    
+    return localToGlobalCellID;
+}
+
+
+void Foam::WENO::globalfvMesh::distributeAndCollect()
+{
+    // Create dummy variable
+    labelList combinedList(localToGlobalCellID_);
+    
+    
+    // Check if parallel 
     if (Pstream::parRun())
     {
-        // Loop over cellDist and check if it matches with your processorID
-        label j = 0;
-        forAll(cellDist_,celli)
+        List<labelList> allValues(Pstream::nProcs());
+
+        allValues[Pstream::myProcNo()] = combinedList;
+
+        Pstream::gatherList(allValues);
+        
+        Pstream::scatterList(allValues);
+    
+        // Loop over all lists
+        forAll(allValues,procI)
         {
-            if (int(cellDist_[celli]) == Pstream::myProcNo())
+            forAll(allValues[procI],cellI)
             {
-                cellID_[j] = celli;
-                j++;
+                mapGlobalCellIDToLocal_.insert(std::pair<int,int>(allValues[procI][cellI],cellI));
             }
         }
     }
+    // If it is running in serial
     else
     {
-        forAll(cellID_,cellI)
+        forAll(localToGlobalCellID_,cellI)
         {
-            cellID_[cellI] = cellI;
+            mapGlobalCellIDToLocal_.insert(std::pair<int,int>(cellI,cellI));
         }
     }
 }
 
 
-const Foam::labelList& Foam::WENO::globalfvMesh::cellID() const
-{
-    return cellID_;
-}
+
 
 bool Foam::WENO::globalfvMesh::isLocalCell(const int globalCellID) const
 {
