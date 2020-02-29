@@ -574,6 +574,20 @@ Foam::WENOBase::WENOBase
     const label polOrder
 )
 {
+    /**************************** General Note ********************************\
+    Collecting Stencils:
+      At first all neighbouring cells are collected within one list which is 
+      always saved in stencilID_[cellI][0]. After all cells have been collected
+      and potentially been corrected in case of a prallel run the cells are
+      distributed to each sector, where a sector is one face of the cell.
+      Therefore each cell has n number of stencils where n is the number of
+      faces of the cell plus 1 for the collection of all the cells before
+      splitting.
+      
+      This is also why until the splitStencil() function only the 
+      stencilID_[cellI][0] list is manipulated and no other list. 
+    \**************************************************************************/
+    
     WENO::globalfvMesh globalfvMesh(mesh);
 
     // Note the local mesh is the mesh of the processor, the global mesh is the
