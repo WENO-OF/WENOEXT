@@ -158,6 +158,7 @@ class WENOBase
         void splitStencil
         (
             const fvMesh& globalMesh,
+            const fvMesh& localMesh,
             const label localCellI,
             const label globalCellI,
             label& nStencilsI

@@ -44,6 +44,7 @@ Author
 void Foam::WENOBase::splitStencil
 (
     const fvMesh& globalMesh,
+    const fvMesh& localMesh,
     const label localCellI,
     const label globalCellI,
     label& nStencilsI
@@ -132,7 +133,7 @@ void Foam::WENOBase::splitStencil
                             Foam::geometryWENO::transformPoint
                             (
                                 JacobiInvQ[actualFace][triangleI],
-                                globalMesh.C()[stencilsID_[localCellI][0][cellJ]],
+                                localMesh.C()[stencilsID_[localCellI][0][cellJ]],
                                 globalMesh.C()[globalCellI]
                             );
                     }
@@ -255,7 +256,7 @@ void Foam::WENOBase::extendStencils
 
 void Foam::WENOBase::sortStencil
 (
-    const fvMesh& globalMesh,
+    const fvMesh& mesh,
     const label cellI,
     const label maxSize
 )
@@ -264,7 +265,7 @@ void Foam::WENOBase::sortStencil
         Foam::geometryWENO::transformPoint
         (
             JInv_[cellI],
-            globalMesh.C()[stencilsID_[cellI][0][0]],
+            mesh.C()[stencilsID_[cellI][0][0]],
             refPoint_[cellI]
         );
 
@@ -282,7 +283,7 @@ void Foam::WENOBase::sortStencil
                 Foam::geometryWENO::transformPoint
                 (
                     JInv_[cellI],
-                    globalMesh.C()[stencilsID_[cellI][0][i]],
+                    mesh.C()[stencilsID_[cellI][0][i]],
                     refPoint_[cellI]
                 );
 
@@ -659,7 +660,7 @@ Foam::WENOBase::WENOBase
             localCellI++, globalCellI=localToGlobalCellID[localCellI < localToGlobalCellID.size() ? localCellI : 0]
         )
         {
-            splitStencil(globalMesh, localCellI, globalCellI, nStencils[localCellI]);
+            splitStencil(globalMesh, localMesh, localCellI, globalCellI, nStencils[localCellI]);
         }
 
         Info << "\t4) Calculate LS matrix ..." << endl;
@@ -883,6 +884,8 @@ void Foam::WENOBase::correctParallelRun
 {
     const fvMesh& localMesh = globalfvMesh.localMesh();
     
+    const fvMesh& globalMesh = globalfvMesh.globalMesh();
+    
     // labelList of halo cells as their cellID in the local mesh
     // of their processor domain
     labelListList haloProcessorCellID(Pstream::nProcs());
@@ -900,6 +903,23 @@ void Foam::WENOBase::correctParallelRun
     {
         procList_[procI] = procI;
     }
+
+    // Checking for FULLDEBUG mode if the cell centers match before and 
+    // after correcting the stencilID list
+    #ifdef FULLDEBUG
+        List<List<vector > > centers;
+        centers.setSize(stencilsID_.size());
+        forAll(centers,cellI)
+        {
+            centers[cellI].setSize(stencilsID_[cellI][0].size());
+            forAll(centers[cellI],j)
+            {
+                centers[cellI][j] = globalMesh.C()[stencilsID_[cellI][0][j]];
+            }
+        }
+    #endif
+
+
 
     
     // Loop over all stencil and check if the cells are local or halo
@@ -960,6 +980,8 @@ void Foam::WENOBase::correctParallelRun
                 // local cellID 
                 stencilsID_[cellI][0][i] = 
                     globalfvMesh.processorCellID(stencilsID_[cellI][0][i]);
+                    
+                cellToProcMap_[cellI][0][i] = int(Cell::local);
             }
             
         }
@@ -991,14 +1013,36 @@ void Foam::WENOBase::correctParallelRun
     // Store the local cellID of your own halos
     ownHalos_ = haloProcessorCellID;
     
+    #ifdef FULLDEBUG
+        // Check centers:
+        forAll(centers,cellI)
+        {
+            forAll(centers[cellI],j)
+            {
+                if (cellToProcMap_[cellI][0][j] == int(Cell::local))
+                {
+                    if (mag(centers[cellI][j] - localMesh.C()[stencilsID_[cellI][0][j]])>1E-15)
+                        FatalError << "Local cell Center does not match "<<nl
+                                   << "local: "<<localMesh.C()[stencilsID_[cellI][0][j]] 
+                                   << "  global: "<<centers[cellI][j]<< exit(FatalError);
+                }
+                else
+                {
+                    
+                    if (centers[cellI][j] != haloCenters_[cellToProcMap_[cellI][0][j]][stencilsID_[cellI][0][j]])
+                        FatalError << "Halo cell Center does not match " << nl
+                                   << "local: "<<haloCenters_[cellToProcMap_[cellI][0][j]][stencilsID_[cellI][0][j]]
+                                   << "  global: "<<centers[cellI][j]<< exit(FatalError);
+                }
+            }
+        }
+    #endif
+    
     // Get final big central stencils
     for (label cellI = 0; cellI < localMesh.nCells(); cellI++)
     {
         sortStencil(localMesh, cellI, (extendRatio*nDvt_)*nStencils[cellI]);
     }
-    
-
-    
 }
 
 
