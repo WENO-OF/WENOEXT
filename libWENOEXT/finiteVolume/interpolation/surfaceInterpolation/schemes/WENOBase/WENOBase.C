@@ -746,34 +746,34 @@ Foam::WENOBase::WENOBase
     }
     
     
-    // -------- for debugging 
-    volScalarField excludedStencils
-    (
-      IOobject
-      (
-       "excludeStencil",
-       localMesh.time().timeName(),
-       localMesh,
-       IOobject::NO_READ,
-       IOobject::NO_WRITE
-      ),
-      localMesh,
-      dimensioned<scalar>("alphaSu", dimless, 0)
-    );
+    #ifdef FULLDEBUG
+        volScalarField excludedStencils
+        (
+          IOobject
+          (
+           "excludeStencil",
+           localMesh.time().timeName(),
+           localMesh,
+           IOobject::NO_READ,
+           IOobject::NO_WRITE
+          ),
+          localMesh,
+          dimensioned<scalar>("alphaSu", dimless, 0)
+        );
 
-    forAll(stencilsID_,cellI)
-    {
-        forAll(stencilsID_[cellI],stencilI)
+        forAll(stencilsID_,cellI)
         {
-            if (stencilsID_[cellI][stencilI][0] == int(Cell::deleted))
-                excludedStencils[cellI] = excludedStencils[cellI]+1;
+            forAll(stencilsID_[cellI],stencilI)
+            {
+                if (stencilsID_[cellI][stencilI][0] == int(Cell::deleted))
+                    excludedStencils[cellI] = excludedStencils[cellI]+1;
+            }
+
         }
 
-    }
+        excludedStencils.write();
+    #endif
 
-    excludedStencils.write();
-
-    // ----------- end debugging
 
     // Clear all unwanted fields:
     volIntegralsList_.clear();
