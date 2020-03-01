@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+echo "Run cavity test case"
+cd cavity/
+blockMesh > /dev/null 
+# Clean the WENO directory before run
+for i in 1 2 3; do
+    [[ -d constant/WENOBase${i} ]] && rm -r constant/WENOBase${i}
+done
+icoFoam
+cd ..
+
+
+echo ""
+echo "Run wedge test case"
+cd wedge/
+blockMesh > /dev/null 
+# Clean the WENO directory before run
+for i in 1 2 3; do
+    [[ -d constant/WENOBase${i} ]] && rm -r constant/WENOBase${i}
+done
+icoFoam
+
