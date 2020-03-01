@@ -349,6 +349,37 @@ void Foam::WENOBase::distributeStencils
     labelListList& haloCells
 )
 {
+    // Get the procList of all other processors
+    List<labelList> allValues(Pstream::nProcs());
+
+    allValues[Pstream::myProcNo()] = receiveProcList_;
+
+    Pstream::gatherList(allValues);
+    
+    Pstream::scatterList(allValues);
+
+    // Clear old list and fill with -1
+    sendProcList_.setSize(Pstream::nProcs());
+    forAll (sendProcList_,i)
+    {
+        sendProcList_[i] = -1;
+    }
+
+    // Loop over ProcList
+    forAll(allValues,procI)
+    {
+        if (procI == Pstream::myProcNo())
+            continue;
+        
+        forAll(allValues[procI],i)
+        {
+            if (allValues[procI][i] == Pstream::myProcNo())
+                sendProcList_[procI] = procI;
+        }
+    }
+    
+    
+    
     #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
         PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
     #else
@@ -357,21 +388,27 @@ void Foam::WENOBase::distributeStencils
 
     // Distribute halo cell ID's
     // Assigning new ID, starting at 0
-    forAll(procList_, procI)
+    forAll(sendProcList_, procI)
     {
-        UOPstream toBuffer(procList_[procI], pBufs);
-        toBuffer << haloCells[procI];
+        if (sendProcList_[procI] != -1)
+        {
+            UOPstream toBuffer(sendProcList_[procI], pBufs);
+            toBuffer << haloCells[procI];
+        }
     }
 
     pBufs.finishedSends();
 
-    forAll(procList_, procI)
+    forAll(receiveProcList_, procI)
     {
         haloCells[procI].clear();
-
-        UIPstream fromBuffer(procList_[procI], pBufs);
-        fromBuffer >> haloCells[procI];
+        if (receiveProcList_[procI] != -1)
+        {
+            UIPstream fromBuffer(receiveProcList_[procI], pBufs);
+            fromBuffer >> haloCells[procI];
+        }
     }
+    
 }
 
 
@@ -630,6 +667,8 @@ Foam::WENOBase::WENOBase
         labelList nStencils(localMesh.nCells(),0);
 
         haloCenters_.setSize(Pstream::nProcs());
+        
+        ownHalos_.setSize(Pstream::nProcs());
 
         List<List<List<point> > > haloTriFaceCoord(Pstream::nProcs());
 
@@ -884,7 +923,6 @@ void Foam::WENOBase::correctParallelRun
 {
     const fvMesh& localMesh = globalfvMesh.localMesh();
     
-    const fvMesh& globalMesh = globalfvMesh.globalMesh();
     
     // labelList of halo cells as their cellID in the local mesh
     // of their processor domain
@@ -898,10 +936,11 @@ void Foam::WENOBase::correctParallelRun
     
     labelList haloCellsPerProcessor(Pstream::nProcs(),0);
 
-    procList_.setSize(Pstream::nProcs());
-    forAll(procList_,procI)
+    // Default is -1 and if a processor is needed it is set to the processorID
+    receiveProcList_.setSize(Pstream::nProcs());
+    forAll(receiveProcList_,procI)
     {
-        procList_[procI] = procI;
+        receiveProcList_[procI] = -1;
     }
 
     // Checking for FULLDEBUG mode if the cell centers match before and 
@@ -932,6 +971,8 @@ void Foam::WENOBase::correctParallelRun
                 int procID = globalfvMesh.getProcID(stencilsID_[cellI][0][i]);
                 
                 cellToProcMap_[cellI][0][i] = procID;
+                
+                receiveProcList_[procID] = procID;
 
                 // If the cell has not been added jet add it to the halo Cell 
                 auto it = stencilNewHaloID[procID].find(stencilsID_[cellI][0][i]);
@@ -1159,7 +1200,7 @@ bool Foam::WENOBase::readList
             }
         }
 
-        IFstream isCToP(Dir_/"CellToPatchMaps");
+        IFstream isCToP(Dir_/"CellToProcMap");
         cellToProcMap_.setSize(mesh.nCells());
 
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
@@ -1197,43 +1238,50 @@ bool Foam::WENOBase::readList
             isB >> B_[cellI];
         }
 
-        const fvPatchList& patches = mesh.boundary();
 
-        procList_.setSize(patches.size());
-        IFstream isPToP(Dir_/"procList");
+        sendProcList_.setSize(Pstream::nProcs());
+        IFstream isPToPSend(Dir_/"sendProcList");
 
-        forAll(procList_, patchI)
+        forAll(sendProcList_, procI)
         {
-            isPToP >> procList_[patchI];
+            isPToPSend >> sendProcList_[procI];
         }
 
-        ownHalos_.setSize(patches.size());
+        receiveProcList_.setSize(Pstream::nProcs());
+        IFstream isPToPReceive(Dir_/"receiveProcList");
+
+        forAll(receiveProcList_, procI)
+        {
+            isPToPReceive >> receiveProcList_[procI];
+        }
+
+        ownHalos_.setSize(Pstream::nProcs());
         IFstream isOH(Dir_/"OwnHalos");
 
-        forAll(ownHalos_, patchI)
+        forAll(ownHalos_, procI)
         {
             isOH >> nEntries;
 
-            ownHalos_[patchI].setSize(nEntries);
+            ownHalos_[procI].setSize(nEntries);
 
-            forAll(ownHalos_[patchI], cellI)
+            forAll(ownHalos_[procI], cellI)
             {
-                isOH >> ownHalos_[patchI][cellI];
+                isOH >> ownHalos_[procI][cellI];
             }
         }
 
-        haloCenters_.setSize(patches.size());
+        haloCenters_.setSize(Pstream::nProcs());
         IFstream isHalo(Dir_/"HaloCenters");
 
-        forAll(haloCenters_, patchI)
+        forAll(haloCenters_, procI)
         {
             isHalo >> nEntries;
 
-            haloCenters_[patchI].setSize(nEntries);
+            haloCenters_[procI].setSize(nEntries);
 
-            forAll(haloCenters_[patchI], cellI)
+            forAll(haloCenters_[procI], cellI)
             {
-                isHalo >> haloCenters_[patchI][cellI];
+                isHalo >> haloCenters_[procI][cellI];
             }
         }
 
@@ -1317,11 +1365,18 @@ void Foam::WENOBase::writeList
 {
     Info<< "Write created lists to constant folder \n" << endl;
 
-    OFstream osPToP(Dir_/"procList");
+    OFstream osPToPSend(Dir_/"sendProcList");
 
-    forAll(procList_, i)
+    forAll(sendProcList_, i)
     {
-        osPToP<< procList_[i] << endl;
+        osPToPSend << sendProcList_[i] << endl;
+    }
+
+    OFstream osPToPReceive(Dir_/"receiveProcList");
+
+    forAll(receiveProcList_, i)
+    {
+        osPToPReceive << receiveProcList_[i] << endl;
     }
 
     OFstream osDL(Dir_/"DimLists");
@@ -1343,7 +1398,7 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osCToP(Dir_/"CellToPatchMaps");
+    OFstream osCToP(Dir_/"CellToProcMap");
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
@@ -1384,13 +1439,14 @@ void Foam::WENOBase::writeList
     OFstream osOH(Dir_/"OwnHalos");
     osOH.precision(10);
 
-    forAll(ownHalos_, patchI)
+    
+    forAll(ownHalos_, procI)
     {
-        osOH<< ownHalos_[patchI].size() << endl;
+        osOH<< ownHalos_[procI].size() << endl;
 
-        forAll(ownHalos_[patchI], cellI)
+        forAll(ownHalos_[procI], cellI)
         {
-            osOH<< ownHalos_[patchI][cellI] << endl;
+            osOH<< ownHalos_[procI][cellI] << endl;
         }
     }
 

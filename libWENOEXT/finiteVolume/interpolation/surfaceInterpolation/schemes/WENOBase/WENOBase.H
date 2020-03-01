@@ -121,8 +121,11 @@ class WENOBase
         //  - -4:  if the stencil is deleted see splitStencil()
         List<labelListList> cellToProcMap_;
 
-        //- List of processors 
-        labelList procList_;
+        //- List of processors to send information 
+        labelList sendProcList_;
+        
+        //- List of processors of which data is received
+        labelList receiveProcList_;
 
         //- List of volume integrals over basis functions
         //  Calculated in the reference space
@@ -290,9 +293,14 @@ public:
             return cellToProcMap_;
         }
         
-        inline const labelList& procList() const
+        inline const labelList& receiveProcList() const
         {
-            return procList_;
+            return receiveProcList_;
+        }
+        
+        inline const labelList& sendProcList() const
+        {
+            return sendProcList_;
         }
         
         inline const labelListList& ownHalos() const 

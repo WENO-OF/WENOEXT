@@ -52,7 +52,6 @@ maxDeltaT               5e-7;
 
 
 libs (
-        "libcustomBoundary.so"
      );
 
 

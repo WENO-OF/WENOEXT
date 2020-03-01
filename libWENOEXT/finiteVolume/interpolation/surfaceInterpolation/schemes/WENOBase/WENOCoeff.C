@@ -185,22 +185,27 @@ void Foam::WENOCoeff<Type>::collectData
     #endif
 
     // Distribute data
-    forAll(WENOBase_.procList(), procI)
+    forAll(WENOBase_.sendProcList(), procI)
     {
-        UOPstream toBuffer(WENOBase_.procList()[procI], pBufs);
-        toBuffer << haloData_[procI];
+        if (WENOBase_.sendProcList()[procI] != -1)
+        {
+            UOPstream toBuffer(WENOBase_.sendProcList()[procI], pBufs);
+            toBuffer << haloData_[procI];
+        }
     }
 
     pBufs.finishedSends();
 
     // Collect data
 
-    forAll(WENOBase_.procList(), procI)
+    forAll(WENOBase_.receiveProcList(), procI)
     {
         haloData_[procI].clear();
-
-        UIPstream fromBuffer(WENOBase_.procList()[procI], pBufs);
-        fromBuffer >> haloData_[procI];
+        if (WENOBase_.receiveProcList()[procI] != -1)
+        {
+            UIPstream fromBuffer(WENOBase_.receiveProcList()[procI], pBufs);
+            fromBuffer >> haloData_[procI];
+        }
     }
 }
 
