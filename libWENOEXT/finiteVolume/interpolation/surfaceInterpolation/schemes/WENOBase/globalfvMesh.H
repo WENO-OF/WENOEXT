@@ -64,13 +64,15 @@ class globalfvMesh
         
         const fvMesh& localMesh_;
         
-        //- Global cellDist map 
-        const scalarField cellDist_;
-        
         //- List of cellID corresponding to cellID in global mesh
         const labelList localToGlobalCellID_;
         
-        std::map<label,label> mapGlobalCellIDToLocal_;
+        //- List of mapping global cellID to localCellID
+        const labelList globalToLocalCellID_;
+        
+        //- Map globalCellID to correct processor
+        const labelList procList_;
+        
         
     // Member functions
         
@@ -102,10 +104,10 @@ class globalfvMesh
         
         //- Get the cellID of a global cell in the requested processor
         //  Returns fatal error if not found
-        int processorCellID(const int globalCellID);
+        int processorCellID(const int globalCellID) const;
         
         //- Get the processor of the local cell
-        int getProcID(const int globalCellID);
+        int getProcID(const int globalCellID) const;
 
 };
 

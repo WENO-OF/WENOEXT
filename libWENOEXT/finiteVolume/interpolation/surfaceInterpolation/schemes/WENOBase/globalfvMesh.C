@@ -63,179 +63,155 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
         globalMeshPtr_.valid() ? globalMeshPtr_() : mesh
     ),
     localMesh_(mesh),
-    cellDist_
+    localToGlobalCellID_
     (
-        [](const fvMesh& mesh)
+        [this]()
         {
+            // Fill cellID list
+            labelList localToGlobalCellID(localMesh_.nCells(),-1);
+            
+            // user defined tolerance 
+            const double tol = 1E-15;
+            
+            int startCell = 0;
+            
+            const vectorField& localCellCenters  = localMesh_.C();
+            
+            const vectorField& globalCellCenters = globalMesh_.C();
+            
+            const int nCells = globalMesh_.nCells();
+            
+            // Loop over all local cells and look for cell center
+            forAll(localCellCenters,cellI)
+            {
+                // Search through global mesh
+                for (int j=0; j < nCells; j++)
+                {
+                    // Loop forward
+                    int globalCellIndex =  
+                        (startCell + j) >= nCells ?  (startCell + j - nCells) : (startCell + j);
+                        
+                    if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
+                    {
+                        localToGlobalCellID[cellI] = globalCellIndex;
+                        startCell = globalCellIndex;
+                        break;
+                    }
+                    
+                    // loop backwards
+                    globalCellIndex =  
+                        (startCell - j) < 0 ? (j - startCell) : (startCell - j);
+                        
+                    if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
+                    {
+                        localToGlobalCellID[cellI] = globalCellIndex;
+                        startCell = globalCellIndex;
+                        break;
+                    }
+
+                }
+            }
+            
+            return localToGlobalCellID;
+        }()
+    ),
+    globalToLocalCellID_
+    (
+        [this]() -> labelList
+        {
+            labelList globalToLocalCellID(globalMesh_.nCells(),-1);
+            
+            // Check if parallel 
             if (Pstream::parRun())
             {
-                IOobject cellDistLocalIO
-                (
-                    "cellDist",
-                    (mesh.time().findClosestTime(mesh.time().startTime().value())).name(),
-                    mesh,
-                    IOobject::MUST_READ,
-                    IOobject::NO_WRITE,
-                    false
-                );
+                List<labelList> allValues(Pstream::nProcs());
+
+                allValues[Pstream::myProcNo()] = localToGlobalCellID_;
+
+                Pstream::gatherList(allValues);
                 
-                if (!cellDistLocalIO.typeHeaderOk<volScalarField>())
-                    FatalError << "field 'cellDist' not found. "
-                               << "Did you decompose with: decomposePar -cellDist? " 
-                               << endl;
-                
-                volScalarField cellDistLocal
-                (
-                    cellDistLocalIO,
-                    mesh
-                );
-                
-                
-                scalarField combinedField(cellDistLocal);
-                // Check if parallel 
-                if (Pstream::parRun())
+                Pstream::scatterList(allValues);
+
+                // Loop over all lists
+                forAll(allValues,procI)
                 {
-                    List<scalarField> allValues(Pstream::nProcs());
-
-                    allValues[Pstream::myProcNo()] = combinedField;
-
-                    Pstream::gatherList(allValues);
-                    
-                    Pstream::scatterList(allValues);
-
-                    combinedField =
-                        ListListOps::combine<scalarField>
-                        (
-                            allValues,
-                            accessOp<scalarField>()
-                        );
+                    forAll(allValues[procI],cellI)
+                    {
+                        globalToLocalCellID[allValues[procI][cellI]] = cellI;
+                    }
                 }
-                return combinedField;
                 
             }
-            
-            return scalarField(1,1);
-        }(mesh)
+            // If it is running in serial
+            else
+            {
+                forAll(globalToLocalCellID,cellI)
+                {
+                    globalToLocalCellID[cellI] = cellI;
+                }
+            }
+
+            return globalToLocalCellID;
+        }()
     ),
-    localToGlobalCellID_(sortLocalCells())
-{
-    distributeAndCollect();
-}
-
-
-Foam::labelList Foam::WENO::globalfvMesh::sortLocalCells()
-{
-    // Fill cellID list
-    labelList localToGlobalCellID(localMesh_.nCells(),-1);
-    
-    // user defined tolerance 
-    const double tol = 1E-15;
-    
-    int startCell = 0;
-    
-    const vectorField& localCellCenters  = localMesh_.C();
-    
-    const vectorField& globalCellCenters = globalMesh_.C();
-    
-    const int nCells = globalMesh_.nCells();
-    
-    // Loop over all local cells and look for cell center
-    forAll(localCellCenters,cellI)
-    {
-        // Search through global mesh
-        for (int j=0; j < nCells; j++)
+    procList_
+    (
+        [this]()
         {
-            // Loop forward
-            int globalCellIndex =  
-                (startCell + j) >= nCells ?  (startCell + j - nCells) : (startCell + j);
-                
-            if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
+            labelList procList(globalMesh_.nCells(),-1);
+            
+            // Check if parallel 
+            if (Pstream::parRun())
             {
-                localToGlobalCellID[cellI] = globalCellIndex;
-                startCell = globalCellIndex;
-                break;
+                List<labelList> allValues(Pstream::nProcs());
+
+                allValues[Pstream::myProcNo()] = localToGlobalCellID_;
+
+                Pstream::gatherList(allValues);
+                
+                Pstream::scatterList(allValues);
+
+                // Loop over all lists
+                forAll(allValues,procI)
+                {
+                    forAll(allValues[procI],cellI)
+                    {
+                        procList[allValues[procI][cellI]] = procI;
+                    }
+                }
+            }
+            // If it is running in serial
+            else
+            {
+                forAll(procList,cellI)
+                {
+                    procList[cellI] = 0;
+                }
             }
             
-            // loop backwards
-            globalCellIndex =  
-                (startCell - j) < 0 ? (j - startCell) : (startCell - j);
-                
-            if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
-            {
-                localToGlobalCellID[cellI] = globalCellIndex;
-                startCell = globalCellIndex;
-                break;
-            }
-
-        }
-    }
-    
-    return localToGlobalCellID;
-}
-
-
-void Foam::WENO::globalfvMesh::distributeAndCollect()
-{
-    // Create dummy variable
-    labelList combinedList(localToGlobalCellID_);
-    
-    
-    // Check if parallel 
-    if (Pstream::parRun())
-    {
-        List<labelList> allValues(Pstream::nProcs());
-
-        allValues[Pstream::myProcNo()] = combinedList;
-
-        Pstream::gatherList(allValues);
-        
-        Pstream::scatterList(allValues);
-    
-        // Loop over all lists
-        forAll(allValues,procI)
-        {
-            forAll(allValues[procI],cellI)
-            {
-                mapGlobalCellIDToLocal_.insert(std::pair<int,int>(allValues[procI][cellI],cellI));
-            }
-        }
-    }
-    // If it is running in serial
-    else
-    {
-        forAll(localToGlobalCellID_,cellI)
-        {
-            mapGlobalCellIDToLocal_.insert(std::pair<int,int>(cellI,cellI));
-        }
-    }
-}
-
+            return procList;
+        }()
+    )
+{}
 
 
 
 bool Foam::WENO::globalfvMesh::isLocalCell(const int globalCellID) const
 {
-    if (int(cellDist_[globalCellID]) == Pstream::myProcNo())
+    if (int(procList_[globalCellID]) == Pstream::myProcNo())
         return true;
     else
         return false;
 }
 
 
-int Foam::WENO::globalfvMesh::getProcID(const int globalCellID)
+int Foam::WENO::globalfvMesh::getProcID(const int globalCellID) const
 {
-    return cellDist_[globalCellID];
+    return procList_[globalCellID];
 }
 
 
-int Foam::WENO::globalfvMesh::processorCellID(const int globalCellID)
+int Foam::WENO::globalfvMesh::processorCellID(const int globalCellID) const
 {
-    auto it = mapGlobalCellIDToLocal_.find(globalCellID);
-    if (it != mapGlobalCellIDToLocal_.end())
-        return it->second;
-    else
-        FatalErrorInFunction
-        << "Global cell ID cannot be mapped to a local processor cell ID"
-        << exit(FatalError);
-    return -1;
+    return globalToLocalCellID_[globalCellID];
 }
