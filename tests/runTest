@@ -26,4 +26,12 @@ done
 [[ -d 1 ]] && rm -r 1
 [[ -d 2 ]] && rm -r 2
 cp -r 0.orig 0 
-./tests.exe [1D] 
+./tests.exe [1D]
+
+# Run globalFvMesh test case
+cd ${currDir}/globalFvMeshTest/src
+wmake > /dev/null
+cd ../case-3D
+blockMesh > /dev/null && decomposePar -force > /dev/null 
+mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
+ 

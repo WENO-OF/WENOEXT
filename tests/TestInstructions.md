@@ -32,3 +32,9 @@ and prints at the end the mean error to the analytical solution.
 
 ** Note: For the WENO scheme at least 2 iterations have to be performed as the WENO
          explicit correction needs the updated field information. **
+
+### 3. GlobalFvMesh test case
+
+Test if the mapping of global to local cellID and reverse is correct. As this test
+is done in parallel it is not included in the Catch2 environment but uses 
+FatalError statements to print out error messages
