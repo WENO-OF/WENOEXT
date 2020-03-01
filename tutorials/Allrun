@@ -13,6 +13,13 @@ icoFoam
 cd ..
 
 
+echo "Run cavity in parallel"
+cd cavity/
+blockMesh > /dev/null 
+decomposePar -force > /dev/null
+mpirun -np 2 icoFoam -parallel 
+cd ..
+
 echo ""
 echo "Run wedge test case"
 cd wedge/
