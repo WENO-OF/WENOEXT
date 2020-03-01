@@ -589,7 +589,7 @@ Foam::WENOBase::WENOBase
       stencilID_[cellI][0] list is manipulated and no other list. 
     \**************************************************************************/
     
-    WENO::globalfvMesh globalfvMesh(mesh);
+    const WENO::globalfvMesh globalfvMesh(mesh);
 
     // Note the local mesh is the mesh of the processor, the global mesh is the
     // reconstructed mesh from all processors 
@@ -876,7 +876,7 @@ void Foam::WENOBase::createStencilID
 
 void Foam::WENOBase::correctParallelRun
 (
-    WENO::globalfvMesh& globalfvMesh,
+    const WENO::globalfvMesh& globalfvMesh,
     List<List<List<point> > >& haloTriFaceCoord,
     const labelList& nStencils,
     const scalar extendRatio

@@ -230,7 +230,7 @@ class WENOBase
         //  halo cells
         void correctParallelRun
         (
-            WENO::globalfvMesh& globalfvMesh,
+            const WENO::globalfvMesh& globalfvMesh,
             List<List<List<point> > >& haloTriFaceCoord,
             const labelList& nStencils,
             const scalar extendRatio
