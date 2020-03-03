@@ -953,7 +953,7 @@ void Foam::WENOBase::correctParallelRun
             centers[cellI].setSize(stencilsID_[cellI][0].size());
             forAll(centers[cellI],j)
             {
-                centers[cellI][j] = globalMesh.C()[stencilsID_[cellI][0][j]];
+                centers[cellI][j] = globalfvMesh().C()[stencilsID_[cellI][0][j]];
             }
         }
     #endif
@@ -1350,9 +1350,6 @@ bool Foam::WENOBase::readList
     else
     {
         Info<< "Create new lists \n" << endl;
-
-        mkDir(Dir_);
-
         return false;
     }
 }
@@ -1364,6 +1361,8 @@ void Foam::WENOBase::writeList
 )
 {
     Info<< "Write created lists to constant folder \n" << endl;
+
+    mkDir(Dir_);
 
     OFstream osPToPSend(Dir_/"sendProcList");
 
