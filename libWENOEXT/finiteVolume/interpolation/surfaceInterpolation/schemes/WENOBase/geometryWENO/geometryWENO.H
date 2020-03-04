@@ -93,17 +93,6 @@ namespace geometryWENO
             const label cellI
         );
 
-        //- Calculate volume integrals of halo cells in reference space of
-        //- owner cell
-        volIntegralType getHaloMoments
-        (
-            const point transCenterJ,
-            const List<point>& triFaces,
-            const label polOrder,
-            const scalarSquareMatrix& JInvI,
-            const point refPointI
-        );
-
         //- Calculate the volume integrals of stencil cells in reference space
         //- of owner cell
         volIntegralType transformIntegral

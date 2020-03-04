@@ -106,7 +106,12 @@ class WENOBase
         label nDvt_;
 
         //- Lists of central and sectorial stencil ID's for each cell
+        //  For a prallel case this stores the processor local cellID
         List<labelListList> stencilsID_;
+
+        //- Lists of central and sectorial stencil storing the global cellID
+        List<labelListList> stencilsGlobalID_;
+
 
         //- Lists of center coordinates of halo cells
         List<List<point> > haloCenters_;
@@ -198,8 +203,7 @@ class WENOBase
             const fvMesh& globalMesh,
             const fvMesh& localMesh,
             const label cellI,
-            const label stencilI,
-            const List<List<List<point> > >& haloTriFaces
+            const label stencilI
         );
 
         //- Calculate the entries of the least squares matrices
@@ -234,9 +238,7 @@ class WENOBase
         void correctParallelRun
         (
             const WENO::globalfvMesh& globalfvMesh,
-            List<List<List<point> > >& haloTriFaceCoord,
-            const labelList& nStencils,
-            const scalar extendRatio
+            const labelList& nStencils
         );
         
         
