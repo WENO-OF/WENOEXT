@@ -1176,7 +1176,7 @@ bool Foam::WENOBase::readList
     {
         Info<< "\nRead existing lists from constant folder \n" << endl;
 
-        IFstream isDL(Dir_/"DimLists");
+        IFstream isDL(Dir_/"DimLists",IFstream::streamFormat::BINARY);
         dimList_.setSize(mesh.nCells());
 
         forAll(dimList_, cellI)
@@ -1184,7 +1184,7 @@ bool Foam::WENOBase::readList
             isDL >> dimList_[cellI];
         }
 
-        IFstream isSID(Dir_/"StencilIDs");
+        IFstream isSID(Dir_/"StencilIDs",IFstream::streamFormat::BINARY);
         stencilsID_.setSize(mesh.nCells());
         scalar nEntries;
 
@@ -1200,7 +1200,7 @@ bool Foam::WENOBase::readList
             }
         }
 
-        IFstream isCToP(Dir_/"CellToProcMap");
+        IFstream isCToP(Dir_/"CellToProcMap",IFstream::streamFormat::BINARY);
         cellToProcMap_.setSize(mesh.nCells());
 
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
@@ -1215,7 +1215,7 @@ bool Foam::WENOBase::readList
             }
         }
 
-        IFstream isLS(Dir_/"Pseudoinverses");
+        IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
         LSmatrix_.setSize(mesh.nCells());
 
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
@@ -1230,7 +1230,7 @@ bool Foam::WENOBase::readList
             }
         }
 
-        IFstream isB(Dir_/"B");
+        IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
         B_.setSize(mesh.nCells());
 
         forAll(B_, cellI)
@@ -1240,7 +1240,7 @@ bool Foam::WENOBase::readList
 
 
         sendProcList_.setSize(Pstream::nProcs());
-        IFstream isPToPSend(Dir_/"sendProcList");
+        IFstream isPToPSend(Dir_/"sendProcList",IFstream::streamFormat::BINARY);
 
         forAll(sendProcList_, procI)
         {
@@ -1248,7 +1248,7 @@ bool Foam::WENOBase::readList
         }
 
         receiveProcList_.setSize(Pstream::nProcs());
-        IFstream isPToPReceive(Dir_/"receiveProcList");
+        IFstream isPToPReceive(Dir_/"receiveProcList",IFstream::streamFormat::BINARY);
 
         forAll(receiveProcList_, procI)
         {
@@ -1256,7 +1256,7 @@ bool Foam::WENOBase::readList
         }
 
         ownHalos_.setSize(Pstream::nProcs());
-        IFstream isOH(Dir_/"OwnHalos");
+        IFstream isOH(Dir_/"OwnHalos",IFstream::streamFormat::BINARY);
 
         forAll(ownHalos_, procI)
         {
@@ -1271,7 +1271,7 @@ bool Foam::WENOBase::readList
         }
 
         haloCenters_.setSize(Pstream::nProcs());
-        IFstream isHalo(Dir_/"HaloCenters");
+        IFstream isHalo(Dir_/"HaloCenters",IFstream::streamFormat::BINARY);
 
         forAll(haloCenters_, procI)
         {
@@ -1364,28 +1364,28 @@ void Foam::WENOBase::writeList
 
     mkDir(Dir_);
 
-    OFstream osPToPSend(Dir_/"sendProcList");
+    OFstream osPToPSend(Dir_/"sendProcList",OFstream::streamFormat::BINARY);
 
     forAll(sendProcList_, i)
     {
         osPToPSend << sendProcList_[i] << endl;
     }
 
-    OFstream osPToPReceive(Dir_/"receiveProcList");
+    OFstream osPToPReceive(Dir_/"receiveProcList",OFstream::streamFormat::BINARY);
 
     forAll(receiveProcList_, i)
     {
         osPToPReceive << receiveProcList_[i] << endl;
     }
 
-    OFstream osDL(Dir_/"DimLists");
+    OFstream osDL(Dir_/"DimLists",OFstream::streamFormat::BINARY);
 
     forAll(dimList_, cellI)
     {
         osDL<< dimList_[cellI] << endl;
     }
 
-    OFstream osSID(Dir_/"StencilIDs");
+    OFstream osSID(Dir_/"StencilIDs",OFstream::streamFormat::BINARY);
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
@@ -1397,7 +1397,7 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osCToP(Dir_/"CellToProcMap");
+    OFstream osCToP(Dir_/"CellToProcMap",OFstream::streamFormat::BINARY);
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
@@ -1409,7 +1409,7 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osLS(Dir_/"Pseudoinverses");
+    OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
     osLS.precision(10);
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
@@ -1422,7 +1422,7 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osHalo(Dir_/"HaloCenters");
+    OFstream osHalo(Dir_/"HaloCenters",OFstream::streamFormat::BINARY);
     osHalo.precision(10);
 
     forAll(haloCenters_, patchI)
@@ -1435,7 +1435,7 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osOH(Dir_/"OwnHalos");
+    OFstream osOH(Dir_/"OwnHalos",OFstream::streamFormat::BINARY);
     osOH.precision(10);
 
     
@@ -1449,33 +1449,13 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osB(Dir_/"B");
+    OFstream osB(Dir_/"B",OFstream::streamFormat::BINARY);
     osB.precision(10);
 
     forAll(B_, cellI)
     {
         osB<< B_[cellI] << endl;
     }
-
-
-    /*
-    label fx = 1;
-    OFstream::streamFormat ofmt = OFstream::BINARY;
-    OFstream osBbin(Dir_/"Bbinary", ofmt);
-    osBbin.write(fx);
-
-
-    label test = 22;
-
-    std::ofstream outStream("yourFile", std::ios::binary);
-    binary_write(outStream, test);
-    outStream.close();
-
-    std::ifstream inStream("yourFile", std::ios::binary);
-    binary_read(inStream, test);
-    inStream.close();
-    Info<<test<<endl;
-    */
 }
 
 
