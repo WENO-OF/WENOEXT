@@ -596,8 +596,6 @@ Foam::WENOBase::WENOBase
         cellToProcMap_.setSize(localMesh.nCells());
 
         labelList nStencils(localMesh.nCells(),0);
-
-        haloCenters_.setSize(Pstream::nProcs());
         
         ownHalos_.setSize(Pstream::nProcs());
 
