@@ -866,26 +866,6 @@ void Foam::WENOBase::correctParallelRun
     {
         receiveProcList_[procI] = -1;
     }
-
-    // Checking for FULLDEBUG mode if the cell centers match before and 
-    // after correcting the stencilID list
-    #ifdef FULLDEBUG
-        const fvMesh& localMesh = globalfvMesh.localMesh();
-    
-        List<List<vector > > centers;
-        centers.setSize(stencilsID_.size());
-        forAll(centers,cellI)
-        {
-            centers[cellI].setSize(stencilsID_[cellI][0].size());
-            forAll(centers[cellI],j)
-            {
-                centers[cellI][j] = globalfvMesh().C()[stencilsID_[cellI][0][j]];
-            }
-        }
-    #endif
-
-
-
     
     // Loop over all stencil and check if the cells are local or halo
     forAll(stencilsID_,cellI)
@@ -914,11 +894,6 @@ void Foam::WENOBase::correctParallelRun
                     haloGlobalCellID[procID].append
                     (
                         stencilsID_[cellI][0][i]
-                    );
-                    
-                    haloCenters_[procID].append
-                    (
-                        globalfvMesh().C()[stencilsID_[cellI][0][i]]
                     );
                     
                     // Create entry in map
@@ -962,31 +937,6 @@ void Foam::WENOBase::correctParallelRun
 
     // Store the local cellID of your own halos
     ownHalos_ = haloProcessorCellID;
-    
-    #ifdef FULLDEBUG
-        // Check centers:
-        forAll(centers,cellI)
-        {
-            forAll(centers[cellI],j)
-            {
-                if (cellToProcMap_[cellI][0][j] == int(Cell::local))
-                {
-                    if (mag(centers[cellI][j] - localMesh.C()[stencilsID_[cellI][0][j]])>1E-15)
-                        FatalError << "Local cell Center does not match "<<nl
-                                   << "local: "<<localMesh.C()[stencilsID_[cellI][0][j]] 
-                                   << "  global: "<<centers[cellI][j]<< exit(FatalError);
-                }
-                else
-                {
-                    
-                    if (centers[cellI][j] != haloCenters_[cellToProcMap_[cellI][0][j]][stencilsID_[cellI][0][j]])
-                        FatalError << "Halo cell Center does not match " << nl
-                                   << "local: "<<haloCenters_[cellToProcMap_[cellI][0][j]][stencilsID_[cellI][0][j]]
-                                   << "  global: "<<centers[cellI][j]<< exit(FatalError);
-                }
-            }
-        }
-    #endif
 }
 
 

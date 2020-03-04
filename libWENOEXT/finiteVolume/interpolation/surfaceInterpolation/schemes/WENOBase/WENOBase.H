@@ -110,11 +110,9 @@ class WENOBase
         List<labelListList> stencilsID_;
 
         //- Lists of central and sectorial stencil storing the global cellID
+        //  Size of list is number of local Cells. Accessed with same index as 
+        //  stencilsID_
         List<labelListList> stencilsGlobalID_;
-
-
-        //- Lists of center coordinates of halo cells
-        List<List<point> > haloCenters_;
 
         //- Lists of ID's of halo cells
         labelListList ownHalos_;
