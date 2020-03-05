@@ -53,7 +53,7 @@ namespace Foam
 template<class Type>
 class WENOCoeff
 {
-private:
+protected:
 
     // Private Data
 
@@ -104,41 +104,6 @@ private:
             const GeometricField<Type, fvPatchField, volMesh>& vf
         ) const;
         
-        //- Function to store or retrieve fields from the database 
-        GeometricField<Type, fvPatchField, volMesh>& storeOrRetrieve
-        (
-            const word fieldName
-        ) const;
-
-
-
-public:
-
-    // Constructor
-
-        WENOCoeff
-        (
-            const fvMesh& mesh,
-            const label polOrder
-        );
-
-    // Accessor to WENO Base 
-    
-        //- Return reference to WENOBase
-        const WENOBase& WENOBaseRef() const
-        {
-            return WENOBase_;
-        }
-
-
-    // Member Functions
-
-        //- Calling function from different schemes
-        Field<Field<Type> > getWENOPol
-        (
-            const GeometricField<Type, fvPatchField, volMesh>& vf
-        ) const;
-
         //- Calculating the coefficients for each stencil of each cell
         void calcCoeff
         (
@@ -151,12 +116,49 @@ public:
 
 
         //- Get weighted combination for any other type
-        void calcWeight
+        virtual void calcWeight
         (
             Field<Type>& coeffsWeightedI,
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
             const List<List<Type> >& coeffsI
+        ) const;
+
+
+public:
+
+    // Constructor
+
+        WENOCoeff
+        (
+            const fvMesh& mesh,
+            const label polOrder
+        );
+        
+    // Destructor
+        virtual ~WENOCoeff() = default;
+
+    // Accessor to WENO Base 
+    
+        //- Return reference to WENOBase
+        const WENOBase& WENOBaseRef() const
+        {
+            return WENOBase_;
+        }
+
+    // Member Functions
+
+        //- Calling function from different schemes
+        Field<Field<Type> > getWENOPol
+        (
+            const GeometricField<Type, fvPatchField, volMesh>& vf
+        ) const;
+
+        
+        //- Function to store or retrieve fields from the database 
+        GeometricField<Type, fvPatchField, volMesh>& storeOrRetrieve
+        (
+            const word fieldName
         ) const;
         
 };
