@@ -386,7 +386,6 @@ void Foam::WENOBase::distributeStencils
             fromBuffer >> haloCells[procI];
         }
     }
-    
 }
 
 

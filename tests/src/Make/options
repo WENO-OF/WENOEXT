@@ -5,9 +5,9 @@ EXE_INC = \
     -I$(LIB_SRC)/sampling/lnInclude \
     -I$(LIB_SRC)/triSurface/lnInclude \
     -I../Catch2SingleHeader \
-    -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase/geometryWENO\
-    -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOUpwindFit \
-    -I../../libWENOEXT/finiteVolume/interpolation/surfaceInterpolation/schemes/WENOBase \
+    -I../../libWENOEXT/WENOBase/geometryWENO\
+    -I../../libWENOEXT/WENOUpwindFit \
+    -I../../libWENOEXT/WENOBase \
     -I$(LIB_SRC)/dynamicMesh/lnInclude \
     -I$(LIB_SRC)/fileFormats/lnInclude \
     -I../../versionRules
