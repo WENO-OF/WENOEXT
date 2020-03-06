@@ -4,4 +4,6 @@ WENOBase/globalfvMesh.C
 
 WENOUpwindFit/makeWENOUpwindFit.C
 
+WENOHybrid/makeWENOHybrid.C
+
 LIB = $(FOAM_USER_LIBBIN)/libWENOEXT
