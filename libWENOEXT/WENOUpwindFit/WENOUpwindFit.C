@@ -403,8 +403,8 @@ Foam::WENOUpwindFit<Type>::correction
     const fvMesh& mesh = this->mesh();
 
     // Get degrees of freedom from WENOCoeff class
-    
-    Field<Field<Type> > coeffsWeighted = WENOCoeff_.getWENOPol(vf);
+    tmp<Field<Field<Type> > > coeffsWeightedTmp = WENOCoeff_.getWENOPol(vf);
+    const Field<Field<Type> >& coeffsWeighted = coeffsWeightedTmp();
 
 
     // Calculate the interpolated face values

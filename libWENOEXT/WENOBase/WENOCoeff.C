@@ -211,7 +211,7 @@ void Foam::WENOCoeff<Type>::collectData
 
 
 template<class Type>
-Foam::Field<Foam::Field<Type> >
+Foam::tmp<Foam::Field<Foam::Field<Type> > >
 Foam::WENOCoeff<Type>::getWENOPol
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf
@@ -223,7 +223,13 @@ Foam::WENOCoeff<Type>::getWENOPol
 
     // Runtime operations
     
-    Field<Field<Type> > coeffsWeighted(mesh_.nCells());
+    tmp<Field<Field<Type> > > coeffsWeightedTmp
+    (
+        new Field<Field<Type> >(mesh_.nCells())
+    );
+    
+    Field<Field<Type> >& coeffsWeighted = coeffsWeightedTmp.ref();
+    
     
     for (label cellI = 0; cellI < mesh_.nCells(); cellI++)
     {
@@ -233,7 +239,7 @@ Foam::WENOCoeff<Type>::getWENOPol
         
         List<List<Type> > coeffsI(nStencilsI);
         
-	    label excludeStencils = 0;
+        label excludeStencils = 0;
         label stencilI = 0;
 
 
@@ -272,7 +278,7 @@ Foam::WENOCoeff<Type>::getWENOPol
     }
 
 
-    return coeffsWeighted;
+    return coeffsWeightedTmp;
 }
 
 

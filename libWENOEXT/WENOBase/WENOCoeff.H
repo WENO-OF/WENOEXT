@@ -149,7 +149,7 @@ public:
     // Member Functions
 
         //- Calling function from different schemes
-        Field<Field<Type> > getWENOPol
+        tmp<Field<Field<Type> > > getWENOPol
         (
             const GeometricField<Type, fvPatchField, volMesh>& vf
         ) const;
