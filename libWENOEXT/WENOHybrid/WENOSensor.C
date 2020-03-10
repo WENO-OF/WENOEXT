@@ -82,9 +82,7 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
     volScalarField& WENOShockSensor = 
         WENOCoeff<scalar>::storeOrRetrieve("WENOShockSensor");
 
-    List<scalar> weights(coeffsI.size());
-    List<scalar> dm(coeffsI.size());
-    
+    List<scalar> smoothIndList(coeffsI.size());    
     
     forAll(coeffsI, stencilI)
     {
@@ -108,19 +106,17 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
             smoothInd += coeffsIsI[coeffP]*sumB;
         }
 
+        smoothIndList[stencilI] = smoothInd;
+
         // Calculate gamma for central and sectorial stencils
 
         if (stencilI == 0)
         {
             gamma = dm_/(pow(this->epsilon_ + smoothInd,this->p_));
-            weights[stencilI] = mag(gamma - this->dm_);
-            dm[stencilI] = this->dm_;
         }
         else
         {
             gamma = 1.0/(pow(this->epsilon_ + smoothInd,this->p_));
-            weights[stencilI] = mag(gamma-1);
-            dm[stencilI] = 1;
         }
         
         gammaSum += gamma;
@@ -137,12 +133,8 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
         coeffsWeightedI[coeffI] /= gammaSum;
     }
 
-    forAll(weights, stencilI)
-    {
-        weights[stencilI] /= mag(gammaSum);
-    }
     
-    WENOShockSensor[cellI][compI] = sum(weights)/sum(dm);
+    WENOShockSensor[cellI] = max(smoothIndList);
 }
 
 
@@ -165,8 +157,7 @@ void Foam::WENOSensor<Type>::calcWeight
     {
         scalar gammaSum = 0.0;
 
-        List<scalar> weights(coeffsI.size());
-        List<scalar> dm(coeffsI.size());
+        List<scalar> smoothIndList(coeffsI.size());
         
         forAll(coeffsI, stencilI)
         {
@@ -192,19 +183,17 @@ void Foam::WENOSensor<Type>::calcWeight
                 smoothInd += coeffsIsI[coeffP][compI]*sumB;
             }
 
+            smoothIndList = smoothInd;
+
             // Calculate gamma for central and sectorial stencils
 
             if (stencilI == 0)
             {
                 gamma = this->dm_/(pow(this->epsilon_ + smoothInd,this->p_));
-                weights[stencilI] = mag(gamma - this->dm_);
-                dm[stencilI] = this->dm_;
             }
             else
             {
                 gamma = 1.0/(pow(this->epsilon_ + smoothInd,this->p_));
-                weights[stencilI] = mag(gamma-1);
-                dm[stencilI] = 1;
             }
             
             gammaSum += gamma;
@@ -220,12 +209,7 @@ void Foam::WENOSensor<Type>::calcWeight
             coeffsWeightedI[coeffI][compI] /= gammaSum;
         }
         
-        forAll(weights, stencilI)
-        {
-            weights[stencilI] /= mag(gammaSum);
-        }
-        
-        WENOShockSensor[cellI][compI] = sum(weights)/sum(dm);
+        WENOShockSensor[cellI][compI] = max(smoothIndList);
     }
 }
 

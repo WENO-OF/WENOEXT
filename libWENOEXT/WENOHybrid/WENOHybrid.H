@@ -42,6 +42,9 @@ Description
 
 SourceFiles
     WENOHybrid.C
+    
+See also
+    WENOSensor.H
 
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020

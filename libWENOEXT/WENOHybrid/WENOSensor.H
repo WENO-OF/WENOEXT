@@ -26,7 +26,11 @@ Class
 
 Description
     WENOSensor to detect discontinuities
-    Based on Eq. 22 of Guo-Yan 2020
+    Idea is based on the work of Zhao [1]. The sensor proposed there does not
+    work as we have different definition of the stencil weights. 
+    
+    The shock sensor is based on the maximum of the smoothness indicator
+    function.
     
     References:
     \verbatim
