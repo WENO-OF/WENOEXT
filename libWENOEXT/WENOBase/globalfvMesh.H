@@ -41,6 +41,7 @@ Author
 
 #include <map>
 #include "linear.H"
+#include "processorFvPatch.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,6 +58,14 @@ class globalfvMesh
     protected:
         
     // Member variables
+    
+        //- List of neighbour processors
+        const labelList neighborProcessor_;
+        
+        //- List of processors that require my cells 
+        //  e.g.: that have this processor as neighbour
+        const labelList sendToProcessor_;
+    
         //- Pointer to the global mesh
         autoPtr<fvMesh> globalMeshPtr_;
         
@@ -64,15 +73,15 @@ class globalfvMesh
         
         const fvMesh& localMesh_;
         
+        //- Map globalCellID to correct processor
+        //  non const so it can be set within globalToLocalCellID
+        labelList procList_;
+        
         //- List of cellID corresponding to cellID in global mesh
         const labelList localToGlobalCellID_;
         
         //- List of mapping global cellID to localCellID
         const labelList globalToLocalCellID_;
-        
-        //- Map globalCellID to correct processor
-        const labelList procList_;
-        
         
     // Member functions
         
