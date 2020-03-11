@@ -156,6 +156,7 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     (
         [this]()
         {
+            
             // Fill cellID list
             labelList localToGlobalCellID(localMesh_.nCells(),-1);
             
@@ -217,8 +218,6 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                        
                 PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
               
-                
-              
                 // Distribute the cell centers of the local mesh
                 forAll(sendToProcessor_, procI)
                 {
@@ -228,12 +227,12 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                     List<vector> tmpList(localMesh_.C());
                     toBuffer << tmpList;
                 }
-
+                
                 pBufs.finishedSends();
                 
                 // Neighbour processor list contains the own processor itself.
                 List<vectorField> cellCentersList(neighborProcessor_.size());
-
+                
                 forAll(neighborProcessor_, procI)
                 {
                     if (neighborProcessor_[procI] != Pstream::myProcNo())
@@ -243,10 +242,12 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                         fromBuffer >> tmpList;
                         cellCentersList[procI] = vectorField(tmpList);
                     }
+                    else
+                    {
+                        cellCentersList[procI] = localMesh_.C();
+                    }
                 }
-
-                cellCentersList[Pstream::myProcNo()] = localMesh_.C();
-                
+    
                 const vectorField& globalCellCenters = globalMesh_.C();
                     
                 const int nCells = globalMesh_.nCells();
@@ -273,7 +274,7 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                             if (mag(localCellCentersI[cellI] - globalCellCenters[globalCellIndex]) < tol)
                             {
                                 globalToLocalCellID[globalCellIndex] = cellI;
-                                procList_[globalCellIndex] = procI;
+                                procList_[globalCellIndex] = neighborProcessor_[procI];
                                 startCell = globalCellIndex;
                                 break;
                             }
@@ -285,7 +286,7 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                             if (mag(localCellCentersI[cellI] - globalCellCenters[globalCellIndex]) < tol)
                             {
                                 globalToLocalCellID[globalCellIndex] = cellI;
-                                procList_[globalCellIndex] = procI;
+                                procList_[globalCellIndex] = neighborProcessor_[procI];
                                 startCell = globalCellIndex;
                                 break;
                             }
@@ -302,6 +303,7 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                     globalToLocalCellID[cellI] = cellI;
                 }
             }
+            
             return globalToLocalCellID;
         }()
     )
