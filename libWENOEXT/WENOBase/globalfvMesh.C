@@ -127,7 +127,6 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                 }
                 
                 stableSort(sendToProcessor);
-                Pout << "sendToProcessor " << sendToProcessor << endl;
                 return sendToProcessor;
             }
             else
@@ -306,7 +305,9 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
             return globalToLocalCellID;
         }()
     )
-{}
+{
+    Pout << "Reconstructed Mesh for processor "<<Pstream::myProcNo() << endl;
+}
 
 
 

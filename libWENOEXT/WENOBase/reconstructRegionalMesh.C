@@ -270,8 +270,6 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 continue;
             }
 
-            Info<< "Merging mesh " << proci << " with " << next << endl;
-
             // Find geometrically shared points/faces.
             autoPtr<faceCoupleInfo> couples
             (
@@ -407,10 +405,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::reconstructRegionalMesh::mergeSharedPoint
             mergeDist
         )
     );
-
-    Info<< "mergeSharedPoints : detected " << pointToMaster.size()
-        << " points that are to be merged." << endl;
-
+    
     if (returnReduce(pointToMaster.size(), sumOp<label>()) == 0)
     {
         return autoPtr<mapPolyMesh>(nullptr);
