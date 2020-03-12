@@ -553,23 +553,25 @@ Foam::WENOBase::WENOBase
       stencilID_[cellI][0] list is manipulated and no other list. 
     \**************************************************************************/
     
-    const WENO::globalfvMesh globalfvMesh(mesh);
 
-    // Note the local mesh is the mesh of the processor, the global mesh is the
-    // reconstructed mesh from all processors 
-    const fvMesh& localMesh = globalfvMesh.localMesh();
-    const fvMesh& globalMesh = globalfvMesh();
 
     polOrder_ = polOrder;
 
-    Dir_ = localMesh.time().path()/"constant"/"WENOBase" + Foam::name(polOrder_);
+    Dir_ = mesh.time().path()/"constant"/"WENOBase" + Foam::name(polOrder_);
 
     // Calculate the degrees of freedom and sets the dimensions 
-    setDegreeOfFreedom(localMesh);
+    setDegreeOfFreedom(mesh);
 
     // Create new lists if necessary
-    if (!readList(localMesh))
+    if (!readList(mesh))
     {
+        const WENO::globalfvMesh globalfvMesh(mesh);
+
+        // Note the local mesh is the mesh of the processor, the global mesh is the
+        // reconstructed mesh from all processors 
+        const fvMesh& localMesh = globalfvMesh.localMesh();
+        const fvMesh& globalMesh = globalfvMesh();
+        
         // Read expert factor
         IOdictionary WENODict
         (
