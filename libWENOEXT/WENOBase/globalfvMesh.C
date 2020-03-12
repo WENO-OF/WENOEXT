@@ -155,7 +155,9 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                 // resize list
                 myNeighbourProc.resize(maxProcNumber);
                 
-                
+                #ifdef FULLDEBUG
+                    Info << "Number of neighbour processor: "<<maxProcNumber<<endl;
+                #endif
                 return myNeighbourProc;
             }
             else
@@ -378,7 +380,9 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
         }()
     )
 {
+    #ifdef FULLDEBUG
     Pout << "Reconstructed Mesh for processor "<<Pstream::myProcNo() << endl;
+    #endif
 }
 
 
