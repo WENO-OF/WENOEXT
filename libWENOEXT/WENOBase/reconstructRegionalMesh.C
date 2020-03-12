@@ -28,6 +28,19 @@ Author
 
 #include "reconstructRegionalMesh.H"
 
+
+bool Foam::reconstructRegionalMesh::findProci(const labelList& processorList,label proci)
+{
+    forAll(processorList,i)
+    {
+        if (processorList[i] == proci)
+            return true;
+    }
+    return false;
+}
+
+
+
 Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
 (
     const labelList processorList,
@@ -42,11 +55,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
     label nProcs = processorList.size();
     
     // Read all time databases
-    PtrList<Time> databases(nProcs);
+    PtrList<Time> databases(Pstream::nProcs());
     
     forAll(databases, proci)
     {
-       // Pout << "proci: "<<proci<<endl;
         databases.set
         (
             proci,
@@ -54,7 +66,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 Time::controlDictName,
                 localMesh.time().rootPath(),
-                localMesh.time().globalCaseName()/fileName(word("processor") + name(processorList[proci]))
+                localMesh.time().globalCaseName()/fileName(word("processor") + name(proci))
             )
         );
     }
@@ -68,19 +80,8 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         //<< "Relative tolerance         : " << mergeTol << nl
         //<< "Absolute matching distance : " << mergeDist << nl
         //<< endl;
-
-
-    // Addressing from processor to reconstructed case
-    labelListList cellProcAddressing(nProcs);
-    labelListList faceProcAddressing(nProcs);
-    labelListList pointProcAddressing(nProcs);
-    labelListList boundaryProcAddressing(nProcs);
-
-    List<fvMesh*> masterMesh(nProcs);
-
-    for (label proci=0; proci<nProcs; proci++)
-    {
-        masterMesh[proci] = 
+        
+    fvMesh* masterMesh = 
         (
             new fvMesh
             (
@@ -95,10 +96,17 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 ),
                 xferCopy(pointField()),
                 xferCopy(faceList()),
-                xferCopy(cellList())
+                xferCopy(labelList()),
+                xferCopy(labelList())
             )
         );
 
+    for (label proci=0; proci<nProcs; proci++)
+    {
+        #ifdef FULLDEBUG
+            Pout << "Reading processor mesh: "<<processorList[proci]
+                 <<"  ("<<proci<<" of "<<nProcs-1<<")"<<endl;
+        #endif
         
         // Mesh cannot be constructed with boundaries as this calls the 
         // updateMesh() function of coupled processors and causes an MPI error
@@ -112,7 +120,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                  (
                     "points",
                     "constant/" + polyMesh::meshSubDir,
-                    databases[proci],
+                    databases[processorList[proci]],
                     IOobject::MUST_READ,
                     IOobject::NO_WRITE
                  )
@@ -127,7 +135,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 (
                     "faces",
                     "constant/" + polyMesh::meshSubDir,
-                    databases[proci],
+                    databases[processorList[proci]],
                     IOobject::MUST_READ,
                     IOobject::NO_WRITE
                 )
@@ -142,7 +150,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 (
                     "owner",
                     "constant/" + polyMesh::meshSubDir,
-                    databases[proci],
+                    databases[processorList[proci]],
                     IOobject::READ_IF_PRESENT,
                     IOobject::NO_WRITE
                 )
@@ -157,7 +165,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 (
                     "neighbour",
                     "constant/" + polyMesh::meshSubDir,
-                    databases[proci],
+                    databases[processorList[proci]],
                     IOobject::READ_IF_PRESENT,
                     IOobject::NO_WRITE
                 )
@@ -169,8 +177,8 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             IOobject
             (
                 regionName,
-                databases[proci].timeName(),
-                databases[proci],
+                databases[processorList[proci]].timeName(),
+                databases[processorList[proci]],
                 IOobject::NO_READ,
                 IOobject::NO_WRITE,
                 false
@@ -189,7 +197,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
          autoPtr<ISstream> isPtr = fileHandler().readStream
          (
             const_cast<polyBoundaryMesh&>(polyMeshRef),
-            databases[proci].path()/fileName("constant/polyMesh/boundary"),
+            databases[processorList[proci]].path()/fileName("constant/polyMesh/boundary"),
             "polyBoundaryMesh"
         );
  
@@ -214,159 +222,29 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
 
         meshToAdd.addPatches(patches,false);
 
-        // Initialize its addressing
-        cellProcAddressing[proci] = identity(meshToAdd.nCells());
-        faceProcAddressing[proci] = identity(meshToAdd.nFaces());
-        pointProcAddressing[proci] = identity(meshToAdd.nPoints());
-        boundaryProcAddressing[proci] =
-            identity(meshToAdd.boundaryMesh().size());
-
         // Find geometrically shared points/faces.
         autoPtr<faceCoupleInfo> couples
         (
             new faceCoupleInfo
             (
-                *masterMesh[proci],
+                *masterMesh,
                 meshToAdd,
                 mergeDist,      // Absolute merging distance
                 true            // Matching faces identical
             )
         );
-        
-        //autoPtr<faceCoupleInfo> couples = determineCoupledFaces
-        //(
-            //fullMatch,
-            //proci,
-            //proci,
-            //*masterMesh[proci],
-            //proci,
-            //proci,
-            //meshToAdd,
-            //mergeDist
-        //);
 
         // Add elements to mesh
         autoPtr<mapAddedPolyMesh> map = fvMeshAdder::add
         (
-            *masterMesh[proci],
+            *masterMesh,
             meshToAdd,
             couples
         );
-
-        // Added processor
-        renumber(map().addedCellMap(), cellProcAddressing[proci]);
-        renumber(map().addedFaceMap(), faceProcAddressing[proci]);
-        renumber(map().addedPointMap(), pointProcAddressing[proci]);
-        renumber(map().addedPatchMap(), boundaryProcAddressing[proci]);
+        
     }
-
-    for (label step=2; step<nProcs*2; step*=2)
-    {
-        for (label proci=0; proci<nProcs; proci+=step)
-        {
-            label next = proci + step/2;
-            if(next >= nProcs)
-            {
-                continue;
-            }
-
-            // Find geometrically shared points/faces.
-            autoPtr<faceCoupleInfo> couples
-            (
-                new faceCoupleInfo
-                (
-                    *masterMesh[proci],
-                    *masterMesh[next],
-                    mergeDist,      // Absolute merging distance
-                    true            // Matching faces identical
-                )
-            );
-
-            // Add elements to mesh
-            autoPtr<mapAddedPolyMesh> map = fvMeshAdder::add
-            (
-                *masterMesh[proci],
-                *masterMesh[next],
-                couples
-            );
-
-            // Processors that were already in masterMesh
-            for (label mergedI=proci; mergedI<next; mergedI++)
-            {
-                renumber
-                (
-                    map().oldCellMap(),
-                    cellProcAddressing[mergedI]
-                );
-
-                renumber
-                (
-                    map().oldFaceMap(),
-                    faceProcAddressing[mergedI]
-                );
-
-                renumber
-                (
-                    map().oldPointMap(),
-                    pointProcAddressing[mergedI]
-                );
-
-                // Note: boundary is special since can contain -1.
-                renumber
-                (
-                    map().oldPatchMap(),
-                    boundaryProcAddressing[mergedI]
-                );
-            }
-
-            // Added processor
-            for
-            (
-                label addedI=next;
-                addedI<min(proci+step, nProcs);
-                addedI++
-            )
-            {
-                renumber
-                (
-                    map().addedCellMap(),
-                    cellProcAddressing[addedI]
-                );
-
-                renumber
-                (
-                    map().addedFaceMap(),
-                    faceProcAddressing[addedI]
-                );
-
-                renumber
-                (
-                    map().addedPointMap(),
-                    pointProcAddressing[addedI]
-                );
-
-                renumber
-                (
-                    map().addedPatchMap(),
-                    boundaryProcAddressing[addedI]
-                );
-            }
-        }
-    }
-
-    // See if any points on the mastermesh have become connected
-    // because of connections through processor meshes.
-    mergeSharedPoints(mergeDist, *masterMesh[0], pointProcAddressing);
-
-    // delete all pointers except master
-    for (int i=1;i<masterMesh.size();i++)
-    {
-        delete masterMesh[i];
-    }
-
-    fvMesh* meshPtr = masterMesh[0];
-
-    return autoPtr<fvMesh>(meshPtr);
+    
+    return autoPtr<fvMesh>(masterMesh);
 }
 
 
@@ -388,11 +266,10 @@ void Foam::reconstructRegionalMesh::renumber
 
 
 
-Foam::autoPtr<Foam::mapPolyMesh> Foam::reconstructRegionalMesh::mergeSharedPoints
+void Foam::reconstructRegionalMesh::mergeSharedPoints
 (
     const scalar mergeDist,
-    polyMesh& mesh,
-    labelListList& pointProcAddressing
+    polyMesh& mesh
 )
 {
     // Find out which sets of points get merged and create a map from
@@ -408,7 +285,7 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::reconstructRegionalMesh::mergeSharedPoint
     
     if (returnReduce(pointToMaster.size(), sumOp<label>()) == 0)
     {
-        return autoPtr<mapPolyMesh>(nullptr);
+        return;
     }
 
     polyTopoChange meshMod(mesh);
@@ -420,40 +297,6 @@ Foam::autoPtr<Foam::mapPolyMesh> Foam::reconstructRegionalMesh::mergeSharedPoint
 
     // Update fields. No inflation, parallel sync.
     mesh.updateMesh(map);
-
-    // pointProcAddressing give indices into the master mesh so adapt them
-    // for changed point numbering.
-
-    // Adapt constructMaps for merged points.
-    forAll(pointProcAddressing, proci)
-    {
-        labelList& constructMap = pointProcAddressing[proci];
-
-        forAll(constructMap, i)
-        {
-            label oldPointi = constructMap[i];
-
-            // New label of point after changeMesh.
-            label newPointi = map().reversePointMap()[oldPointi];
-
-            if (newPointi < -1)
-            {
-                constructMap[i] = -newPointi-2;
-            }
-            else if (newPointi >= 0)
-            {
-                constructMap[i] = newPointi;
-            }
-            else
-            {
-                FatalErrorInFunction
-                    << "Problem. oldPointi:" << oldPointi
-                    << " newPointi:" << newPointi << abort(FatalError);
-            }
-        }
-    }
-
-    return map;
 }
 
 

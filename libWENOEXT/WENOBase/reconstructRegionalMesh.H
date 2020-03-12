@@ -75,11 +75,10 @@ namespace reconstructRegionalMesh
         const scalar mergeDist
     );
     
-    autoPtr<mapPolyMesh> mergeSharedPoints
+    void mergeSharedPoints
     (
         const scalar mergeDist,
-        polyMesh& mesh,
-        labelListList& pointProcAddressing
+        polyMesh& mesh
     );
     
     boundBox procBounds
@@ -87,6 +86,8 @@ namespace reconstructRegionalMesh
         const PtrList<Time>& databases,
         const word& regionDir
     );
+
+    bool findProci(const labelList& processorList,label proci);
 
 }
 

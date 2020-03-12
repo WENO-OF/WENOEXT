@@ -36,11 +36,39 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     (
         [](const fvMesh& mesh)
         {
+            /******************************************************************\
+            Neighbour Processor List:
+                Contains the neighbouring processors and its neighbours. 
+                With this all processors around the central processor are found.
+                
+                            *------*------*------*
+                            |  CD  |  D   |  DA  |
+                            |      |      |      |
+                            *------*------*------*
+                            |  C   | Main |  A   |
+                            |      |      |      |
+                            *------*------*------*
+                            |  CB  |  B   |  AB  |
+                            |      |      |      |
+                            *------*------*------*
+                
+                The processors A,B,C and D are direct neighbours. To get the 
+                processors CD, DA, AB and CB the neighbour of the neighbours 
+                are collected. Here called second neighbours.
+                
+                **IMPORTANT** Reconstructing the mesh reads the processor 
+                direcotries and creates an MPI blocking when the lists are not
+                equally sized for all processors!
+            \******************************************************************/
+            
             if (Pstream::parRun())
             {
                 const fvPatchList& patches = mesh.boundary();
                 
                 labelList myNeighbourProc;
+                
+                // Add your own processor ID
+                myNeighbourProc.append(Pstream::myProcNo());
                 
                 forAll(patches, patchI)
                 {
@@ -55,37 +83,79 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                 }
                 
                 // distribute the list
-                List<labelList> allValues(Pstream::nProcs());
+                List<labelList> allNeighbours(Pstream::nProcs());
 
+                allNeighbours[Pstream::myProcNo()] = myNeighbourProc;
+
+                Pstream::gatherList(allNeighbours);
+                
+                Pstream::scatterList(allNeighbours);
+
+                // Get the neighbour and second neighbour list for your processor
+                labelList secondNeighborList;
+                forAll(myNeighbourProc,procI)
+                {
+                    const label neighbourProcI = myNeighbourProc[procI];
+                    secondNeighborList.append(allNeighbours[neighbourProcI]);
+                }
+                
+                // Add second neighbour to my neighbour 
+                std::map<int,bool> addedProcessor;
+                forAll(myNeighbourProc,i)
+                {
+                    addedProcessor.insert(std::pair<int,bool>(myNeighbourProc[i],true));
+                }
+                
+                forAll(secondNeighborList,i)
+                {
+                    auto it = addedProcessor.find(secondNeighborList[i]);
+                    if ( it == addedProcessor.end())
+                    {
+                        myNeighbourProc.append(secondNeighborList[i]);
+                        addedProcessor.insert(std::pair<int,bool>(secondNeighborList[i],true));
+                    }
+                }
+                
+                // Get the maximum of myNeighbourProc cells and make everyone equal
+                List<labelList> allValues(Pstream::nProcs());
                 allValues[Pstream::myProcNo()] = myNeighbourProc;
 
                 Pstream::gatherList(allValues);
                 
                 Pstream::scatterList(allValues);
-
-                // Get the neighbour and second neighbour list for your processor
-                labelList secondNeighborList(myNeighbourProc);
-                forAll(myNeighbourProc,procI)
+                
+                label maxProcNumber = 0;
+                forAll(allValues,i)
                 {
-                    const label neighbourProcI = myNeighbourProc[procI];
-                    secondNeighborList.append(allValues[neighbourProcI]);
+                    if (allValues[i].size()>maxProcNumber)
+                        maxProcNumber = allValues[i].size();
                 }
                 
-                stableSort(secondNeighborList);
-                
-                myNeighbourProc.clear();
-                
-                // Remove double entries
-                myNeighbourProc.append(secondNeighborList[0]); 
-                int j = 0;
-                forAll(secondNeighborList,i)
+                while (myNeighbourProc.size() < maxProcNumber)
                 {
-                    if (secondNeighborList[i] != myNeighbourProc[j])
+                    // Get the neighbour and second neighbour list for your processor
+                    secondNeighborList.clear();
+                    forAll(myNeighbourProc,procI)
                     {
-                        myNeighbourProc.append(secondNeighborList[i]);
-                        j++;
+                        const label neighbourProcI = myNeighbourProc[procI];
+                        secondNeighborList.append(allNeighbours[neighbourProcI]);
+                    }
+                    
+                    forAll(secondNeighborList,i)
+                    {
+                        auto it = addedProcessor.find(secondNeighborList[i]);
+                        if ( it == addedProcessor.end())
+                        {
+                            myNeighbourProc.append(secondNeighborList[i]);
+                            addedProcessor.insert(std::pair<int,bool>(secondNeighborList[i],true));
+                        }
                     }
                 }
+                
+                // resize list
+                myNeighbourProc.resize(maxProcNumber);
+                
+                
                 return myNeighbourProc;
             }
             else
@@ -127,6 +197,7 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                 }
                 
                 stableSort(sendToProcessor);
+               
                 return sendToProcessor;
             }
             else
@@ -156,7 +227,6 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     (
         [this]()
         {
-            
             // Fill cellID list
             labelList localToGlobalCellID(localMesh_.nCells(),-1);
             
