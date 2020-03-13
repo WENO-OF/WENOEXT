@@ -719,12 +719,12 @@ Foam::WENOBase::WENOBase
           IOobject
           (
            "excludeStencil",
-           localMesh.time().timeName(),
-           localMesh,
+           mesh.time().timeName(),
+           mesh,
            IOobject::NO_READ,
            IOobject::NO_WRITE
           ),
-          localMesh,
+          mesh,
           dimensioned<scalar>("alphaSu", dimless, 0)
         );
 
