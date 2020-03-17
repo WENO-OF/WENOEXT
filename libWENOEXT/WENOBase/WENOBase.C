@@ -665,8 +665,6 @@ Foam::WENOBase::WENOBase
 
         }
 
-        LSmatrix_.info();
-
         Info << "\t5) Calcualte smoothness indicator B..."<<endl;
         // Get the smoothness indicator matrices
         B_.setSize(localMesh.nCells());
@@ -743,6 +741,10 @@ Foam::WENOBase::WENOBase
         }
 
         excludedStencils.write();
+        
+        // Print information about LSmatrix databank
+        LSmatrix_.info();
+        
     #endif
 
 
