@@ -41,6 +41,7 @@ Author
 
 #include "linear.H"
 #include "globalfvMesh.H"
+#include "matrixDB.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -152,7 +153,7 @@ class WENOBase
         List<point> refPoint_;
 
         //- Lists of pseudoinverses for each stencil of each cell
-        List<List<scalarRectangularMatrix> > LSmatrix_;
+        matrixDB LSmatrix_;
 
         //- Lists of oscillation matrices for each stencil of each cell
         List<scalarRectangularMatrix> B_;
@@ -308,7 +309,7 @@ public:
             return ownHalos_;
         }
         
-        inline const List<List<scalarRectangularMatrix> >& LSmatrix() const
+        inline const matrixDB& LSmatrix() const
         {
             return LSmatrix_;
         }

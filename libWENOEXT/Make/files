@@ -2,6 +2,8 @@ WENOBase/geometryWENO/geometryWENO.C
 WENOBase/WENOBase.C 
 WENOBase/globalfvMesh.C 
 
+WENOBase/matrixDB.C
+
 WENOBase/reconstructRegionalMesh.C
 
 WENOUpwindFit/makeWENOUpwindFit.C

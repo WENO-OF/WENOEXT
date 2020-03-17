@@ -117,7 +117,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
     const List<label>& stencilsIDI =
         WENOBase_.stencilsID()[cellI][stencilI + excludeStencils];
     const scalarRectangularMatrix& A =
-        WENOBase_.LSmatrix()[cellI][stencilI];
+        WENOBase_.LSmatrix()[cellI][stencilI]();
     const List<label>& cellToProcMapI =
         WENOBase_.cellToProcMap()[cellI][stencilI + excludeStencils];
 

@@ -634,26 +634,28 @@ Foam::WENOBase::WENOBase
 
         Info << "\t4) Calculate LS matrix ..." << endl;
         // Get the least squares matrices and their pseudoinverses
-        LSmatrix_.setSize(localMesh.nCells());
+        LSmatrix_.resize(localMesh.nCells());
 
         for (label cellI = 0; cellI < localMesh.nCells(); cellI++)
         {
             label excludeFace = 0;
 
-            LSmatrix_[cellI].setSize(nStencils[cellI]);
+            LSmatrix_.resizeSubList(cellI,nStencils[cellI]);
 
             forAll(stencilsID_[cellI], stencilI)
             {
                 if (stencilsID_[cellI][stencilI][0] != int(Cell::deleted))
                 {
-                    LSmatrix_[cellI][stencilI - excludeFace] =
+                    LSmatrix_[cellI][stencilI - excludeFace].add
+                    (
                         calcMatrix
                         (
                             globalMesh,
                             localMesh,
                             cellI,
                             stencilI
-                        );
+                        )
+                    );
                 }
                 else
                 {
@@ -662,6 +664,8 @@ Foam::WENOBase::WENOBase
             }
 
         }
+
+        LSmatrix_.info();
 
         Info << "\t5) Calcualte smoothness indicator B..."<<endl;
         // Get the smoothness indicator matrices
@@ -1067,20 +1071,20 @@ bool Foam::WENOBase::readList
             }
         }
 
-        IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
-        LSmatrix_.setSize(mesh.nCells());
+        //IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
+        //LSmatrix_.setSize(mesh.nCells());
 
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-        {
-            isLS >> nEntries;
+        //for (label cellI = 0; cellI < mesh.nCells(); cellI++)
+        //{
+            //isLS >> nEntries;
 
-            LSmatrix_[cellI].setSize(nEntries);
+            //LSmatrix_[cellI].setSize(nEntries);
 
-            for (label stencilI = 0; stencilI < nEntries; stencilI++)
-            {
-                isLS >> LSmatrix_[cellI][stencilI];
-            }
-        }
+            //for (label stencilI = 0; stencilI < nEntries; stencilI++)
+            //{
+                //isLS >> LSmatrix_[cellI][stencilI];
+            //}
+        //}
 
         IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
         B_.setSize(mesh.nCells());
@@ -1246,18 +1250,18 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
-    osLS.precision(10);
+    //OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
+    //osLS.precision(10);
 
-    for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-    {
-        osLS<< LSmatrix_[cellI].size() << endl;
+    //for (label cellI = 0; cellI < mesh.nCells(); cellI++)
+    //{
+        //osLS<< LSmatrix_[cellI].size() << endl;
 
-        forAll(LSmatrix_[cellI], stenciI)
-        {
-            osLS<< LSmatrix_[cellI][stenciI] << endl;
-        }
-    }
+        //forAll(LSmatrix_[cellI], stenciI)
+        //{
+            //osLS<< LSmatrix_[cellI][stenciI] << endl;
+        //}
+    //}
 
     OFstream osOH(Dir_/"OwnHalos",OFstream::streamFormat::BINARY);
     osOH.precision(10);

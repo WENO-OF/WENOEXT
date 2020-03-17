@@ -32,7 +32,8 @@ Author
 
 Foam::matrixDB::scalarRectangularMatrixPtr::scalarRectangularMatrixPtr(matrixDB* db)
 : 
-    matrixDB_(db)
+    matrixDB_(db),
+    itr_(db->DB_.end())
 {}
 
 
@@ -47,9 +48,18 @@ void Foam::matrixDB::scalarRectangularMatrixPtr::add
 
 
 const Foam::scalarRectangularMatrix& 
-Foam::matrixDB::scalarRectangularMatrixPtr::operator()()
+Foam::matrixDB::scalarRectangularMatrixPtr::operator()() const
 {
     return itr_->second;
+}
+
+
+bool Foam::matrixDB::scalarRectangularMatrixPtr::valid()
+{
+    if ((matrixDB_ != nullptr) && (itr_ != matrixDB_->DB_.end()))
+        return true;
+
+    return false;
 }
 
 
@@ -61,29 +71,49 @@ Foam::matrixDB::similar
     const scalarRectangularMatrix&& A
 )
 {
-    // Calculate the sum of A
+    // Calculate the unique identifier of A 
     scalar sum = 0;
     for (int i = 0; i < A.m(); i++)
     {
         for (int j = 0; j < A.n(); j++)
         {
-            sum += A[i][j];
+            sum += A[i][j]*i*j;
         }
     }
     
     // Get lower bound and upper bound of entry 
-    auto upper = DB_.lower_bound(sum);
+    auto it = DB_.find(sum);
     
-    scalar sumUpper = upper->first;
+    if (it == DB_.end())
+    {
+        auto upper = DB_.upper_bound(sum);
+        
+        if (upper == DB_.end() && DB_.size() == 0)
+        {
+            auto pair = DB_.emplace(sum,A);
+            return pair.first;
+        }
+        else if (upper == DB_.end() &&  DB_.size() == 1)
+        {
+            it = upper--;
+        }
+        else
+        {
+            if (upper == DB_.end())
+                upper--;
+            
+            scalar sumUpper = upper->first;
+        
+            // As the lower bound points to either the exact key or above
+            // it has to be decreased by one for the value below it
+            auto lower = upper--;
+            scalar sumLower = lower->first;
+            
+            // get the closer value of the key 
+            it = mag(sumLower-sum) < mag(sumUpper-sum) ? lower : upper;
+        }
+    }
     
-    // As the lower bound points to either the exact key or above
-    // it has to be decreased by one for the value below it
-    auto lower = upper--;
-    scalar sumLower = lower->first;
-    
-    
-    // get the closer value of the key 
-    auto it = mag(sumLower-sum) < mag(sumUpper-sum) ? lower : upper;
     
     // Check if it is within the tolerance
     const scalarRectangularMatrix& cmpA = it->second;
@@ -95,7 +125,7 @@ Foam::matrixDB::similar
         {
             for (int j = 0; j < A.n(); j++)
             {
-                diff += cmpA[i][j] - A[i][j];
+                diff += mag(cmpA[i][j] - A[i][j]);
             }
         }
         
@@ -107,6 +137,19 @@ Foam::matrixDB::similar
     }
     
     auto pair = DB_.emplace(sum,A);
+    
+    #ifdef FULLDEBUG
+        // Check that it was added 
+        if (pair.second == false)
+        {
+            FatalErrorInFunction 
+                << "Matrix was not added to database!" << nl
+                << "Matrix to Add: "<<A << nl
+                << "------------------------------" << nl
+                << "Found matrix: " << DB_[sum] << nl
+                << exit(FatalError);
+        }
+    #endif
     return pair.first;
 }
 
@@ -118,7 +161,35 @@ Foam::matrixDB::operator[](const label celli) const
 }
 
 
+Foam::List<Foam::matrixDB::scalarRectangularMatrixPtr>& 
+Foam::matrixDB::operator[](const label celli)
+{
+    return LSmatrix_[celli];
+}
+
+
 void Foam::matrixDB::resizeSubList(const label cellI, const label size)
 {
     LSmatrix_[cellI].resize(size,scalarRectangularMatrixPtr(this));
+}
+
+
+void Foam::matrixDB::info()
+{
+    scalar numElements = 0;
+    forAll(LSmatrix_,celli)
+    {
+        forAll(LSmatrix_[celli],stencilI)
+        {
+            if (LSmatrix_[celli][stencilI].valid())
+                numElements++;
+        }
+    }
+    
+    Pout << "\tMatrix Database Statistics: "<<nl
+         << "\t\tTotal Number of matrices: "<< numElements << nl
+         << "\t\tNumber matrices stored: "<<DB_.size() <<nl
+         << "\t\tCounter: "<<counter_<< endl;
+    
+    
 }

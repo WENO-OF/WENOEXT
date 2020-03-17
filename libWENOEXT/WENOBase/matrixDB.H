@@ -58,6 +58,9 @@ class matrixDB
     class scalarRectangularMatrixPtr
     {
         private:
+            //- Reference to parent object
+            matrixDB* matrixDB_ = nullptr;
+            
             //- Const iterator to the scalar matrix
             //  An iterator is storead as the standard states:
             //  All Associative Containers: The insert and emplace members shall
@@ -65,8 +68,6 @@ class matrixDB
             //  to the container [26.2.6/9]
             std::map<scalar, scalarRectangularMatrix>::const_iterator itr_;
             
-            //- Reference to parent object
-            matrixDB* matrixDB_ = nullptr;
         
         public: 
         
@@ -85,7 +86,10 @@ class matrixDB
             
             //- Dereference the pointer
             //  Throw an execption if called for a nullptr
-            const scalarRectangularMatrix& operator()();
+            const scalarRectangularMatrix& operator()() const;
+            
+            //- Check if the container is valid
+            bool valid();
     };
     
     
@@ -139,6 +143,11 @@ public:
         
         //- Access an element
         const List<scalarRectangularMatrixPtr>& operator[](const label celli) const;
+        
+        List<scalarRectangularMatrixPtr>& operator[](const label celli);
+        
+        //- Print information to screen 
+        void info();
 };
 
 
