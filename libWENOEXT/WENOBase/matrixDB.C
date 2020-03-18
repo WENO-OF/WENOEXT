@@ -118,9 +118,9 @@ Foam::matrixDB::similar
     // Check if it is within the tolerance
     const scalarRectangularMatrix& cmpA = it->second;
     
+    scalar diff = 0;
     if (cmpA.size() == A.size())
     {
-        scalar diff = 0;
         for (int i = 0; i < A.m(); i++)
         {
             for (int j = 0; j < A.n(); j++)
@@ -138,18 +138,19 @@ Foam::matrixDB::similar
     
     auto pair = DB_.emplace(sum,A);
     
-    #ifdef FULLDEBUG
-        // Check that it was added 
-        if (pair.second == false)
-        {
-            FatalErrorInFunction 
-                << "Matrix was not added to database!" << nl
-                << "Matrix to Add: "<<A << nl
-                << "------------------------------" << nl
-                << "Found matrix: " << DB_[sum] << nl
-                << exit(FatalError);
-        }
-    #endif
+
+    // Check that it was added 
+    if (pair.second == false)
+    {
+        FatalErrorInFunction 
+            << "Matrix was not added to database!" << nl
+            << "Matrix to Add: "<<A << nl
+            << "------------------------------" << nl
+            << "Found matrix: " << DB_[sum] << nl
+            << "Maximum difference: "<<diff << " allowed tolerance: "<< tol_ <<nl
+            << exit(FatalError);
+    }
+
     return pair.first;
 }
 
