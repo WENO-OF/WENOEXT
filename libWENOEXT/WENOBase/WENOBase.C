@@ -1073,20 +1073,8 @@ bool Foam::WENOBase::readList
             }
         }
 
-        //IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
-        //LSmatrix_.setSize(mesh.nCells());
-
-        //for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-        //{
-            //isLS >> nEntries;
-
-            //LSmatrix_[cellI].setSize(nEntries);
-
-            //for (label stencilI = 0; stencilI < nEntries; stencilI++)
-            //{
-                //isLS >> LSmatrix_[cellI][stencilI];
-            //}
-        //}
+        IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::ASCII);
+        LSmatrix_.read(isLS);
 
         IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
         B_.setSize(mesh.nCells());
@@ -1252,18 +1240,9 @@ void Foam::WENOBase::writeList
         }
     }
 
-    //OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
-    //osLS.precision(10);
+    OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::ASCII);
 
-    //for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-    //{
-        //osLS<< LSmatrix_[cellI].size() << endl;
-
-        //forAll(LSmatrix_[cellI], stenciI)
-        //{
-            //osLS<< LSmatrix_[cellI][stenciI] << endl;
-        //}
-    //}
+    LSmatrix_.write(osLS);
 
     OFstream osOH(Dir_/"OwnHalos",OFstream::streamFormat::BINARY);
     osOH.precision(10);

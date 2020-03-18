@@ -190,6 +190,61 @@ void Foam::matrixDB::info()
          << "\t\tTotal Number of matrices: "<< numElements << nl
          << "\t\tNumber matrices stored: "<<DB_.size() <<nl
          << "\t\tCounter: "<<counter_<< endl;
+}
+
+
+void Foam::matrixDB::write(Ostream& os) const
+{
+    os << DB_.size()<< endl;
+    for (const auto& pair : DB_ )
+    {
+        os << pair.first<<endl;
+        os << pair.second;
+    }
     
+    os << LSmatrix_.size()<<endl;
+    forAll(LSmatrix_,cellI)
+    {
+        os << LSmatrix_[cellI].size()<<endl;
+        forAll(LSmatrix_[cellI],stencilI)
+        {
+            os << LSmatrix_[cellI][stencilI].iterator()->first<<endl;
+        }
+    }
+}
+
+
+void Foam::matrixDB::read(Istream& is)
+{
+    // First read in the database
+    scalar key;
+    scalarRectangularMatrix matrix;
     
+    label DBSize;
+    
+    is >> DBSize;
+    
+    for (int i = 0; i < DBSize; i++)
+    {
+        is >> key;
+        is >> matrix;
+        DB_.emplace(key,matrix);
+    }
+    
+    // Read in the LSMatrix list
+    label size;
+    is >> size;
+    LSmatrix_.resize(size);
+    
+    forAll(LSmatrix_,cellI)
+    {
+        is >> size;
+        LSmatrix_[cellI].resize(size,scalarRectangularMatrixPtr(this));
+        
+        forAll(LSmatrix_[cellI],stencilI)
+        {
+            is >> key;
+            LSmatrix_[cellI][stencilI].add(std::move(DB_[key]));
+        }
+    }
 }
