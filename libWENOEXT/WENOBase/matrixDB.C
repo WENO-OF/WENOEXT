@@ -27,7 +27,8 @@ Author
 \*---------------------------------------------------------------------------*/
 
 #include "matrixDB.H"
-
+#include <stdint.h>
+#include <inttypes.h>
 // * * * * * * * * * * *  ScalarRectangularMatrixPtr * * * * * * * * * * * * //
 
 Foam::matrixDB::scalarRectangularMatrixPtr::scalarRectangularMatrixPtr(matrixDB* db)
@@ -65,93 +66,111 @@ bool Foam::matrixDB::scalarRectangularMatrixPtr::valid()
 
 // * * * * * * * * * * * * * * * matrixDB  * * * * * * * * * * * * * * * * * //
 
-std::map<Foam::scalar,Foam::scalarRectangularMatrix>::iterator
+std::multimap<Foam::scalar,Foam::scalarRectangularMatrix>::const_iterator
 Foam::matrixDB::similar
 (
     const scalarRectangularMatrix&& A
 )
 {
-    // Calculate the unique identifier of A 
-    scalar sum = 0;
+    scalar key = 0;
     for (int i = 0; i < A.m(); i++)
     {
         for (int j = 0; j < A.n(); j++)
         {
-            sum += A[i][j]*i*j;
+            key += A[i][j]*i*j;
         }
+    }
+
+    if (DB_.size() == 0)
+    {
+        auto it = DB_.emplace(key,A);
+        return it;
     }
     
     // Get lower bound and upper bound of entry 
-    auto it = DB_.find(sum);
+    auto bound = DB_.equal_range(key);
     
-    if (it == DB_.end())
-    {
-        auto upper = DB_.upper_bound(sum);
+    // Loop over the bound
+    for (auto it = bound.first; it != bound.second; ++it)
+    {    
+        // Check if it is within the tolerance
+        const scalarRectangularMatrix& cmpA = it->second;
         
-        if (upper == DB_.end() && DB_.size() == 0)
+        scalar diff = 0;
+        if (cmpA.size() == A.size())
         {
-            auto pair = DB_.emplace(sum,A);
-            return pair.first;
-        }
-        else if (upper == DB_.end() &&  DB_.size() == 1)
-        {
-            it = upper--;
-        }
-        else
-        {
-            if (upper == DB_.end())
-                upper--;
-            
-            scalar sumUpper = upper->first;
-        
-            // As the lower bound points to either the exact key or above
-            // it has to be decreased by one for the value below it
-            auto lower = upper--;
-            scalar sumLower = lower->first;
-            
-            // get the closer value of the key 
-            it = mag(sumLower-sum) < mag(sumUpper-sum) ? lower : upper;
-        }
-    }
-    
-    
-    // Check if it is within the tolerance
-    const scalarRectangularMatrix& cmpA = it->second;
-    
-    scalar diff = 0;
-    if (cmpA.size() == A.size())
-    {
-        for (int i = 0; i < A.m(); i++)
-        {
-            for (int j = 0; j < A.n(); j++)
+            for (int i = 0; i < A.m(); i++)
             {
-                diff += mag(cmpA[i][j] - A[i][j]);
+                for (int j = 0; j < A.n(); j++)
+                {
+                    diff += mag(cmpA[i][j] - A[i][j]);
+                }
             }
-        }
-        
-        if (diff < tol_)
-        {
-            counter_++;
-            return it;
-        }
+            
+            if (diff < tol_)
+            {
+                counter_++;
+                return it;
+            }
+        }        
     }
-    
-    auto pair = DB_.emplace(sum,A);
-    
 
-    // Check that it was added 
-    if (pair.second == false)
+    // Use insert with hint 
+    auto it = DB_.insert
+    (
+        bound.first,
+        std::pair<scalar,scalarRectangularMatrix>(key,A)
+    );
+    
+    return it;
+}
+
+
+int Foam::matrixDB::hashMatrix
+(
+    const scalarRectangularMatrix& A
+)
+{
+    /* Returns a representation of the specified floating-point value
+     * according to the IEEE 754 floating-point "double
+     * format" bit layout, preserving Not-a-Number (NaN) values.
+     * 
+     * Bit 63 (the bit that is selected by the mask 0x8000000000000000L) 
+     * represents the sign of the floating-point number. Bits 62-52 
+     * (the bits that are selected by the mask 0x7ff0000000000000L represent 
+     * the exponent. Bits 51-0 (the bits that are selected by the mask 
+     * 0x000fffffffffffffL) represent the significand (sometimes called the 
+     * mantissa) of the floating-point number. 
+     *
+     * If the argument is positive infinity, the result is
+     * 0x7ff0000000000000L.
+     * 
+     * If the argument is negative infinity, the result is
+     * 0xfff0000000000000L.
+     * 
+     * If the argument is NaN, the result is the long
+     * integer representing the actual NaN value.  
+     */
+    auto doubleToRawBits = [](double x) -> uint64_t
     {
-        FatalErrorInFunction 
-            << "Matrix was not added to database!" << nl
-            << "Matrix to Add: "<<A << nl
-            << "------------------------------" << nl
-            << "Found matrix: " << DB_[sum] << nl
-            << "Maximum difference: "<<diff << " allowed tolerance: "<< tol_ <<nl
-            << exit(FatalError);
+        uint64_t bits;
+        memcpy(&bits, &x, sizeof bits);
+        return bits;
+    };
+    
+    // Hash function of Java Arrays.hashCode 
+    // (http://developer.classpath.org/doc/java/util/Arrays-source.html)
+    int key = 1;
+    for (int i = 0; i < A.m(); i++)
+    {
+        for (int j = 0; j < A.n(); j++)
+        {
+            long long int l = doubleToRawBits(A[i][j]);
+            int elt = static_cast<int>(l ^ (l >> 32));
+            key = 31*key + elt;
+        }
     }
-
-    return pair.first;
+    return key;
 }
 
 
@@ -195,14 +214,7 @@ void Foam::matrixDB::info()
 
 
 void Foam::matrixDB::write(Ostream& os) const
-{
-    os << DB_.size()<< endl;
-    for (const auto& pair : DB_ )
-    {
-        os << pair.first<<endl;
-        os << pair.second;
-    }
-    
+{    
     os << LSmatrix_.size()<<endl;
     forAll(LSmatrix_,cellI)
     {
@@ -210,6 +222,7 @@ void Foam::matrixDB::write(Ostream& os) const
         forAll(LSmatrix_[cellI],stencilI)
         {
             os << LSmatrix_[cellI][stencilI].iterator()->first<<endl;
+            os << LSmatrix_[cellI][stencilI].iterator()->second;
         }
     }
 }
@@ -217,21 +230,8 @@ void Foam::matrixDB::write(Ostream& os) const
 
 void Foam::matrixDB::read(Istream& is)
 {
-    // First read in the database
-    scalar key;
     scalarRectangularMatrix matrix;
-    
-    label DBSize;
-    
-    is >> DBSize;
-    
-    for (int i = 0; i < DBSize; i++)
-    {
-        is >> key;
-        is >> matrix;
-        DB_.emplace(key,matrix);
-    }
-    
+    scalar key;
     // Read in the LSMatrix list
     label size;
     is >> size;
@@ -245,7 +245,9 @@ void Foam::matrixDB::read(Istream& is)
         forAll(LSmatrix_[cellI],stencilI)
         {
             is >> key;
-            LSmatrix_[cellI][stencilI].add(std::move(DB_[key]));
+            is >> matrix;
+            DB_.emplace(key,matrix);
+            LSmatrix_[cellI][stencilI].add(std::move(matrix));
         }
     }
 }

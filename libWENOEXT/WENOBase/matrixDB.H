@@ -55,10 +55,10 @@ namespace Foam
 
 class matrixDB
 {
+    using iterType = std::multimap<scalar, scalarRectangularMatrix>::const_iterator;
+    
     class scalarRectangularMatrixPtr
     {
-            using iterType = std::map<scalar, scalarRectangularMatrix>::const_iterator;
-        
         private:
             //- Reference to parent object
             matrixDB* matrixDB_ = nullptr;
@@ -113,18 +113,21 @@ class matrixDB
         List<List<scalarRectangularMatrixPtr> > LSmatrix_;
 
         //- Map of stored matrices as the underlying data bank
-        //  The key is the sum of the elements
-        std::map<scalar, scalarRectangularMatrix> DB_;
+        std::multimap<scalar, scalarRectangularMatrix> DB_;
 
 
     //- Private member functions
         
         //- Check if a matrix already exist in databank and otherwise add matrix
         //  returns iterator to this matrix
-        std::map<scalar,scalarRectangularMatrix>::iterator similar
+        iterType similar
         (
             const scalarRectangularMatrix&& A
         );
+        
+        //- Create a hash value of a matrix. 
+        //  Not used but good code for possible future use
+        int hashMatrix(const scalarRectangularMatrix& A);
 
 public:
 
