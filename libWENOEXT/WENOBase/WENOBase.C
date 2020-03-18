@@ -1073,7 +1073,7 @@ bool Foam::WENOBase::readList
             }
         }
 
-        IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::ASCII);
+        IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
         LSmatrix_.read(isLS);
 
         IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
@@ -1240,8 +1240,7 @@ void Foam::WENOBase::writeList
         }
     }
 
-    OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::ASCII);
-
+    OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
     LSmatrix_.write(osLS);
 
     OFstream osOH(Dir_/"OwnHalos",OFstream::streamFormat::BINARY);
