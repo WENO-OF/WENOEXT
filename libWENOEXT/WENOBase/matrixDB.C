@@ -90,6 +90,11 @@ Foam::matrixDB::similar
     // Get lower bound and upper bound of entry 
     auto bound = DB_.equal_range(key);
     
+    // bound.first is the same as lower_bound thus pointes either to the 
+    // exact element or above!
+    if (bound.first != DB_.begin())
+        bound.first--;
+    
     // Loop over the bound
     for (auto it = bound.first; it != bound.second; ++it)
     {    
@@ -119,7 +124,7 @@ Foam::matrixDB::similar
     auto it = DB_.insert
     (
         bound.first,
-        std::pair<scalar,scalarRectangularMatrix>(key,A)
+        std::pair<scalar,scalarRectangularMatrix>(key,std::move(A))
     );
     
     return it;
