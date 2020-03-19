@@ -51,11 +51,17 @@ void Foam::matrixDB::scalarRectangularMatrixPtr::add
 const Foam::scalarRectangularMatrix& 
 Foam::matrixDB::scalarRectangularMatrixPtr::operator()() const
 {
+    #ifdef FULLDEBUG
+        if (!this->valid())
+            FatalErrorInFunction()
+                << "Access non valid Iterator" << exit(FatalError);
+    #endif
+    
     return itr_->second;
 }
 
 
-bool Foam::matrixDB::scalarRectangularMatrixPtr::valid()
+bool Foam::matrixDB::scalarRectangularMatrixPtr::valid() const
 {
     if ((matrixDB_ != nullptr) && (itr_ != matrixDB_->DB_.end()))
         return true;
@@ -227,7 +233,7 @@ void Foam::matrixDB::write(Ostream& os) const
         forAll(LSmatrix_[cellI],stencilI)
         {
             os << LSmatrix_[cellI][stencilI].iterator()->first<<endl;
-            os << LSmatrix_[cellI][stencilI].iterator()->second;
+            os << LSmatrix_[cellI][stencilI].iterator()->second<<endl;
         }
     }
 }

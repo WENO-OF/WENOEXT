@@ -95,7 +95,7 @@ class matrixDB
             
             
             //- Check if the container is valid
-            bool valid();
+            bool valid() const;
     };
     
     
