@@ -394,83 +394,157 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     const fvMesh& globalMesh,
     const fvMesh& localMesh,
     const label   localCellI,
-    const label stencilI
+    const label   stencilI
 )
 {
     const label stencilSize = stencilsID_[localCellI][stencilI].size();
 
-    scalarRectangularMatrix A
-    (
-        stencilSize - 1,
-        nDvt_,
-        scalar(0.0)
-    );
 
-    point transCenterI = Foam::geometryWENO::transformPoint
-    (
-        JInv_[localCellI],
-        localMesh.C()[localCellI],
-        refPoint_[localCellI]
-    );
-
-    volIntegralType volIntegralsIJ = volIntegralsList_[localCellI];
-
-    // Add one line per cell
-    for (label cellJ = 1; cellJ < stencilSize; cellJ++)
+    /********************************* NOTE **********************************\
+    To improve memory efficiency it is attempted to generate the pseudo
+    inverse with the least number of cells possible.
+    
+    Cells are continously added until either number of zero singular values is 
+    zero or maximum number of stencil is reaced, see splitStencil()
+    
+    The matrix with the best condition is returned!
+    \*************************************************************************/
+    
+    
+    // Store pointer to old and new SVD class
+    autoPtr<SVD> svdCurrPtr;
+    autoPtr<SVD> svdOldPtr;
+    
+    int nCells;
+    for (nCells = nDvt_+1; nCells < stencilSize; nCells++)
     {
-        if (stencilsID_[localCellI][stencilI][cellJ] != int(Cell::deleted) )
+        scalarRectangularMatrix A
+        (
+            nCells,
+            nDvt_,
+            scalar(0.0)
+        );
+        
+
+        point transCenterI = Foam::geometryWENO::transformPoint
+        (
+            JInv_[localCellI],
+            localMesh.C()[localCellI],
+            refPoint_[localCellI]
+        );
+
+        volIntegralType volIntegralsIJ = volIntegralsList_[localCellI];
+
+        // Add one line per cell
+        for (label cellJ = 1; cellJ < nCells; cellJ++)
         {
-            point transCenterJ =
-                Foam::geometryWENO::transformPoint
-                (
-                    JInv_[localCellI],
-                    globalMesh.C()[stencilsGlobalID_[localCellI][stencilI][cellJ]],
-                    refPoint_[localCellI]
-                );
-
-            volIntegralType transVolMom =
-                Foam::geometryWENO::transformIntegral
-                (
-                    globalMesh,
-                    stencilsGlobalID_[localCellI][stencilI][cellJ],
-                    transCenterJ,
-                    polOrder_,
-                    JInv_[localCellI],
-                    refPoint_[localCellI],
-                    refDet_[localCellI]
-                );
-
-            for (label n = 0; n <= dimList_[localCellI][0]; n++)
+            if (stencilsID_[localCellI][stencilI][cellJ] != int(Cell::deleted) )
             {
-                for (label m = 0; m <= dimList_[localCellI][1]; m++)
+                point transCenterJ =
+                    Foam::geometryWENO::transformPoint
+                    (
+                        JInv_[localCellI],
+                        globalMesh.C()[stencilsGlobalID_[localCellI][stencilI][cellJ]],
+                        refPoint_[localCellI]
+                    );
+
+                volIntegralType transVolMom =
+                    Foam::geometryWENO::transformIntegral
+                    (
+                        globalMesh,
+                        stencilsGlobalID_[localCellI][stencilI][cellJ],
+                        transCenterJ,
+                        polOrder_,
+                        JInv_[localCellI],
+                        refPoint_[localCellI],
+                        refDet_[localCellI]
+                    );
+
+                for (label n = 0; n <= dimList_[localCellI][0]; n++)
                 {
-                    for (label l = 0; l <= dimList_[localCellI][2]; l++)
+                    for (label m = 0; m <= dimList_[localCellI][1]; m++)
                     {
-                        if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
+                        for (label l = 0; l <= dimList_[localCellI][2]; l++)
                         {
-                            volIntegralsIJ[n][m][l] =
-                                calcGeom
-                                (
-                                    transCenterJ - transCenterI,
-                                    n,
-                                    m,
-                                    l,
-                                    transVolMom,
-                                    volIntegralsList_[localCellI]
-                                );
+                            if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
+                            {
+                                volIntegralsIJ[n][m][l] =
+                                    calcGeom
+                                    (
+                                        transCenterJ - transCenterI,
+                                        n,
+                                        m,
+                                        l,
+                                        transVolMom,
+                                        volIntegralsList_[localCellI]
+                                    );
+                            }
                         }
                     }
                 }
             }
+            // Populate the matrix A
+            addCoeffs(A,cellJ,polOrder_,dimList_[localCellI],volIntegralsIJ);
         }
-        // Populate the matrix A
-        addCoeffs(A,cellJ,polOrder_,dimList_[localCellI],volIntegralsIJ);
+        
+        auto cond = [](const scalarDiagonalMatrix& S) -> scalar
+        {
+            scalar minS = GREAT;
+            scalar maxS = -GREAT;
+            forAll(S,i)
+            {
+                if (S[i] < minS)
+                    minS = S[i];
+                if (S[i] > maxS)
+                    maxS = S[i];
+            }
+            
+            return maxS/minS;
+        };
+        
+        
+        // Returning pseudoinverse using SVD
+        svdCurrPtr.clear();
+        svdCurrPtr.set(new SVD(A, 1e-5));
+        
+        if (svdCurrPtr->nZeros() == 0 && svdCurrPtr->converged())
+        {
+            // Check if old pointer is valid 
+            if (svdOldPtr.valid())
+            {
+                // is condition of oldPtr better than new 
+                if (cond(svdOldPtr->S()) < cond(svdCurrPtr->S()))
+                {
+                    stencilsID_[localCellI][stencilI].resize(nCells-1);
+                    cellToProcMap_[localCellI][stencilI].resize(nCells-1);
+                    
+                    return svdOldPtr->VSinvUt();
+                }
+                else
+                {
+                    svdOldPtr.clear();
+                    svdOldPtr = svdCurrPtr;
+                }
+                
+            }
+            else
+            {
+                svdOldPtr = svdCurrPtr;
+            }
+        }
     }
     
-    // Returning pseudoinverse using SVD
-    SVD svd(A, 1e-5);
-
-    return svd.VSinvUt();
+    if (!svdCurrPtr.valid())
+    {
+        if (svdOldPtr.valid())
+            svdCurrPtr = svdOldPtr;
+        else
+            FatalErrorInFunction()
+                << "Could not calculate invers "<<exit(FatalError);
+    }
+    
+    return svdCurrPtr->VSinvUt();
+    
 }
 
 
