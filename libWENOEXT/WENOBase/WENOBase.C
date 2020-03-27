@@ -635,9 +635,16 @@ Foam::WENOBase::WENOBase
         Info << "\t4) Calculate LS matrix ..." << endl;
         // Get the least squares matrices and their pseudoinverses
         LSmatrix_.resize(localMesh.nCells());
+    
+        const label nLocalCells = localMesh.nCells();
 
         for (label cellI = 0; cellI < localMesh.nCells(); cellI++)
         {
+            // display progress 
+            if ((1000*cellI/nLocalCells)%50 == 0)
+                Info << "\t\tProgress: "<<(100*cellI/nLocalCells)<<"%\r"<<flush;
+            
+            
             label excludeFace = 0;
 
             LSmatrix_.resizeSubList(cellI,nStencils[cellI]);
@@ -664,7 +671,7 @@ Foam::WENOBase::WENOBase
             }
 
         }
-
+        
         Info << "\t5) Calcualte smoothness indicator B..."<<endl;
         // Get the smoothness indicator matrices
         B_.setSize(localMesh.nCells());
