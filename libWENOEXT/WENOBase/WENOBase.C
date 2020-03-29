@@ -818,13 +818,36 @@ Foam::WENOBase::WENOBase
                 if (stencilsID_[cellI][stencilI][0] == int(Cell::deleted))
                     excludedStencils[cellI] = excludedStencils[cellI]+1;
             }
-
         }
 
         excludedStencils.write();
         
         // Print information about LSmatrix databank
         LSmatrix_.info();
+        
+        volScalarField PseudoInverseDimension
+        (
+          IOobject
+          (
+           "PseudoInverseDimension",
+           mesh.time().timeName(),
+           mesh,
+           IOobject::NO_READ,
+           IOobject::NO_WRITE
+          ),
+          mesh,
+          dimensioned<scalar>("alphaSu", dimless, 0)
+        );
+        
+        forAll(LSmatrix_,celli)
+        {
+            forAll(LSmatrix_[celli],listI)
+            {
+                PseudoInverseDimension[celli] += LSmatrix_[celli][listI]().size();
+            }
+        }
+        
+        PseudoInverseDimension.write();
         
     #endif
 
