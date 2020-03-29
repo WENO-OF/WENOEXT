@@ -262,3 +262,17 @@ void Foam::matrixDB::read(Istream& is)
         }
     }
 }
+
+
+Foam::Istream& Foam::operator >>(Istream& is, matrixDB& matrixDB_)
+{
+    matrixDB_.read(is);
+    return is;
+}
+
+
+Foam::Ostream& Foam::operator <<(Ostream& os,const matrixDB& matrixDB_)
+{
+    matrixDB_.write(os);
+    return os;
+}

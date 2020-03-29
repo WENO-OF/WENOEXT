@@ -43,11 +43,20 @@ Author
 #define matrixDB_H
 
 #include "linear.H"
+#include "Ostream.H"
 #include <map>
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
+
+// Forward declaration of friend functions and operators
+class matrixDB;
+
+Istream& operator >> (Istream&, matrixDB&);
+
+Ostream& operator << (Ostream&, const matrixDB&);
+
 
 /*---------------------------------------------------------------------------*\
                             Class matrixDB Declaration
@@ -163,9 +172,15 @@ public:
         //- Print information to screen 
         void info();
         
+    // matrixDB IO
+    
         void write(Ostream& os) const;
         
         void read(Istream& is);
+        
+        friend Istream& operator>>(Istream& is, matrixDB&);
+        
+        friend Ostream& operator<<(Ostream& is, const matrixDB&);
 };
 
 

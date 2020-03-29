@@ -1180,7 +1180,7 @@ bool Foam::WENOBase::readList
         }
 
         IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
-        LSmatrix_.read(isLS);
+        isLS >> LSmatrix_;
 
         IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
         B_.setSize(mesh.nCells());
@@ -1347,11 +1347,9 @@ void Foam::WENOBase::writeList
     }
 
     OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
-    LSmatrix_.write(osLS);
+    osLS << LSmatrix_;
 
     OFstream osOH(Dir_/"OwnHalos",OFstream::streamFormat::BINARY);
-    osOH.precision(10);
-
     
     forAll(ownHalos_, procI)
     {
@@ -1364,8 +1362,6 @@ void Foam::WENOBase::writeList
     }
 
     OFstream osB(Dir_/"B",OFstream::streamFormat::BINARY);
-    osB.precision(10);
-
     forAll(B_, cellI)
     {
         osB<< B_[cellI] << endl;
