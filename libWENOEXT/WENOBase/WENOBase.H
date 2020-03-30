@@ -202,7 +202,8 @@ class WENOBase
             const fvMesh& globalMesh,
             const fvMesh& localMesh,
             const label cellI,
-            const label stencilI
+            const label stencilI,
+            const bool aggresiveSVD
         );
 
         //- Calculate the entries of the least squares matrices
