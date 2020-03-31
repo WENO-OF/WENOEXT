@@ -32,68 +32,68 @@ Author
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 
-Foam::scalar Foam::geometryWENO::gaussQuad
-(
-        const scalar n,
-        const scalar m,
-        const scalar l,
-        const point xi0,
-        const vector v0,
-        const vector v1,
-        const vector v2
-)
-{
-    // Points and weights for the Gaussian quadrature of a standard triangle
-    // - 1.row: x-values
-    // - 2.row: y-values
-    // - 3.row: weights
-    scalar xw[7][3];
+//Foam::scalar Foam::geometryWENO::gaussQuad
+//(
+        //const scalar n,
+        //const scalar m,
+        //const scalar l,
+        //const point xi0,
+        //const vector v0,
+        //const vector v1,
+        //const vector v2
+//)
+//{
+    //// Points and weights for the Gaussian quadrature of a standard triangle
+    //// - 1.row: x-values
+    //// - 2.row: y-values
+    //// - 3.row: weights
+    //scalar xw[7][3];
 
-    xw[0][0] = 0.33333333333333;
-    xw[0][1] = 0.33333333333333;
-    xw[0][2] = 0.22500000000000;
-    xw[1][0] = 0.47014206410511;
-    xw[1][1] = 0.47014206410511;
-    xw[1][2] = 0.13239415278851;
-    xw[2][0] = 0.47014206410511;
-    xw[2][1] = 0.05971587178977;
-    xw[2][2] = 0.13239415278851;
-    xw[3][0] = 0.05971587178977;
-    xw[3][1] = 0.47014206410511;
-    xw[3][2] = 0.13239415278851;
-    xw[4][0] = 0.10128650732346;
-    xw[4][1] = 0.10128650732346;
-    xw[4][2] = 0.12593918054483;
-    xw[5][0] = 0.10128650732346;
-    xw[5][1] = 0.79742698535309;
-    xw[5][2] = 0.12593918054483;
-    xw[6][0] = 0.79742698535309;
-    xw[6][1] = 0.10128650732346;
-    xw[6][2] = 0.12593918054483;
+    //xw[0][0] = 0.33333333333333;
+    //xw[0][1] = 0.33333333333333;
+    //xw[0][2] = 0.22500000000000;
+    //xw[1][0] = 0.47014206410511;
+    //xw[1][1] = 0.47014206410511;
+    //xw[1][2] = 0.13239415278851;
+    //xw[2][0] = 0.47014206410511;
+    //xw[2][1] = 0.05971587178977;
+    //xw[2][2] = 0.13239415278851;
+    //xw[3][0] = 0.05971587178977;
+    //xw[3][1] = 0.47014206410511;
+    //xw[3][2] = 0.13239415278851;
+    //xw[4][0] = 0.10128650732346;
+    //xw[4][1] = 0.10128650732346;
+    //xw[4][2] = 0.12593918054483;
+    //xw[5][0] = 0.10128650732346;
+    //xw[5][1] = 0.79742698535309;
+    //xw[5][2] = 0.12593918054483;
+    //xw[6][0] = 0.79742698535309;
+    //xw[6][1] = 0.10128650732346;
+    //xw[6][2] = 0.12593918054483;
 
-    // Sum up over Gaussian points with transformation on projected triangle
+    //// Sum up over Gaussian points with transformation on projected triangle
 
-    scalar sum = 0.0;
+    //scalar sum = 0.0;
 
-    for (label j = 0; j < 7; j++)
-    {
-        scalar xi =
-            v0.x()*(1 - xw[j][0] - xw[j][1])
-          + v1.x()*xw[j][0] + v2.x()*xw[j][1];
-        scalar eta =
-            v0.y()*(1 - xw[j][0] - xw[j][1])
-          + v1.y()*xw[j][0] + v2.y()*xw[j][1];
-        scalar zeta =
-            v0.z()*(1 - xw[j][0] - xw[j][1])
-          + v1.z()*xw[j][0] + v2.z()*xw[j][1];
+    //for (label j = 0; j < 7; j++)
+    //{
+        //scalar xi =
+            //v0.x()*(1 - xw[j][0] - xw[j][1])
+          //+ v1.x()*xw[j][0] + v2.x()*xw[j][1];
+        //scalar eta =
+            //v0.y()*(1 - xw[j][0] - xw[j][1])
+          //+ v1.y()*xw[j][0] + v2.y()*xw[j][1];
+        //scalar zeta =
+            //v0.z()*(1 - xw[j][0] - xw[j][1])
+          //+ v1.z()*xw[j][0] + v2.z()*xw[j][1];
 
-        sum +=
-            xw[j][2]*pow((eta - xi0.y()), m)
-           *pow((zeta - xi0.z()), l)*pow((xi - xi0.x()), n);
-    }
+        //sum +=
+            //xw[j][2]*pow((eta - xi0.y()), m)
+           //*pow((zeta - xi0.z()), l)*pow((xi - xi0.x()), n);
+    //}
 
-    return sum;
-}
+    //return sum;
+//}
 
 
 void Foam::geometryWENO::initIntegrals
@@ -501,7 +501,7 @@ Foam::point Foam::geometryWENO::transformPoint
 }
 
 
-Foam::scalar Foam::geometryWENO::gaussQuadB
+Foam::scalar Foam::geometryWENO::gaussQuad
 (
         const scalar n,
         const scalar m,
@@ -660,7 +660,7 @@ Foam::geometryWENO::volIntegralType Foam::geometryWENO::smoothIndIntegrals
                     {
                         Integral[potXi][potEta][potZeta] +=
                             1.0/(potXi + 1)*area*vn.x()
-                           *gaussQuadB
+                           *gaussQuad
                             (
                                 potXi + 1,
                                 potEta,
@@ -679,7 +679,7 @@ Foam::geometryWENO::volIntegralType Foam::geometryWENO::smoothIndIntegrals
                     {
                         Integral[potXi][potEta][potZeta] +=
                             1.0/(potEta + 1)*area*vn.y()
-                           *gaussQuadB
+                           *gaussQuad
                             (
                                 potXi,
                                 potEta + 1,
@@ -694,7 +694,7 @@ Foam::geometryWENO::volIntegralType Foam::geometryWENO::smoothIndIntegrals
                     {
                         Integral[potXi][potEta][potZeta] +=
                             1.0/(potZeta + 1)*area*vn.z()
-                           *gaussQuadB
+                           *gaussQuad
                             (
                                 potXi,
                                 potEta,

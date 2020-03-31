@@ -127,17 +127,17 @@ namespace geometryWENO
             const point x0
         );
 
-        //- Evaluate the surface integrals for smoothness indicator
-        scalar gaussQuadB
-        (
-            const scalar n,
-            const scalar m,
-            const scalar l,
-            const point x0,
-            const vector v0,
-            const vector v1,
-            const vector v2
-        );
+        ////- Evaluate the surface integrals for smoothness indicator
+        //scalar gaussQuadB
+        //(
+            //const scalar n,
+            //const scalar m,
+            //const scalar l,
+            //const point x0,
+            //const vector v0,
+            //const vector v1,
+            //const vector v2
+        //);
 
         //- Calculate the volume integrals for the smoothness indicator matrix
         volIntegralType smoothIndIntegrals
