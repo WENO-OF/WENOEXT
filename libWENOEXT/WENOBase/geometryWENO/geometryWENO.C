@@ -560,6 +560,19 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     xw[12][2] = 0.07711376089026;
 
 
+    // For integer power it is much faster to do an integer multiplication
+    // This depends on the compiler used! For portability it is explicitly defined
+    // here
+    auto intPow = [](const scalar base,const unsigned int exponent) -> scalar
+    {
+        scalar temp = 1.0;
+        for (unsigned int i =0; i<exponent;i++)
+        {
+            temp *= base;
+        }
+        return temp;
+    };
+
     // Sum up over Gaussian points with transformation on projected triangle
 
     scalar sum = 0.0;
@@ -577,8 +590,8 @@ Foam::scalar Foam::geometryWENO::gaussQuad
           + v1.z()* xw[j][0] +v2.z()* xw[j][1] ;
 
         sum +=
-            xw[j][2]*pow(xi - xi0.x(), n)
-           *pow(eta - xi0.y(), m)*pow(zeta - xi0.z(), l);
+            xw[j][2]*intPow(xi - xi0.x(), n)
+           *intPow(eta - xi0.y(), m)*intPow(zeta - xi0.z(), l);
     }
 
     return sum;

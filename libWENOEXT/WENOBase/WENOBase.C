@@ -571,6 +571,20 @@ Foam::scalar Foam::WENOBase::calcGeom
 {
     scalar geom = 0.0;
 
+    // For integer power it is much faster to do an integer multiplication
+    // This depends on the compiler used! For portability it is explicitly defined
+    // here
+    auto intPow = [](const scalar base,const unsigned int exponent) -> scalar
+    {
+        scalar temp = 1.0;
+        for (unsigned int i =0; i<exponent;i++)
+        {
+            temp *= base;
+        }
+        return temp;
+    };
+
+
     for (label k = 0; k <= n; k++)
     {
         for (label l = 0; l <= m; l++)
@@ -581,7 +595,7 @@ Foam::scalar Foam::WENOBase::calcGeom
                     factorial(n)/(factorial(k)*factorial((n - k)))
                    *factorial(m)/(factorial(l)*factorial((m - l)))
                    *factorial(o)/(factorial(j)*factorial((o - j)))
-                   *pow(x_ij.x(), k)*pow(x_ij.y(), l)*pow(x_ij.z(), j)
+                   *intPow(x_ij.x(), k)*intPow(x_ij.y(), l)*intPow(x_ij.z(), j)
                    *volMomJ[n - k][m - l][o - j];
             }
         }

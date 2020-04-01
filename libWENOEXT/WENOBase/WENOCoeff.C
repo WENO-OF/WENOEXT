@@ -321,11 +321,11 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
 
         if (stencilI == 0)
         {
-            gamma = dm_/(pow(epsilon_ + smoothInd,p_));
+            gamma = dm_/(intPow(epsilon_ + smoothInd,p_));
         }
         else
         {
-            gamma = 1.0/(pow(epsilon_ + smoothInd,p_));
+            gamma = 1.0/(intPow(epsilon_ + smoothInd,p_));
         }
 
         gammaSum += gamma;
@@ -387,11 +387,11 @@ void Foam::WENOCoeff<Type>::calcWeight
 
             if (stencilI == 0)
             {
-                gamma = dm_/(pow(epsilon_ + smoothInd,p_));
+                gamma = dm_/(intPow(epsilon_ + smoothInd,p_));
             }
             else
             {
-                gamma = 1.0/(pow(epsilon_ + smoothInd,p_));
+                gamma = 1.0/(intPow(epsilon_ + smoothInd,p_));
             }
 
             gammaSum += gamma;

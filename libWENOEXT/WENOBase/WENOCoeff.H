@@ -73,7 +73,7 @@ protected:
         scalar epsilon_;
         
         //- Order of polynomials
-        const label polOrder_;
+        const unsigned int polOrder_;
         
         //- Number of derivates
         label nDvt_;
@@ -124,6 +124,19 @@ protected:
             const List<List<Type> >& coeffsI
         ) const;
 
+
+        // For integer power it is much faster to do an integer multiplication
+        // This depends on the compiler used! For portability it is explicitly defined
+        // here
+        inline scalar intPow(const scalar base, const unsigned int exponent) const
+        {
+            scalar temp = 1.0;
+            for (unsigned int i =0; i<exponent;i++)
+            {
+                temp *= base;
+            }
+            return temp;
+        };
 
 public:
 
