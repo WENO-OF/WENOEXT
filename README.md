@@ -27,7 +27,15 @@ Different versions of the code are structured through tags:
 1. Clone the directory with
     `git clone https://github.com/TobiasMartin/WENOEXT.git`
 
-2. Execute `Allwmake` to build the library 
+2. Execute `Allwmake` to build the library
+
+
+### Note to GNU compiler:
+
+GNU compiler version must be higher than 7. For g++ < v7 an error is reported for 
+the specialisation template syntax. 
+The syntax in the code is according to C++11 standard which is available for g++ v7 and higher. 
+ 
 
 ## Usage
 
