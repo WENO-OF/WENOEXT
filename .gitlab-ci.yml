@@ -1,0 +1,53 @@
+stages:
+    - Build
+    - Tests
+    - Tutorials
+
+image: openfoam:5.x-full
+
+cache:
+  key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+
+variables:     
+    GIT_SUBMODULE_STRATEGY: recursive
+
+before_script:
+    - set +e && . $foamDotFile && set -e
+    - ./.gitlab-copyLibs_and_distribute
+
+Source: 
+    stage: Build
+    script:
+        - ./Allwmake
+        - ./.gitlab-copyLibs_and_distribute
+    artifacts:
+        paths:
+            - build/
+        expire_in: 7 days
+
+unitTests:
+    stage: Tests
+    script:
+        - cd ./tests/
+        - ./runTest
+
+Cavity:
+    stage: Tutorials
+    script:
+        - cd ./tutorials/cavity/
+        - blockMesh > /dev/null
+        - icoFoam
+    except:
+        - /^issue-.*$/
+        - /^feature-.*$/
+
+Wedge:
+    stage: Tutorials
+    script:
+        - cd ./tutorials/wedge/
+        - blockMesh > /dev/null
+        - icoFoam
+    except:
+        - /^issue-.*$/
+        - /^feature-.*$/
+
