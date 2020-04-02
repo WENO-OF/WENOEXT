@@ -12,7 +12,7 @@ be found in:
 
 Different versions of the code are structured through tags:
 
- * [1.0] Version for OpenFOAM 5.x or higher
+ * [1.0] Version for OpenFOAM 7 or higher
              Uses improved parallising and C++11 features 
  * [0.1] Version for OpenFOAM 2.3.x to OpenFOAM 5.x 
 
