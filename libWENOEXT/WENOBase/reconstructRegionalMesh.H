@@ -57,39 +57,12 @@ namespace reconstructRegionalMesh
         const labelList processorList,
         const fvMesh& localMesh
     );
-
-    void renumber
-    (
-        const labelList& map,
-        labelList& elems
-    );
-    
-    autoPtr<faceCoupleInfo> determineCoupledFaces
-    (
-        const bool fullMatch,
-        const label masterMeshProcStart,
-        const label masterMeshProcEnd,
-        const polyMesh& masterMesh,
-        const label meshToAddProcStart,
-        const label meshToAddProcEnd,
-        const polyMesh& meshToAdd,
-        const scalar mergeDist
-    );
-    
-    void mergeSharedPoints
-    (
-        const scalar mergeDist,
-        polyMesh& mesh
-    );
     
     boundBox procBounds
     (
         const labelList processorList,
         const fvMesh& localMesh
     );
-
-    bool findProci(const labelList& processorList,label proci);
-    
     
     fileName localPath
     (
@@ -98,14 +71,14 @@ namespace reconstructRegionalMesh
         const fileName file
     );
     
-    bool readHeader(Istream& is);
+    void readHeader(Istream& is);
     
     template<class Type>
     Field<Type> readField(const fileName path)
     {
         // Create an IFStream object
         IFstream is(path);      
-        const bool val = readHeader(is);
+        readHeader(is);
         return Field<Type>(is);
     }
     
@@ -114,13 +87,9 @@ namespace reconstructRegionalMesh
     {
         // Create an IFStream object
         IFstream is(path);      
-        const bool val = readHeader(is);
+        readHeader(is);
         return List<Type>(is);
     }
-    
-    
-    
-    
 }
 
 }

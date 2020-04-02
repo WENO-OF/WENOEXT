@@ -41,19 +41,6 @@ Foam::fileName Foam::reconstructRegionalMesh::localPath
 }
 
 
-
-bool Foam::reconstructRegionalMesh::findProci(const labelList& processorList,label proci)
-{
-    forAll(processorList,i)
-    {
-        if (processorList[i] == proci)
-            return true;
-    }
-    return false;
-}
-
-
-
 Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
 (
     const labelList processorList,
@@ -91,10 +78,17 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                     IOobject::NO_WRITE,
                     false
                 ),
-                pointField(),
-                faceList(),
-                labelList(),
-                labelList()
+                #ifdef FOAM_MOVE_CONSTRUCTOR
+                    pointField(),
+                    faceList(),
+                    labelList(),
+                    labelList()
+                #else
+                    xferCopy(pointField()),
+                    xferCopy(faceList()),
+                    xferCopy(labelList()),
+                    xferCopy(labelList())
+                #endif
             )
         );
 
@@ -161,10 +155,17 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 IOobject::NO_WRITE,
                 false
             ),
-            std::move(points),
-            std::move(faces),
-            std::move(owner),
-            std::move(neighbour)
+            #ifdef FOAM_MOVE_CONSTRUCTOR
+                std::move(points),
+                std::move(faces),
+                std::move(owner),
+                std::move(neighbour)
+            #else
+                xferMove(points),
+                xferMove(faces),
+                xferMove(owner),
+                xferMove(neighbour)
+            #endif
         );
 
         // Now add the boundaries by creating a polyPatch with a type patch 
@@ -226,58 +227,6 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
 }
 
 
-
-void Foam::reconstructRegionalMesh::renumber
-(
-    const labelList& map,
-    labelList& elems
-)
-{
-    forAll(elems, i)
-    {
-        if (elems[i] >= 0)
-        {
-            elems[i] = map[elems[i]];
-        }
-    }
-}
-
-
-
-void Foam::reconstructRegionalMesh::mergeSharedPoints
-(
-    const scalar mergeDist,
-    polyMesh& mesh
-)
-{
-    // Find out which sets of points get merged and create a map from
-    // mesh point to unique point.
-    Map<label> pointToMaster
-    (
-        fvMeshAdder::findSharedPoints
-        (
-            mesh,
-            mergeDist
-        )
-    );
-    
-    if (returnReduce(pointToMaster.size(), sumOp<label>()) == 0)
-    {
-        return;
-    }
-
-    polyTopoChange meshMod(mesh);
-
-    fvMeshAdder::mergePoints(mesh, pointToMaster, meshMod);
-
-    // Change the mesh (no inflation). Note: parallel comms allowed.
-    autoPtr<mapPolyMesh> map = meshMod.changeMesh(mesh, false, true);
-
-    // Update fields. No inflation, parallel sync.
-    mesh.updateMesh(map);
-}
-
-
 Foam::boundBox Foam::reconstructRegionalMesh::procBounds
 (
     const labelList processorList,
@@ -306,12 +255,14 @@ Foam::boundBox Foam::reconstructRegionalMesh::procBounds
 }
 
 
-bool Foam::reconstructRegionalMesh::readHeader(Istream& is)
+void Foam::reconstructRegionalMesh::readHeader(Istream& is)
 {
      // Check Istream not already bad
      if (!is.good())
      {
-         return false;
+        FatalIOErrorInFunction(is)
+             << " Stream is not good"  
+             << exit(FatalIOError);
      }
  
      token firstToken(is);
@@ -348,7 +299,6 @@ bool Foam::reconstructRegionalMesh::readHeader(Istream& is)
              << " on line " << is.lineNumber()
              << " of file " << is.name()
              << exit(FatalIOError);
-         return false;
      }
  
      // Check stream is still OK
@@ -359,10 +309,7 @@ bool Foam::reconstructRegionalMesh::readHeader(Istream& is)
              << " on line " << is.lineNumber()
              << " of file " << is.name()    
              << exit(FatalIOError);
- 
-         return false;
      }
- 
-     return true;
+
 }
 
