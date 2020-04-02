@@ -94,10 +94,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                     IOobject::NO_WRITE,
                     false
                 ),
-                xferCopy(pointField()),
-                xferCopy(faceList()),
-                xferCopy(labelList()),
-                xferCopy(labelList())
+                pointField(),
+                faceList(),
+                labelList(),
+                labelList()
             )
         );
 
@@ -183,10 +183,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 IOobject::NO_WRITE,
                 false
             ),
-            xferMove(points),
-            xferMove(faces),
-            xferMove(owner),
-            xferMove(neighbour)
+            std::move(points),
+            std::move(faces),
+            std::move(owner),
+            std::move(neighbour)
         );
 
         // Now add the boundaries by creating a polyPatch with a type patch 
