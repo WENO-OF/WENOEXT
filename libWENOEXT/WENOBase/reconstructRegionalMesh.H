@@ -42,6 +42,7 @@ Author
 #include "fvMeshAdder.H"
 #include "polyTopoChange.H"
 #include "extrapolatedCalculatedFvPatchFields.H"
+#include "IFstream.H"
 
 
 namespace Foam
@@ -83,12 +84,43 @@ namespace reconstructRegionalMesh
     
     boundBox procBounds
     (
-        const PtrList<Time>& databases,
-        const word& regionDir
+        const labelList processorList,
+        const fvMesh& localMesh
     );
 
     bool findProci(const labelList& processorList,label proci);
-
+    
+    
+    fileName localPath
+    (
+        const fvMesh& localMesh, 
+        const label proci,
+        const fileName file
+    );
+    
+    bool readHeader(Istream& is);
+    
+    template<class Type>
+    Field<Type> readField(const fileName path)
+    {
+        // Create an IFStream object
+        IFstream is(path);      
+        const bool val = readHeader(is);
+        return Field<Type>(is);
+    }
+    
+    template<class Type>
+    List<Type> readList(const fileName path)
+    {
+        // Create an IFStream object
+        IFstream is(path);      
+        const bool val = readHeader(is);
+        return List<Type>(is);
+    }
+    
+    
+    
+    
 }
 
 }

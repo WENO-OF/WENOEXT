@@ -29,6 +29,19 @@ Author
 #include "reconstructRegionalMesh.H"
 
 
+Foam::fileName Foam::reconstructRegionalMesh::localPath
+(
+    const fvMesh& localMesh,
+    const label proci,
+    const fileName file
+)
+{
+    // Get total path
+    return localMesh.time().path().path()/fileName("processor" + name(proci))/file;
+}
+
+
+
 bool Foam::reconstructRegionalMesh::findProci(const labelList& processorList,label proci)
 {
     forAll(processorList,i)
@@ -54,26 +67,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
     
     label nProcs = processorList.size();
     
-    // Read all time databases
-    PtrList<Time> databases(Pstream::nProcs());
-    
-    forAll(databases, proci)
-    {
-        databases.set
-        (
-            proci,
-            new Time
-            (
-                Time::controlDictName,
-                localMesh.time().rootPath(),
-                localMesh.time().globalCaseName()/fileName(word("processor") + name(proci))
-            )
-        );
-    }
     
     // Read point on individual processors to determine merge tolerance
     // (otherwise single cell domains might give problems)
-    const boundBox bb = procBounds(databases, regionDir);
+    const boundBox bb = procBounds(processorList,localMesh);
     const scalar mergeDist = mergeTol*bb.mag();
 
     //Info<< "Overall mesh bounding box  : " << bb << nl
@@ -112,73 +109,54 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         // updateMesh() function of coupled processors and causes an MPI error
         // --> Solution construct without boundary
         
-        pointField points = static_cast<pointField>
+        pointField points = readField<point>
         (
-            pointIOField
+            localPath
             (
-                 IOobject
-                 (
-                    "points",
-                    "constant/" + polyMesh::meshSubDir,
-                    databases[processorList[proci]],
-                    IOobject::MUST_READ,
-                    IOobject::NO_WRITE
-                 )
+                localMesh,
+                processorList[proci],
+                fileName("constant/" + polyMesh::meshSubDir)/fileName("points")
             )
-         );
+        );
 
-        faceList faces = static_cast<faceList>
+        faceList faces = readList<face>
         (
-            faceCompactIOList
+            localPath
             (
-                IOobject
-                (
-                    "faces",
-                    "constant/" + polyMesh::meshSubDir,
-                    databases[processorList[proci]],
-                    IOobject::MUST_READ,
-                    IOobject::NO_WRITE
-                )
-            )
-         );
-
-        labelList owner = static_cast<labelList>
-        (
-            labelIOList
-            (
-                IOobject
-                (
-                    "owner",
-                    "constant/" + polyMesh::meshSubDir,
-                    databases[processorList[proci]],
-                    IOobject::READ_IF_PRESENT,
-                    IOobject::NO_WRITE
-                )
+                localMesh,
+                processorList[proci],
+                fileName("constant/" + polyMesh::meshSubDir)/fileName("faces")
             )
         );
         
-        labelList neighbour = static_cast<labelList>
+        labelList owner = readList<label>
         (
-            labelIOList
+            localPath
             (
-                IOobject
-                (
-                    "neighbour",
-                    "constant/" + polyMesh::meshSubDir,
-                    databases[processorList[proci]],
-                    IOobject::READ_IF_PRESENT,
-                    IOobject::NO_WRITE
-                )
+                localMesh,
+                processorList[proci],
+                fileName("constant/" + polyMesh::meshSubDir)/fileName("owner")
             )
-         );
+        );
+
+        labelList neighbour = readList<label>
+        (
+            localPath
+            (
+                localMesh,
+                processorList[proci],
+                fileName("constant/" + polyMesh::meshSubDir)/fileName("neighbour")
+            )
+        );
+        
             
         fvMesh meshToAdd
         (
             IOobject
             (
                 regionName,
-                databases[processorList[proci]].timeName(),
-                databases[processorList[proci]],
+                localMesh.time().timeName(),
+                localMesh.time(),
                 IOobject::NO_READ,
                 IOobject::NO_WRITE,
                 false
@@ -197,7 +175,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
          autoPtr<ISstream> isPtr = fileHandler().readStream
          (
             const_cast<polyBoundaryMesh&>(polyMeshRef),
-            databases[processorList[proci]].path()/fileName("constant/polyMesh/boundary"),
+            localPath(localMesh,processorList[proci],fileName("constant/polyMesh/boundary")),
             "polyBoundaryMesh"
         );
  
@@ -302,25 +280,20 @@ void Foam::reconstructRegionalMesh::mergeSharedPoints
 
 Foam::boundBox Foam::reconstructRegionalMesh::procBounds
 (
-    const PtrList<Time>& databases,
-    const word& regionDir
+    const labelList processorList,
+    const fvMesh& localMesh
 )
 {
     boundBox bb = boundBox::invertedBox;
 
-    forAll(databases, proci)
+    forAll(processorList, proci)
     {
-        pointIOField points
+        pointField points
         (
-             IOobject
-             (
-                "points",
-                "constant/" + polyMesh::meshSubDir,
-                databases[proci],
-                IOobject::MUST_READ,
-                IOobject::NO_WRITE,
-                false
-             )
+            readField<point>
+            (
+                localPath(localMesh,processorList[proci],fileName("constant/"+polyMesh::meshSubDir+"/points"))
+            )
         );
 
         boundBox domainBb(points, false);
@@ -331,3 +304,65 @@ Foam::boundBox Foam::reconstructRegionalMesh::procBounds
 
     return bb;
 }
+
+
+bool Foam::reconstructRegionalMesh::readHeader(Istream& is)
+{
+     // Check Istream not already bad
+     if (!is.good())
+     {
+         return false;
+     }
+ 
+     token firstToken(is);
+ 
+     if
+     (
+         is.good()
+      && firstToken.isWord()
+      && firstToken.wordToken() == "FoamFile"
+     )
+     {
+         dictionary headerDict(is);
+ 
+         is.version(headerDict.lookup("version"));
+         is.format(headerDict.lookup("format"));
+         word headerClassName = word(headerDict.lookup("class"));
+ 
+         const word headerObject(headerDict.lookup("object"));
+         
+         #ifdef FULLDEBUG
+             if (headerObject != headerClassName)
+             {
+                 IOWarningInFunction(is)
+                     << " object renamed from "
+                     << headerClassName << " to " << headerObject
+                     << " for file " << is.name() << endl;
+             }
+         #endif
+     }
+     else
+     {
+        FatalIOErrorInFunction(is)
+             << " stream failure while reading header"
+             << " on line " << is.lineNumber()
+             << " of file " << is.name()
+             << exit(FatalIOError);
+         return false;
+     }
+ 
+     // Check stream is still OK
+     if (!is.good())
+     {
+         FatalIOErrorInFunction(is)
+             << " stream failure while reading header"
+             << " on line " << is.lineNumber()
+             << " of file " << is.name()    
+             << exit(FatalIOError);
+ 
+         return false;
+     }
+ 
+     return true;
+}
+
