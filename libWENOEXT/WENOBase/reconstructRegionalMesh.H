@@ -43,7 +43,7 @@ Author
 #include "polyTopoChange.H"
 #include "extrapolatedCalculatedFvPatchFields.H"
 #include "IFstream.H"
-
+#include "codeRules.H"
 
 namespace Foam
 {
