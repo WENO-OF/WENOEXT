@@ -280,6 +280,13 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
          is.format(headerDict.lookup("format"));
          word headerClassName = word(headerDict.lookup("class"));
  
+        if (headerClassName == "faceCompactList")
+            FatalIOErrorInFunction(is)
+             << " stream failure while "
+             << " reading file " << is.name() << nl
+             << "\tFile is in binary format. Mesh has to be saved in ascii format"
+             << exit(FatalIOError);
+ 
          const word headerObject(headerDict.lookup("object"));
          
          #ifdef FULLDEBUG
