@@ -89,12 +89,6 @@ class WENOUpwindFit
 
     // Private Member Functions
 
-        //- Disallow default bitwise copy construct
-        WENOUpwindFit(const WENOUpwindFit&);
-
-        //- Disallow default bitwise assignment
-        void operator=(const WENOUpwindFit&);
-
         //- Distribute data through coupled patches and solve Riemann problem
         void swapData
         (
@@ -215,6 +209,12 @@ public:
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
 
+
+        //- Disallow default bitwise copy construct
+        WENOUpwindFit(const WENOUpwindFit&) = delete;
+
+        //- Disallow default bitwise assignment
+        void operator=(const WENOUpwindFit&) = delete;
 
     // Member Functions
 
