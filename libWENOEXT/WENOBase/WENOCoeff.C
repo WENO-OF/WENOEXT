@@ -110,16 +110,15 @@ void Foam::WENOCoeff<Type>::calcCoeff
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
     List<Type>& coeff,
-    const label stencilI,
-    const label excludeStencils
+    const label stencilI
 ) const
 {
     const List<label>& stencilsIDI =
-        WENOBase_.stencilsID()[cellI][stencilI + excludeStencils];
+        WENOBase_.stencilsID()[cellI][stencilI];
     const scalarRectangularMatrix& A =
         WENOBase_.LSmatrix()[cellI][stencilI]();
     const List<label>& cellToProcMapI =
-        WENOBase_.cellToProcMap()[cellI][stencilI + excludeStencils];
+        WENOBase_.cellToProcMap()[cellI][stencilI];
 
     // Calculate degrees of freedom of stencil as a matrix vector product
     // First line is always constraint line
@@ -239,31 +238,19 @@ Foam::WENOCoeff<Type>::getWENOPol
         
         List<List<Type> > coeffsI(nStencilsI);
         
-        label excludeStencils = 0;
-        label stencilI = 0;
-
-
         // Calculate degrees of freedom for each stencil of the cell
-        while (stencilI < nStencilsI)
+        forAll(WENOBase_.stencilsID()[cellI],stencilI)
         {
             // Offset for deleted stencils
-            if (WENOBase_.stencilsID()[cellI][stencilI+excludeStencils][0] 
-                == int(WENOBase::Cell::deleted))
-            {
-                excludeStencils++;
-            }
-            else
+            if (WENOBase_.stencilsID()[cellI][stencilI][0] != int(WENOBase::Cell::deleted))
             {
                 calcCoeff
                 (
                     cellI,
                     vf,
                     coeffsI[stencilI],
-                    stencilI,
-                    excludeStencils
+                    stencilI
                 );
-                
-		        stencilI++;
             }
         }
         

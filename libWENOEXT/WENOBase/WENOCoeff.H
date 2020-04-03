@@ -110,8 +110,7 @@ protected:
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& dataField,
             List<Type>& dvtI,
-            const label stencilI,
-            const label excludeStencils
+            const label stencilI
         ) const;
 
 

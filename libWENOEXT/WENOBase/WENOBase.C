@@ -400,7 +400,6 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
 {
     const label stencilSize = stencilsID_[localCellI][stencilI].size();
 
-
     /********************************* NOTE **********************************\
     To improve memory efficiency it is attempted to generate the pseudo
     inverse with the least number of cells possible.
@@ -439,51 +438,49 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         // Add one line per cell
         for (label cellJ = 1; cellJ < nCells; cellJ++)
         {
-            if (stencilsID_[localCellI][stencilI][cellJ] != int(Cell::deleted) )
+            point transCenterJ =
+                Foam::geometryWENO::transformPoint
+                (
+                    JInv_[localCellI],
+                    globalMesh.C()[stencilsGlobalID_[localCellI][stencilI][cellJ]],
+                    refPoint_[localCellI]
+                );
+
+            volIntegralType transVolMom =
+                Foam::geometryWENO::transformIntegral
+                (
+                    globalMesh,
+                    stencilsGlobalID_[localCellI][stencilI][cellJ],
+                    transCenterJ,
+                    polOrder_,
+                    JInv_[localCellI],
+                    refPoint_[localCellI],
+                    refDet_[localCellI]
+                );
+
+            for (label n = 0; n <= dimList_[localCellI][0]; n++)
             {
-                point transCenterJ =
-                    Foam::geometryWENO::transformPoint
-                    (
-                        JInv_[localCellI],
-                        globalMesh.C()[stencilsGlobalID_[localCellI][stencilI][cellJ]],
-                        refPoint_[localCellI]
-                    );
-
-                volIntegralType transVolMom =
-                    Foam::geometryWENO::transformIntegral
-                    (
-                        globalMesh,
-                        stencilsGlobalID_[localCellI][stencilI][cellJ],
-                        transCenterJ,
-                        polOrder_,
-                        JInv_[localCellI],
-                        refPoint_[localCellI],
-                        refDet_[localCellI]
-                    );
-
-                for (label n = 0; n <= dimList_[localCellI][0]; n++)
+                for (label m = 0; m <= dimList_[localCellI][1]; m++)
                 {
-                    for (label m = 0; m <= dimList_[localCellI][1]; m++)
+                    for (label l = 0; l <= dimList_[localCellI][2]; l++)
                     {
-                        for (label l = 0; l <= dimList_[localCellI][2]; l++)
+                        if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
                         {
-                            if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
-                            {
-                                volIntegralsIJ[n][m][l] =
-                                    calcGeom
-                                    (
-                                        transCenterJ - transCenterI,
-                                        n,
-                                        m,
-                                        l,
-                                        transVolMom,
-                                        volIntegralsList_[localCellI]
-                                    );
-                            }
+                            volIntegralsIJ[n][m][l] =
+                                calcGeom
+                                (
+                                    transCenterJ - transCenterI,
+                                    n,
+                                    m,
+                                    l,
+                                    transVolMom,
+                                    volIntegralsList_[localCellI]
+                                );
                         }
                     }
                 }
             }
+
             // Populate the matrix A
             addCoeffs(A,cellJ,polOrder_,dimList_[localCellI],volIntegralsIJ);
         }
@@ -551,11 +548,24 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
             svdCurrPtr = svdOldPtr;
         else
             FatalErrorInFunction()
-                << "Could not calculate invers "<<exit(FatalError);
+                << "Could not calculate SVD"
+                <<exit(FatalError);
+    }    
+    else
+    {
+        // check if current SVD fullfills requirement
+        if (svdCurrPtr->nZeros() != 0)
+        {
+            if (svdOldPtr.valid())
+                svdCurrPtr = svdOldPtr;
+            else if (!svdCurrPtr->converged())
+                FatalErrorInFunction()
+                    << "Could not calculate SVD"
+                    <<exit(FatalError);
+        }
     }
     
     return svdCurrPtr->VSinvUt();
-    
 }
 
 
@@ -746,16 +756,13 @@ Foam::WENOBase::WENOBase
             if ((1000*cellI/nLocalCells)%50 == 0)
                 Info << "\t\tProgress: "<<(100*cellI/nLocalCells)<<"%\r"<<flush;
             
-            
-            label excludeFace = 0;
-
-            LSmatrix_.resizeSubList(cellI,nStencils[cellI]);
+            LSmatrix_.resizeSubList(cellI,stencilsID_[cellI].size());
 
             forAll(stencilsID_[cellI], stencilI)
             {
                 if (stencilsID_[cellI][stencilI][0] != int(Cell::deleted))
                 {
-                    LSmatrix_[cellI][stencilI - excludeFace].add
+                    LSmatrix_[cellI][stencilI].add
                     (
                         calcMatrix
                         (
@@ -766,10 +773,6 @@ Foam::WENOBase::WENOBase
                             aggressiveSVD
                         )
                     );
-                }
-                else
-                {
-                    excludeFace++;
                 }
             }
 
