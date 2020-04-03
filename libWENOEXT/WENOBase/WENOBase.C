@@ -436,7 +436,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         volIntegralType volIntegralsIJ = volIntegralsList_[localCellI];
 
         // Add one line per cell
-        for (label cellJ = 1; cellJ < nCells; cellJ++)
+        for (label cellJ = 1; cellJ <= nCells; cellJ++)
         {
             point transCenterJ =
                 Foam::geometryWENO::transformPoint
