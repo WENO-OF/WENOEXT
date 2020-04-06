@@ -81,19 +81,41 @@ Foam::WENOCentredFit<Type>::correction
     
     // Linear combination of correction polynomials
         
-    forAll(P, faceI)    
-    {                
-        Type WENOcontribution =
-            sumFlux
-            (
-                WENOBase_.dimList()[P[faceI]],
-                coeffsWeighted[P[faceI]],
-                WENOBase_.intBasTrans()[faceI][0]
-            ) / WENOBase_.refFacAr()[faceI];
-
-        tsf[faceI] = 
-            (1.0-weights[faceI])*(vf[P[faceI]] - vf[N[faceI]])
-            + WENOcontribution;
+    forAll(P, faceI)
+    {
+        if (faceFlux_[faceI] > 0)
+        {
+            Type WENOcontribution =
+                sumFlux
+                (
+                    WENOBase_.dimList()[P[faceI]],
+                    coeffsWeighted[P[faceI]],
+                    WENOBase_.intBasTrans()[faceI][0]
+                ) / WENOBase_.refFacAr()[faceI];
+                
+            tsf[faceI] = 
+                (1.0-weights[faceI])*(vf[P[faceI]] - vf[N[faceI]])
+                + WENOcontribution;
+                
+        }
+        else if (faceFlux_[faceI] < 0)
+        {
+            Type WENOcontribution =
+                sumFlux
+                (
+                    WENOBase_.dimList()[N[faceI]],
+                    coeffsWeighted[N[faceI]],
+                    WENOBase_.intBasTrans()[faceI][1]
+                )  /WENOBase_.refFacAr()[faceI];
+                
+            tsf[faceI] = 
+                weights[faceI]*(vf[N[faceI]] - vf[P[faceI]])
+                + WENOcontribution;
+        }
+        else
+        {
+            tsf[faceI] = pTraits<Type>::zero;
+        }
     }
     
     coupledRiemannSolver(mesh, tsf, vf, weights, coeffsWeighted);        
@@ -171,27 +193,173 @@ void Foam::WENOCentredFit<Type>::coupledRiemannSolver
             tmp<Field<Type>> patchNeighbourField  = bvf[patchI].patchNeighbourField();
             
             const labelUList& pOwner = mesh.boundary()[patchI].faceCells();    
-                
+         
+            const scalarField& pFaceFlux =
+                faceFlux_.boundaryField()[patchI];
+
+
             label startFace = patches[patchI].start();
         
             forAll(pOwner, faceI)
-            {                
+            {
                 label own = pOwner[faceI];
-                    
-                pSfCorr[faceI] = (1.0 - weights.boundaryField()[patchI][faceI])
-                                 *(vf[own]-patchNeighbourField()[faceI]);
-                    
-                pSfCorr[faceI] += 
-                    sumFlux
-                        (
-                            WENOBase_.dimList()[own],
-                            coeffsWeighted[own],
-                            WENOBase_.intBasTrans()[faceI + startFace][0]
-                        )  /WENOBase_.refFacAr()[faceI + startFace];
+                
+                if (pFaceFlux[faceI] > 0)
+                {
+                    pSfCorr[faceI] = (1.0 - weights.boundaryField()[patchI][faceI])
+                                     *(vf[own]-patchNeighbourField()[faceI]);
+                        
+                    pSfCorr[faceI] += 
+                        sumFlux
+                            (
+                                WENOBase_.dimList()[own],
+                                coeffsWeighted[own],
+                                WENOBase_.intBasTrans()[faceI + startFace][0]
+                            )  /WENOBase_.refFacAr()[faceI + startFace];
+                            
+                }
             }
         }
+    }
+    
+    typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+    #ifdef FOAM_NEW_GEOMFIELD_RULES
+        Boundary btsfTemp = btsf;
+    #else 
+        GeometricBoundaryField btsfTemp = btsf;
+    #endif
+
+    swapData(mesh, btsfTemp);
+
+    forAll(btsf, patchI)
+    {
+        fvsPatchField<Type>& pSfCorr = btsf[patchI];
+
+        const scalarField& pFaceFlux =
+                faceFlux_.boundaryField()[patchI];
+
+        if (isA<processorFvPatch>(patches[patchI]))
+        {
+            const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+
+            forAll(pOwner, faceI)
+            {
+                if (pFaceFlux[faceI] < 0)
+                {
+                    pSfCorr[faceI] = btsfTemp[patchI][faceI];
+                }
+            }
+        }
+        else if (isA<cyclicFvPatch>(patches[patchI]))    
+        {
+            const cyclicPolyPatch& cycPatch = 
+                refCast<const cyclicPolyPatch>(mesh.boundaryMesh()[patchI]);
+        
+            if (cycPatch.owner() == true)
+            {                            
+                const label neighbPatchID = cycPatch.neighbPatchID();
+                
+                const labelUList& pOwner = mesh.boundary()[patchI].faceCells();    
+                const labelUList& pNeigh = 
+                    mesh.boundary()[neighbPatchID].faceCells();
+                
+                const label startFaceOwn = patches[patchI].start();
+                const label startFaceNeigh = patches[neighbPatchID].start();
+            
+                forAll(pOwner, faceI)
+                {
+                    if (pFaceFlux[faceI] > 0)
+                    {
+                        pSfCorr[faceI] = (1.0 - weights.boundaryField()[patchI][faceI])
+                                         *(vf[pOwner[faceI]]-vf[pNeigh[faceI]]);
+                            
+                        pSfCorr[faceI] += 
+                            sumFlux
+                                (
+                                    WENOBase_.dimList()[pOwner[faceI]],
+                                    coeffsWeighted[pOwner[faceI]],
+                                    WENOBase_.intBasTrans()[faceI + startFaceOwn][0]
+                                )  /WENOBase_.refFacAr()[faceI + startFaceOwn];
+                                
+                    }
+                    else
+                    {
+                        pSfCorr[faceI] = weights.boundaryField()[patchI][faceI]
+                                         *(vf[pNeigh[faceI]]-vf[pOwner[faceI]]);
+                            
+                        pSfCorr[faceI] += 
+                            sumFlux
+                                (
+                                    WENOBase_.dimList()[pNeigh[faceI]],
+                                    coeffsWeighted[pNeigh[faceI]],
+                                    WENOBase_.intBasTrans()[faceI + startFaceNeigh][0]
+                                )  /WENOBase_.refFacAr()[faceI + startFaceNeigh];
+                    }                                                   
+                }                
+            }
+        }    
     }
 }
 
 
+template<class Type>
+void Foam::WENOCentredFit<Type>::swapData
+(
+    const fvMesh& mesh,
+    typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+    #ifdef FOAM_NEW_GEOMFIELD_RULES
+        Boundary& btsf
+    #else 
+        GeometricBoundaryField& btsf
+    #endif
+) const
+{
+    const fvPatchList& patches = mesh.boundary();
+
+    #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
+        PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+    #else 
+        PstreamBuffers pBufs(Pstream::nonBlocking);
+    #endif
+
+    // Distribute data
+    forAll(btsf, patchI)
+    {
+        if (isA<processorFvPatch>(patches[patchI]))
+        {
+            UOPstream toBuffer
+                (
+                    refCast<const processorFvPatch>
+                        (patches[patchI]).neighbProcNo(),
+                    pBufs
+                );
+
+            forAll(btsf[patchI],faceI)
+            {
+                toBuffer << btsf[patchI][faceI];
+            }
+        }
+    }
+
+    pBufs.finishedSends();
+
+    // Collect data
+    forAll(btsf, patchI)
+    {
+        if (isA<processorFvPatch>(patches[patchI]))
+        {
+            UIPstream fromBuffer
+                (
+                    refCast<const processorFvPatch>
+                        (patches[patchI]).neighbProcNo(),
+                    pBufs
+                );
+
+            forAll(btsf[patchI],faceI)
+            {
+                fromBuffer >> btsf[patchI][faceI];
+            }
+        }
+    }
+}
 // ************************************************************************* //

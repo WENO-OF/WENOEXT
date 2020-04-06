@@ -66,6 +66,9 @@ class WENOCentredFit
         //  This is used for Jacobian matrix
         using scalarSquareMatrix = SquareMatrix<scalar>;
 
+        //- SurfaceScalarField of U() & Sf()
+        const surfaceScalarField& faceFlux_;
+
         //- Polynomial order
         //  User defined parameter
         const scalar polOrder_;
@@ -75,6 +78,7 @@ class WENOCentredFit
 
         //- Reference to WENOBase
         const WENOBase& WENOBase_;
+
 
     // Private Member Functions
 
@@ -95,6 +99,40 @@ class WENOCentredFit
             const Field<Type>& coeffcI,
             const volIntegralType& intBasiscIfI
         ) const;     
+        
+        
+        void swapData
+        (
+            const fvMesh& mesh,
+            typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+            #ifdef FOAM_NEW_GEOMFIELD_RULES
+                Boundary& btsf
+            #else 
+                GeometricBoundaryField& btsf
+            #endif
+        ) const;
+        
+        //- Return a zero surfaceScalarField
+        //  Required for construct from mesh constructor
+        tmp<surfaceScalarField> zeroFlux() const
+        {
+            tmp<surfaceScalarField> zeroFlux
+            (
+                new surfaceScalarField
+                (
+                    IOobject
+                    (
+                        "zeroFlux",
+                        this->mesh().time().timeName(),
+                        this->mesh()
+                    ),
+                    this->mesh(),
+                    dimensionedScalar("zeroFlux",dimless,0.0)
+                )
+            );
+            return zeroFlux;
+        }
+        
  
 public:
 
@@ -112,6 +150,7 @@ public:
         )                    
         :                                                            
             surfaceInterpolationScheme<Type>(mesh),
+            faceFlux_(zeroFlux()),
             polOrder_(polOrder),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())        
@@ -125,6 +164,13 @@ public:
         )                    
         :                                                            
             surfaceInterpolationScheme<Type>(mesh),
+            faceFlux_
+            (
+                mesh.lookupObject<surfaceScalarField>
+                (
+                    word(is)
+                )
+            ) ,
             polOrder_(readScalar(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
@@ -139,6 +185,7 @@ public:
         )
         :
             surfaceInterpolationScheme<Type>(mesh),
+            faceFlux_(faceFlux),
             polOrder_(readScalar(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
