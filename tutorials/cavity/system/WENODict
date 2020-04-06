@@ -27,4 +27,10 @@ FoamFile
 	p				4.0;
 	dm				1000.0;
 
+    //- Calculate best conditioned matrix
+    //  This can save memory especially for high order WENO scheme 
+    //  Increases the calculation time! Default is off
+    bestConditioned true;
+    
+
 // ************************************************************************* //

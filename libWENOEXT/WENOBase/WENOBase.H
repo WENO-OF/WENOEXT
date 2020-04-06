@@ -106,6 +106,10 @@ class WENOBase
         //- Number of derivatives (degree of freedom)
         label nDvt_;
 
+        //- Switch to calculate all pseudo inverse combination 
+        //  To find the best conditioned matrix, default off
+        bool bestConditioned_;
+
         //- Lists of central and sectorial stencil ID's for each cell
         //  For a prallel case this stores the processor local cellID
         List<labelListList> stencilsID_;
@@ -202,8 +206,7 @@ class WENOBase
             const fvMesh& globalMesh,
             const fvMesh& localMesh,
             const label cellI,
-            const label stencilI,
-            const bool aggresiveSVD
+            const label stencilI
         );
 
         //- Calculate the entries of the least squares matrices

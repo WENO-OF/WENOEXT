@@ -394,8 +394,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     const fvMesh& globalMesh,
     const fvMesh& localMesh,
     const label   localCellI,
-    const label   stencilI,
-    const bool aggressiveSVD
+    const label   stencilI
 )
 {
     const label stencilSize = stencilsID_[localCellI][stencilI].size();
@@ -415,8 +414,14 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     autoPtr<SVD> svdCurrPtr;
     autoPtr<SVD> svdOldPtr;
     
-    int nCells;
-    for (nCells = nDvt_+1; nCells < stencilSize; nCells++)
+    int nCells = stencilSize-1;
+
+    if (bestConditioned_)
+    {   
+        nCells = nDvt_+1;
+    }
+
+    for ( ; nCells < stencilSize; nCells++)
     {
         scalarRectangularMatrix A
         (
@@ -507,39 +512,29 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         
         if (svdCurrPtr->nZeros() == 0 && svdCurrPtr->converged())
         {
-            if (aggressiveSVD)
+            // Check if old pointer is valid 
+            if (svdOldPtr.valid())
             {
-                stencilsID_[localCellI][stencilI].resize(nCells);
-                cellToProcMap_[localCellI][stencilI].resize(nCells);
-                
-                return svdCurrPtr->VSinvUt();
-            }
-            else
-            {
-                // Check if old pointer is valid 
-                if (svdOldPtr.valid())
+                // is condition of oldPtr better than new 
+                if (cond(svdOldPtr->S()) < cond(svdCurrPtr->S()))
                 {
-                    // is condition of oldPtr better than new 
-                    if (cond(svdOldPtr->S()) < cond(svdCurrPtr->S()))
-                    {
-                        stencilsID_[localCellI][stencilI].resize(nCells-1);
-                        cellToProcMap_[localCellI][stencilI].resize(nCells-1);
-                        
-                        return svdOldPtr->VSinvUt();
-                    }
-                    else
-                    {
-                        svdOldPtr.clear();
-                        svdOldPtr = svdCurrPtr;
-                    }
+                    stencilsID_[localCellI][stencilI].resize(nCells-1);
+                    cellToProcMap_[localCellI][stencilI].resize(nCells-1);
                     
+                    return svdOldPtr->VSinvUt();
                 }
                 else
                 {
+                    svdOldPtr.clear();
                     svdOldPtr = svdCurrPtr;
-                }
+                }        
+            }
+            else
+            {
+                svdOldPtr = svdCurrPtr;
             }
         }
+    
     }
     
     if (!svdCurrPtr.valid())
@@ -695,10 +690,9 @@ Foam::WENOBase::WENOBase
         );
 
         const scalar extendRatio =
-            WENODict.lookupOrDefault<scalar>("extendRatio", 2.5);
+            WENODict.lookupOrAddDefault<scalar>("extendRatio", 2.5);
 
-        const bool aggressiveSVD =
-            WENODict.lookupOrDefault<bool>("aggressiveSVD",false);
+        bestConditioned_ = WENODict.lookupOrAddDefault<bool>("bestConditioned",false);
 
         // ------------- Initialize Lists --------------------------------------
 
@@ -769,8 +763,7 @@ Foam::WENOBase::WENOBase
                             globalMesh,
                             localMesh,
                             cellI,
-                            stencilI,
-                            aggressiveSVD
+                            stencilI
                         )
                     );
                 }
