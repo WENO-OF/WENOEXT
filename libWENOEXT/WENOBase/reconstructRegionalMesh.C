@@ -113,7 +113,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             )
         );
 
-        faceList faces = readList<face>
+        faceList faces = readFaceList
         (
             localPath
             (
@@ -280,12 +280,12 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
          is.format(headerDict.lookup("format"));
          word headerClassName = word(headerDict.lookup("class"));
  
-        if (headerClassName == "faceCompactList")
-            FatalIOErrorInFunction(is)
-             << " stream failure while "
-             << " reading file " << is.name() << nl
-             << "\tFile is in binary format. Mesh has to be saved in ascii format"
-             << exit(FatalIOError);
+        //if (headerClassName == "faceCompactList")
+            //FatalIOErrorInFunction(is)
+             //<< " stream failure while "
+             //<< " reading file " << is.name() << nl
+             //<< "\tFile is in binary format. Mesh has to be saved in ascii format"
+             //<< exit(FatalIOError);
  
          const word headerObject(headerDict.lookup("object"));
          
@@ -320,3 +320,42 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
 
 }
 
+
+Foam::List<Foam::face> Foam::reconstructRegionalMesh::readFaceList
+(
+    const fileName path
+)
+{
+    // Create an IFStream object
+    IFstream is(path);
+    readHeader(is);
+    
+    if (is.format() == IOstream::streamFormat::BINARY)
+    {
+        List<face> L;
+        
+        // Read compact
+        const labelList start(is);
+        const List<label> elems(is);
+    
+        // Convert
+        L.setSize(start.size()-1);
+    
+        forAll(L, i)
+        {
+            face& subList = L[i];
+    
+            label index = start[i];
+            subList.setSize(start[i+1] - index);
+    
+            forAll(subList, j)
+            {
+                subList[j] = elems[index++];
+            }
+        }
+        
+        return L;
+    }
+    else
+        return List<face>(is);
+}

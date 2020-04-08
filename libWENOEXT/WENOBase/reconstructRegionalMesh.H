@@ -73,6 +73,11 @@ namespace reconstructRegionalMesh
     
     void readHeader(Istream& is);
     
+    List<face> readFaceList
+    (
+        const fileName path
+    );
+    
     template<class Type>
     Field<Type> readField(const fileName path)
     {
@@ -86,8 +91,9 @@ namespace reconstructRegionalMesh
     List<Type> readList(const fileName path)
     {
         // Create an IFStream object
-        IFstream is(path);      
+        IFstream is(path);
         readHeader(is);
+        
         return List<Type>(is);
     }
 }
