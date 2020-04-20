@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export GIT_BUILD=$(git describe --always HEAD)
 
 echo "Current OpenFOAM version is $WM_PROJECT_VERSION."
 if [ -e foamVersionThisIsCompiledFor ]; then
