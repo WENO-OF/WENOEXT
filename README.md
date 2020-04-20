@@ -1,3 +1,6 @@
+![](WENOLogo.png)
+
+
 # WENO framework
 
 Weighted essentially non-oscillatory library for the framework of OpenFOAM.
