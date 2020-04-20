@@ -418,7 +418,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
 
     if (bestConditioned_)
     {   
-        nCells = nDvt_+1;
+        nCells = nDvt_+2;
     }
 
     for ( ; nCells < stencilSize; nCells++)
@@ -518,9 +518,8 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                 // is condition of oldPtr better than new 
                 if (cond(svdOldPtr->S()) < cond(svdCurrPtr->S()))
                 {
-                    stencilsID_[localCellI][stencilI].resize(nCells-1);
-                    cellToProcMap_[localCellI][stencilI].resize(nCells-1);
-                    
+                    stencilsID_[localCellI][stencilI].resize(svdOldPtr->U().m()+1);
+                    cellToProcMap_[localCellI][stencilI].resize(svdOldPtr->U().m()+1);
                     return svdOldPtr->VSinvUt();
                 }
                 else
@@ -560,6 +559,8 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         }
     }
     
+    stencilsID_[localCellI][stencilI].resize(svdCurrPtr->U().m()+1);
+    cellToProcMap_[localCellI][stencilI].resize(svdCurrPtr->U().m()+1);
     return svdCurrPtr->VSinvUt();
 }
 
