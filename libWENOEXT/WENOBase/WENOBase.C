@@ -865,11 +865,12 @@ Foam::WENOBase::WENOBase
           dimensioned<scalar>("alphaSu", dimless, 0)
         );
         
-        forAll(LSmatrix_,celli)
+        forAll(LSmatrix_,cellI)
         {
-            forAll(LSmatrix_[celli],listI)
+            forAll(LSmatrix_[cellI],stencilI)
             {
-                PseudoInverseDimension[celli] += LSmatrix_[celli][listI]().size();
+                if (stencilsID_[cellI][stencilI][0] != int(Cell::deleted))
+                    PseudoInverseDimension[cellI] += LSmatrix_[cellI][stencilI]().size();
             }
         }
         
