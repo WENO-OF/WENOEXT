@@ -33,6 +33,13 @@ Author
 
 #include "processorFvPatch.H"
 
+
+#ifndef GIT_BUILD
+    #define GIT_BUILD "NaN"
+#endif
+
+
+
 // * * * * * * * * * * * * * *  Static Variables * * * * * * * * * * * * * * //
 template<class Type>
 bool Foam::WENOCoeff<Type>::printWENODict_=false;
@@ -94,7 +101,8 @@ Foam::WENOCoeff<Type>::WENOCoeff
     
     if (!printWENODict_)
     {
-        Info << "WENODict:"
+        Info << "WENO Version: "<< word(GIT_BUILD) << nl
+             << "WENODict:"
              << WENODict << endl;
         printWENODict_=true;
     }
