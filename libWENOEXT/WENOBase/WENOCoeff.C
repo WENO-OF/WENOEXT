@@ -241,10 +241,21 @@ Foam::WENOCoeff<Type>::getWENOPol
     for (label cellI = 0; cellI < mesh_.nCells(); cellI++)
     {
         coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
-
-        const label nStencilsI = WENOBase_.LSmatrix()[cellI].size();
         
-        List<List<Type> > coeffsI(nStencilsI);
+        // Create coeffs list and exclude deleted stencils
+        label coeffSize = 0;
+        forAll(WENOBase_.stencilsID()[cellI],stencilI)
+        {
+            if (WENOBase_.stencilsID()[cellI][stencilI][0] != int(WENOBase::Cell::deleted))
+                coeffSize++;
+        }
+        
+        List<List<Type> > coeffsI(coeffSize);
+        
+        
+        // counter for coeff index
+        label coeffIndex = 0;
+        
         
         // Calculate degrees of freedom for each stencil of the cell
         forAll(WENOBase_.stencilsID()[cellI],stencilI)
@@ -256,9 +267,10 @@ Foam::WENOCoeff<Type>::getWENOPol
                 (
                     cellI,
                     vf,
-                    coeffsI[stencilI],
+                    coeffsI[coeffIndex],
                     stencilI
                 );
+                coeffIndex++;
             }
         }
         
