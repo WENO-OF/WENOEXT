@@ -412,7 +412,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     
     // Store pointer to old and new SVD class
     autoPtr<SVD> svdCurrPtr;
-    autoPtr<SVD> svdOldPtr;
+    autoPtr<SVD> svdBestCondPtr;
     
     int nCells = stencilSize-1;
 
@@ -512,56 +512,48 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         
         if (svdCurrPtr->nZeros() == 0 && svdCurrPtr->converged())
         {
-            // Check if old pointer is valid 
-            if (svdOldPtr.valid())
+            // Check if bestConditioned pointer is valid 
+            if (svdBestCondPtr.valid())
             {
-                // is condition of oldPtr better than new 
-                if (cond(svdOldPtr->S()) < cond(svdCurrPtr->S()))
+                // is condition of new pointer better
+                if (cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
                 {
-                    stencilsID_[localCellI][stencilI].resize(svdOldPtr->U().m()+1);
-                    cellToProcMap_[localCellI][stencilI].resize(svdOldPtr->U().m()+1);
-                    return svdOldPtr->VSinvUt();
+                    svdBestCondPtr = svdCurrPtr;
                 }
-                else
-                {
-                    svdOldPtr.clear();
-                    svdOldPtr = svdCurrPtr;
-                }        
             }
             else
             {
-                svdOldPtr = svdCurrPtr;
+                svdBestCondPtr = svdCurrPtr;
             }
         }
     
     }
     
-    if (!svdCurrPtr.valid())
+    if (svdBestCondPtr.valid())
     {
-        if (svdOldPtr.valid())
-            svdCurrPtr = svdOldPtr;
-        else
-            FatalErrorInFunction()
-                << "Could not calculate SVD"
-                <<exit(FatalError);
+        svdCurrPtr = svdBestCondPtr;
     }    
     else
     {
-        // check if current SVD fullfills requirement
-        if (svdCurrPtr->nZeros() != 0)
-        {
-            if (svdOldPtr.valid())
-                svdCurrPtr = svdOldPtr;
-            else if (!svdCurrPtr->converged())
-                FatalErrorInFunction()
-                    << "Could not calculate SVD"
-                    <<exit(FatalError);
-        }
+        if (!svdCurrPtr->converged())
+            FatalErrorInFunction()
+                << "Could not calculate SVD"
+                <<exit(FatalError);
     }
     
-    stencilsID_[localCellI][stencilI].resize(svdCurrPtr->U().m()+1);
-    cellToProcMap_[localCellI][stencilI].resize(svdCurrPtr->U().m()+1);
-    return svdCurrPtr->VSinvUt();
+    
+    scalarRectangularMatrix AInv  = svdCurrPtr->VSinvUt();
+    
+    // Resize list if necessary
+    if (AInv.n() != stencilSize-1)
+    {
+        Info << "A not equal: "<<AInv.n()<<" stencilSize "<<stencilSize<<"  nDvt"<<nDvt_<<endl;
+        stencilsID_[localCellI][stencilI].resize(AInv.n()+1);
+        stencilsGlobalID_[localCellI][stencilI].resize(AInv.n()+1);
+        cellToProcMap_[localCellI][stencilI].resize(AInv.n()+1);
+    }
+    
+    return AInv;
 }
 
 
