@@ -88,12 +88,13 @@ Foam::WENOCoeff<Type>::WENOCoeff
         IOobject
         (
             "WENODict",
-            mesh.time().path()/"system",
+            mesh.time().caseSystem(),
             mesh,
             IOobject::READ_IF_PRESENT,
             IOobject::NO_WRITE
         )
     );
+
 
     p_ = WENODict.lookupOrAddDefault<scalar>("p", 4.0);
     dm_ = WENODict.lookupOrAddDefault<scalar>("dm", 1000.0);
