@@ -547,7 +547,6 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     // Resize list if necessary
     if (AInv.n() != stencilSize-1)
     {
-        Info << "A not equal: "<<AInv.n()<<" stencilSize "<<stencilSize<<"  nDvt"<<nDvt_<<endl;
         stencilsID_[localCellI][stencilI].resize(AInv.n()+1);
         stencilsGlobalID_[localCellI][stencilI].resize(AInv.n()+1);
         cellToProcMap_[localCellI][stencilI].resize(AInv.n()+1);
