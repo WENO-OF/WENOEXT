@@ -28,7 +28,7 @@ Different versions of the code are structured through tags:
 ## Installation
 
 1. Clone the directory with
-    `git clone https://github.com/TobiasMartin/WENOEXT.git`
+    `git clone https://github.com/WENO-OF/WENOEXT.git`
 
 2. Execute `Allwmake` to build the library
 
