@@ -64,7 +64,7 @@ Ostream& operator << (Ostream&, const matrixDB&);
 
 class matrixDB
 {
-    using iterType = std::multimap<scalar, scalarRectangularMatrix>::const_iterator;
+    using iterType = std::multimap<int, scalarRectangularMatrix>::const_iterator;
     
     class scalarRectangularMatrixPtr
     {
@@ -122,7 +122,7 @@ class matrixDB
         List<List<scalarRectangularMatrixPtr> > LSmatrix_;
 
         //- Map of stored matrices as the underlying data bank
-        std::multimap<scalar, scalarRectangularMatrix> DB_;
+        std::multimap<int, scalarRectangularMatrix> DB_;
 
 
     //- Private member functions

@@ -72,18 +72,18 @@ bool Foam::matrixDB::scalarRectangularMatrixPtr::valid() const
 
 // * * * * * * * * * * * * * * * matrixDB  * * * * * * * * * * * * * * * * * //
 
-std::multimap<Foam::scalar,Foam::scalarRectangularMatrix>::const_iterator
+std::multimap<int,Foam::scalarRectangularMatrix>::const_iterator
 Foam::matrixDB::similar
 (
     const scalarRectangularMatrix&& A
 )
 {
-    scalar key = 0;
+    int key = 0;
     for (int i = 0; i < A.m(); i++)
     {
         for (int j = 0; j < A.n(); j++)
         {
-            key += A[i][j]*i*j;
+            key += int(A[i][j])*((i*A.n())+j);
         }
     }
 
@@ -102,23 +102,30 @@ Foam::matrixDB::similar
         bound.first--;
     
     // Loop over the bound
+    //for (auto it = DB_.begin(); it != DB_.end(); ++it)
     for (auto it = bound.first; it != bound.second; ++it)
     {    
         // Check if it is within the tolerance
         const scalarRectangularMatrix& cmpA = it->second;
         
-        scalar diff = 0;
+        bool validEntry = true;
         if (cmpA.size() == A.size())
         {
             for (int i = 0; i < A.m(); i++)
             {
                 for (int j = 0; j < A.n(); j++)
                 {
-                    diff += mag(cmpA[i][j] - A[i][j]);
+                    if (mag(cmpA[i][j] - A[i][j]) > tol_)
+                    {
+                        validEntry = false;
+                        break;
+                    }
                 }
+                if (validEntry == false)
+                    break;
             }
             
-            if (diff < tol_)
+            if (validEntry)
             {
                 counter_++;
                 return it;
@@ -129,7 +136,6 @@ Foam::matrixDB::similar
     // Use insert with hint 
     auto it = DB_.insert
     (
-        bound.first,
         std::pair<scalar,scalarRectangularMatrix>(key,std::move(A))
     );
     
@@ -220,6 +226,7 @@ void Foam::matrixDB::info()
     Pout << "\tMatrix Database Statistics: "<<nl
          << "\t\tTotal Number of matrices: "<< numElements << nl
          << "\t\tNumber matrices stored: "<<DB_.size() <<nl
+         << "\t\tMemory reduction:       "<<100.0 - double(DB_.size())/numElements*100.0<<nl
          << "\t\tCounter: "<<counter_<< endl;
 }
 
