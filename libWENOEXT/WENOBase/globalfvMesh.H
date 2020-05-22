@@ -40,6 +40,7 @@ Author
 #define globalfvMesh_H
 
 #include <map>
+#include <set>
 #include "linear.H"
 #include "processorFvPatch.H"
 

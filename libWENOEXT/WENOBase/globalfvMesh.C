@@ -61,24 +61,34 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                 equally sized for all processors!
             \******************************************************************/
             
+            
             if (Pstream::parRun())
             {
                 const fvPatchList& patches = mesh.boundary();
                 
                 labelList myNeighbourProc;
                 
+                // Keep track of processor IDs already added to avoid duplicate
+                // entries
+                std::set<label> addedProcessor;
+            
                 // Add your own processor ID
                 myNeighbourProc.append(Pstream::myProcNo());
+                addedProcessor.insert(Pstream::myProcNo());
                 
                 forAll(patches, patchI)
                 {
                     if(isA<processorFvPatch>(patches[patchI]))
                     {
-                        myNeighbourProc.append
+                        label procID = 
                             (
                                 refCast<const processorFvPatch>
                                 (patches[patchI]).neighbProcNo()
                             );
+                        if (addedProcessor.find(procID) == addedProcessor.end())
+                            myNeighbourProc.append(procID);
+                            
+                        addedProcessor.insert(procID);
                     }
                 }
                 
@@ -99,20 +109,12 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                     secondNeighborList.append(allNeighbours[neighbourProcI]);
                 }
                 
-                // Add second neighbour to my neighbour 
-                std::map<int,bool> addedProcessor;
-                forAll(myNeighbourProc,i)
-                {
-                    addedProcessor.insert(std::pair<int,bool>(myNeighbourProc[i],true));
-                }
-                
                 forAll(secondNeighborList,i)
                 {
-                    auto it = addedProcessor.find(secondNeighborList[i]);
-                    if ( it == addedProcessor.end())
+                    if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
                     {
                         myNeighbourProc.append(secondNeighborList[i]);
-                        addedProcessor.insert(std::pair<int,bool>(secondNeighborList[i],true));
+                        addedProcessor.insert(secondNeighborList[i]);
                     }
                 }
                 
@@ -143,18 +145,17 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
                     
                     forAll(secondNeighborList,i)
                     {
-                        auto it = addedProcessor.find(secondNeighborList[i]);
-                        if ( it == addedProcessor.end())
+                        if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
                         {
                             myNeighbourProc.append(secondNeighborList[i]);
-                            addedProcessor.insert(std::pair<int,bool>(secondNeighborList[i],true));
+                            addedProcessor.insert(secondNeighborList[i]);
                         }
                     }
                 }
                 
                 // resize list
                 myNeighbourProc.resize(maxProcNumber);
-                
+
                 #ifdef FULLDEBUG
                     Info << "Number of neighbour processor: "<<maxProcNumber<<endl;
                 #endif
