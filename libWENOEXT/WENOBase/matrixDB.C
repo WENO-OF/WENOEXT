@@ -264,7 +264,6 @@ void Foam::matrixDB::read(Istream& is)
         {
             is >> key;
             is >> matrix;
-            DB_.emplace(key,matrix);
             LSmatrix_[cellI][stencilI].add(std::move(matrix));
         }
     }

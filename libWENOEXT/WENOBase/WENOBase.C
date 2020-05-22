@@ -812,7 +812,7 @@ Foam::WENOBase::WENOBase
         );
     }
     
-    
+
     #ifdef FULLDEBUG
         volScalarField excludedStencils
         (
