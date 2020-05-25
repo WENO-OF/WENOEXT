@@ -10,6 +10,12 @@ cd ../ && ./Allwmake
 
 cd ${currDir}/src && wmake
 
+# Execute the base tests
+./tests.exe [baseTest]
+
+# ------------------------------------------------------------------
+# Execute all tests requiring a mesh 
+
 cp ${currDir}/src/tests.exe ${currDir}/case-3D
 
 cd ${currDir}/case-3D && blockMesh > /dev/null &&./tests.exe [3D]

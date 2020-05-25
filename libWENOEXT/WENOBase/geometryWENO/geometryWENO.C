@@ -114,7 +114,7 @@ void Foam::geometryWENO::initIntegrals
     const labelList pLabels(cc.labels(fcs));
     const labelList pEdge = mesh.pointPoints()[pLabels[0]];
 
-    const scalar cellDimension = cc.mag(pts,fcs);
+    const scalar cellVolume = mesh.V()[cellI];
 
 
 
@@ -144,7 +144,7 @@ void Foam::geometryWENO::initIntegrals
         checkRefFrame
         (
             jacobi(pts,referenceFrame),
-            cellDimension
+            cellVolume
         )
         != true
         && (k < pLabels.size())
@@ -282,43 +282,6 @@ void Foam::geometryWENO::initIntegrals
 }
 
 
-Foam::List<Foam::point> Foam::geometryWENO::getTriFaces
-(
-    const fvMesh& mesh,
-    const label cellI
-)
-{
-    const pointField& pts = mesh.points();
-
-    List<tetIndices> cellTets =
-        polyMeshTetDecomposition::cellTetIndices(mesh, cellI);
-
-    triFaceList triFaces(cellTets.size());
-
-    forAll(cellTets, cTI)
-    {
-        triFaces[cTI] = cellTets[cTI].faceTriIs(mesh);
-    }
-
-    List<point> triFaceCoord(triFaces.size()*3, pTraits<vector>::zero);
-
-    label k = 0;
-
-    forAll(triFaces, i)
-    {
-        const triFace& tri(triFaces[i]);
-
-        triFaceCoord[k] = pts[tri[0]];
-        triFaceCoord[k+1] = pts[tri[1]];
-        triFaceCoord[k+2] = pts[tri[2]];
-
-        k = k + 3;
-    }
-
-    return triFaceCoord;
-}
-
-
 Foam::geometryWENO::volIntegralType Foam::geometryWENO::transformIntegral
 (
     const fvMesh& mesh,
@@ -430,14 +393,14 @@ Foam::geometryWENO::volIntegralType Foam::geometryWENO::transformIntegral
 bool Foam::geometryWENO::checkRefFrame
 (
     const scalarSquareMatrix&& J,
-    const scalar cellDimension
+    const scalar cellVolume
 )
 {
     // Calculate determinante of Jacobian matrix 
     // Determinante has to be greater than zero to calculate the inverse
     if
     (
-        det(J) < cellDimension
+        det(J) < cellVolume
     )
     {
         return false;
@@ -801,12 +764,12 @@ Foam::scalarRectangularMatrix Foam::geometryWENO::getB
 
                                                 scalar K =
                                                     (
-                                                        Pos(n1 - alpha)
-                                                       *Pos(n2 - alpha)
-                                                       *Pos(m1 - beta)
-                                                       *Pos(m2 - beta)
-                                                       *Pos(l1 - gamma)
-                                                       *Pos(l2 - gamma)
+                                                        pos0(n1 - alpha)
+                                                       *pos0(n2 - alpha)
+                                                       *pos0(m1 - beta)
+                                                       *pos0(m2 - beta)
+                                                       *pos0(l1 - gamma)
+                                                       *pos0(l2 - gamma)
                                                        *Fac(n1)*Fac(m1)*Fac(l1)
                                                        *Fac(n2)*Fac(m2)*Fac(l2)
                                                     )
@@ -994,16 +957,6 @@ void Foam::geometryWENO::surfIntTrans
                 }
             }
         }
-    }
-}
-
-
-Foam::scalar Foam::geometryWENO::Pos(scalar x)
-{
-    if (x >= 0) return 1.0;
-    else
-    {
-        return 0.0;
     }
 }
 

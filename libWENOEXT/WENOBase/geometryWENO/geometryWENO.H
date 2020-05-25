@@ -42,6 +42,7 @@ Author
 #include "triSurface.H"
 #include "polyMeshTetDecomposition.H"
 #include "fvMesh.H"
+#include "fvCFD.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -86,13 +87,6 @@ namespace geometryWENO
             scalar& refDetI
         );
 
-        //- Calculate triangulation of halo faces
-        List<point> getTriFaces
-        (
-            const fvMesh& mesh,
-            const label cellI
-        );
-
         //- Calculate the volume integrals of stencil cells in reference space
         //- of owner cell
         volIntegralType transformIntegral
@@ -110,7 +104,7 @@ namespace geometryWENO
         bool checkRefFrame
         (
             const scalarSquareMatrix&& J, // use forward referencing 
-            const scalar cellDimension
+            const scalar cellVolume
         );
 
         //- Calculate inverse of Jacobian matrix
@@ -127,17 +121,6 @@ namespace geometryWENO
             const point x0
         );
 
-        ////- Evaluate the surface integrals for smoothness indicator
-        //scalar gaussQuadB
-        //(
-            //const scalar n,
-            //const scalar m,
-            //const scalar l,
-            //const point x0,
-            //const vector v0,
-            //const vector v1,
-            //const vector v2
-        //);
 
         //- Calculate the volume integrals for the smoothness indicator matrix
         volIntegralType smoothIndIntegrals
@@ -160,9 +143,6 @@ namespace geometryWENO
             const point refPointI,
             const labelList& dim
         );
-
-        //- Check sign of variable
-        scalar Pos(scalar x);
 
         //- Calculate factorials of variable
         scalar Fac(label x);

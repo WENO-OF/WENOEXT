@@ -41,8 +41,17 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("geometryWENO: Jacobi Matrix","[3D]")
+TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
 {
+    /**************************************************************************\
+    * Following functions are checked:
+    * geometryWENO::jacobi() both versions
+    * geometryWENO::jacobiInverse()
+    * geometryWENO::transformPoint()
+    * geometryWENO::checkRefFrame()
+    \**************************************************************************/
+    
+    
     using scalarSquareMatrix = SquareMatrix<scalar>;
     
     pointField pts(4,vector(0,0,0));
@@ -68,6 +77,21 @@ TEST_CASE("geometryWENO: Jacobi Matrix","[3D]")
                     REQUIRE(Approx(J(i,j)) == i+1);
                 else
                     REQUIRE(Approx(J(i,j)) == 0);
+            }
+        }
+        WHEN("Determinante is greater than zero")
+        {
+            REQUIRE(det(J) > 0);
+            
+            // calculate cell volume 
+            vector tempV = (((pts[1]-pts[3])^(pts[2]-pts[3])));
+            scalar V = 1.0/6.0 * mag(tempV); 
+            
+            REQUIRE(det(J) >= V);
+            
+            THEN("Refernce Frame is valid")
+            {
+                REQUIRE(geometryWENO::checkRefFrame(std::move(J),V) == true);
             }
         }
     }
@@ -96,39 +120,45 @@ TEST_CASE("geometryWENO: Jacobi Matrix","[3D]")
             }
         }
         
-        WHEN("Inverse of Jacobi is correct")
+        WHEN("Determinante is positive")
         {
-            // Check the inverse
-            scalarSquareMatrix JInv = geometryWENO::JacobiInverse(J);
+            REQUIRE(det(J)>0);
             
-                for (int i = 0; i<J.n();i++)
+            THEN("Calculate Inverse of Jacobi")
             {
-                for (int j = 0; j < J.n(); j++)
+                scalarSquareMatrix JInv = geometryWENO::JacobiInverse(J);
+                WHEN("Inverse of Jacobi is correct")
                 {
-                    if (i==j)
-                        REQUIRE(Approx(JInv(i,j)*J(i,j)) == 1.0);
-                    else
-                        REQUIRE(Approx(JInv(i,j)) == 0);
+                    for (int i = 0; i<J.n();i++)
+                    {
+                        for (int j = 0; j < J.n(); j++)
+                        {
+                            if (i==j)
+                                REQUIRE(Approx(JInv(i,j)*J(i,j)) == 1.0);
+                            else
+                                REQUIRE(Approx(JInv(i,j)) == 0);
+                        }
+                    }
+                    THEN("Check geometryWENO::transformPoint")
+                    {
+                        // Check transform point
+                        const point x0(1,0,0);
+                        const point xp(2,2,3);
+                        const point res = geometryWENO::transformPoint(JInv,xp,x0);
+                        
+                        REQUIRE(Approx(res[0])==1);
+                        REQUIRE(Approx(res[1])==1);
+                        REQUIRE(Approx(res[2])==1);
+                    }
                 }
-            }
-            THEN("Check geometryWENO::transformPoint")
-            {
-                // Check transform point
-                const point x0(1,0,0);
-                const point xp(2,2,3);
-                const point res = geometryWENO::transformPoint(JInv,xp,x0);
-                
-                REQUIRE(Approx(res[0])==1);
-                REQUIRE(Approx(res[1])==1);
-                REQUIRE(Approx(res[2])==1);
             }
         }
     }
-
 }
 
 
-TEST_CASE("geometryWENO::gaussQuad")
+
+TEST_CASE("geometryWENO: Quadrature","[baseTest]")
 {
     //- Check the geometryWENO::gaussQuad function
     //  This function uses the gaussian integration with the order 5 
@@ -162,9 +192,8 @@ TEST_CASE("geometryWENO::gaussQuad")
             
         }
     }
-    
-    
 }
+
 
 //TEST_CASE("geometryWENO: Integration")
 //{

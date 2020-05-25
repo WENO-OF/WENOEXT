@@ -56,6 +56,9 @@ TEST_CASE("matrixDB Test Case","[3D]")
     #include "createControl.H"
     
     
+    
+    // -------------------------- Helper Functions -----------------------------
+    
     // Function to create matrix
     auto createMatrix = [](const label cellI, const label stencilI) -> scalarRectangularMatrix
     {
@@ -68,25 +71,6 @@ TEST_CASE("matrixDB Test Case","[3D]")
         return A;
     };
     
-    // Matrix Data Bank
-    matrixDB matrixDataBank;
-    
-    // Create a list of matrices
-    List<List<scalarRectangularMatrix> > LSmatrix;
-    LSmatrix.resize(1000);
-    matrixDataBank.resize(LSmatrix.size());
-    
-    forAll(LSmatrix, cellI)
-    {
-        LSmatrix[cellI].resize(10);
-        matrixDataBank.resizeSubList(cellI,LSmatrix[cellI].size());
-        forAll(LSmatrix[cellI],stencilI)
-        {
-            LSmatrix[cellI][stencilI] = createMatrix(cellI,stencilI);
-            matrixDataBank[cellI][stencilI].add(createMatrix(cellI,stencilI));
-        }
-    }
-
     // function to check the sum 
     auto compareMatrix = [](const scalarRectangularMatrix A, const scalarRectangularMatrix B) -> void
     {
@@ -98,8 +82,38 @@ TEST_CASE("matrixDB Test Case","[3D]")
             }
         }
     };
+    
+    
+    // ------------------------- Start of Testing ------------------------------
+    
+    // Create matrixDB object
+    matrixDB matrixDataBank;
+    
+    // Create a list of matrices
+    List<List<scalarRectangularMatrix> > LSmatrix;
+    LSmatrix.resize(1000);
+    
+    // Set size of matrix data bank and check size
+    matrixDataBank.resize(LSmatrix.size());
+    REQUIRE(matrixDataBank.size() == LSmatrix.size());
+    
+    
+    forAll(LSmatrix, cellI)
+    {
+        LSmatrix[cellI].resize(10);
+        matrixDataBank.resizeSubList(cellI,LSmatrix[cellI].size());
+        
+        // Check the sub list size
+        REQUIRE(matrixDataBank[cellI].size() == LSmatrix[cellI].size());
+        
+        forAll(LSmatrix[cellI],stencilI)
+        {
+            LSmatrix[cellI][stencilI] = createMatrix(cellI,stencilI);
+            matrixDataBank[cellI][stencilI].add(createMatrix(cellI,stencilI));
+        }
+    }
 
-
+    
     // Display Info 
     matrixDataBank.info();
     
@@ -112,6 +126,9 @@ TEST_CASE("matrixDB Test Case","[3D]")
             compareMatrix(LSmatrix[cellI][stencilI],matrixDataBank[cellI][stencilI]());
         }
     }
+
+
+    // ------------------------- Check IO Functions ----------------------------
 
     fileName path = mesh.time().path()/"constant/matrixDataBankTest";
     
@@ -130,8 +147,4 @@ TEST_CASE("matrixDB Test Case","[3D]")
             compareMatrix(LSmatrix[cellI][stencilI],newMatrixDB[cellI][stencilI]());
         }
     }
-
-
-    
-    
 }
