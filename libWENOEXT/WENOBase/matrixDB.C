@@ -83,7 +83,7 @@ Foam::matrixDB::similar
     {
         for (int j = 0; j < A.n(); j++)
         {
-            key += int(A[i][j])*((i*A.n())+j);
+            key += int(A[i][j]);
         }
     }
 
