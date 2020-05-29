@@ -100,13 +100,6 @@ namespace geometryWENO
             const scalar refDetI
         );
 
-        //- Check validity of chosen reference frame
-        bool checkRefFrame
-        (
-            const scalarSquareMatrix&& J, // use forward referencing 
-            const scalar cellVolume
-        );
-
         //- Calculate inverse of Jacobian matrix
         scalarSquareMatrix JacobiInverse
         (

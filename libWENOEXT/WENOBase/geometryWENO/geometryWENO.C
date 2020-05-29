@@ -114,10 +114,6 @@ void Foam::geometryWENO::initIntegrals
     const labelList pLabels(cc.labels(fcs));
     const labelList pEdge = mesh.pointPoints()[pLabels[0]];
 
-    const scalar cellVolume = mesh.V()[cellI];
-
-
-
     // Create reference frame of new space
 
     labelList referenceFrame(1,pLabels[0]);
@@ -141,15 +137,14 @@ void Foam::geometryWENO::initIntegrals
 
     while
     (
-        checkRefFrame
-        (
-            jacobi(pts,referenceFrame),
-            cellVolume
-        )
-        != true
-        && (k < pLabels.size())
+        det(jacobi(pts,referenceFrame)) < 1E-10
     )
     {
+        if (k >= pLabels.size())
+            WarningIn("geometryWENO::initIntegrals calculate reference frame") 
+                << "Determinante of Jacobian matrix smaller than 1E-10 ("
+                <<det(jacobi(pts,referenceFrame))<<")"<<endl;
+            
         const labelList pEdgeMod = mesh.pointPoints()[pLabels[k]];
 
         labelList modrefFrame(1, pLabels[k]);
@@ -387,28 +382,6 @@ Foam::geometryWENO::volIntegralType Foam::geometryWENO::transformIntegral
     }
 
     return Integral;
-}
-
-
-bool Foam::geometryWENO::checkRefFrame
-(
-    const scalarSquareMatrix&& J,
-    const scalar cellVolume
-)
-{
-    // Calculate determinante of Jacobian matrix 
-    // Determinante has to be greater than zero to calculate the inverse
-    if
-    (
-        det(J) < cellVolume
-    )
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
 }
 
 
