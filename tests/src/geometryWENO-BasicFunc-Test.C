@@ -48,7 +48,6 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     * geometryWENO::jacobi() both versions
     * geometryWENO::jacobiInverse()
     * geometryWENO::transformPoint()
-    * geometryWENO::checkRefFrame()
     \**************************************************************************/
     
     
@@ -77,21 +76,6 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
                     REQUIRE(Approx(J(i,j)) == i+1);
                 else
                     REQUIRE(Approx(J(i,j)) == 0);
-            }
-        }
-        WHEN("Determinante is greater than zero")
-        {
-            REQUIRE(det(J) > 0);
-            
-            // calculate cell volume 
-            vector tempV = (((pts[1]-pts[3])^(pts[2]-pts[3])));
-            scalar V = 1.0/6.0 * mag(tempV); 
-            
-            REQUIRE(det(J) >= V);
-            
-            THEN("Refernce Frame is valid")
-            {
-                REQUIRE(geometryWENO::checkRefFrame(std::move(J),V) == true);
             }
         }
     }
