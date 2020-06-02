@@ -64,7 +64,7 @@ Ostream& operator << (Ostream&, const matrixDB&);
 
 class matrixDB
 {
-    using iterType = std::multimap<int, scalarRectangularMatrix>::const_iterator;
+    using iterType = std::multimap<int32_t, scalarRectangularMatrix>::const_iterator;
     
     class scalarRectangularMatrixPtr
     {
@@ -112,7 +112,10 @@ class matrixDB
     
         //- Tolerance to accept similar matrices 
         //  Default value 1E-9
-        const scalar tol_;
+        const scalar epsilon_;
+
+        //- Number of key neighbours to check
+        const label checkRange_ = 5;
         
         //- counter to store the number of saved matrices through pointer
         int counter_ = 0;
@@ -122,7 +125,7 @@ class matrixDB
         List<List<scalarRectangularMatrixPtr> > LSmatrix_;
 
         //- Map of stored matrices as the underlying data bank
-        std::multimap<int, scalarRectangularMatrix> DB_;
+        std::multimap<int32_t, scalarRectangularMatrix> DB_;
 
 
     //- Private member functions
@@ -136,14 +139,14 @@ class matrixDB
         
         //- Create a hash value of a matrix. 
         //  Not used but good code for possible future use
-        int hashMatrix(const scalarRectangularMatrix& A);
+        int32_t hashMatrix(const scalarRectangularMatrix& A);
 
 public:
 
     // Constructors 
     
         //- Default Constructor
-        matrixDB(const scalar tol = 1E-9) : tol_(tol) {}
+        matrixDB(const scalar epsilon = 1E-9) : epsilon_(epsilon) {}
         
         // delete copy constructors
         matrixDB(const matrixDB&) = delete;

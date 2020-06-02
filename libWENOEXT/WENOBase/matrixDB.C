@@ -72,40 +72,44 @@ bool Foam::matrixDB::scalarRectangularMatrixPtr::valid() const
 
 // * * * * * * * * * * * * * * * matrixDB  * * * * * * * * * * * * * * * * * //
 
-std::multimap<int,Foam::scalarRectangularMatrix>::const_iterator
+std::multimap<int32_t,Foam::scalarRectangularMatrix>::const_iterator
 Foam::matrixDB::similar
 (
     const scalarRectangularMatrix&& A
 )
 {
-    int key = 0;
-    for (int i = 0; i < A.m(); i++)
-    {
-        for (int j = 0; j < A.n(); j++)
-        {
-            key += int(A[i][j]);
-        }
-    }
-
+    int32_t key = hashMatrix(A);
+    
     if (DB_.size() == 0)
     {
         auto it = DB_.emplace(key,A);
         return it;
     }
     
-    // Get lower bound and upper bound of entry 
-    auto bound = DB_.equal_range(key);
+
+    auto maxMag = [] (const scalarRectangularMatrix& A) -> double
+    {
+        double maxA = 0;
+        for (int i = 0; i < A.m(); i++)
+        {
+            for (int j = 0; j < A.n(); j++)
+            {
+                if (mag(A[i][j]) > maxA)
+                    maxA = mag(A[i][j]);
+            }
+        }
+        return maxA;
+    };
+    // Calculate tolerance
+    double tol = epsilon_ * maxMag(A);
+
+
     
-    // bound.first is the same as lower_bound thus pointes either to the 
-    // exact element or above!
-    if (bound.first != DB_.begin())
-        bound.first--;
-    
-    // Loop over the bound
-    //for (auto it = DB_.begin(); it != DB_.end(); ++it)
-    for (auto it = bound.first; it != bound.second; ++it)
-    {    
-        // Check if it is within the tolerance
+    // Search the next neighbours
+    auto itStart = DB_.lower_bound(key-checkRange_);
+    auto itEnd = DB_.lower_bound(key+checkRange_);
+    for (auto it = itStart; it != itEnd;it++)
+    {
         const scalarRectangularMatrix& cmpA = it->second;
         
         bool validEntry = true;
@@ -115,7 +119,9 @@ Foam::matrixDB::similar
             {
                 for (int j = 0; j < A.n(); j++)
                 {
-                    if (mag(cmpA[i][j] - A[i][j]) > tol_)
+					if (mag(A[i][j]) < SMALL)
+						continue;
+                    if (mag((cmpA[i][j] - A[i][j])) > tol)
                     {
                         validEntry = false;
                         break;
@@ -128,66 +134,74 @@ Foam::matrixDB::similar
             if (validEntry)
             {
                 counter_++;
-                return it;
+                return it;    
             }
-        }        
+        } 
     }
+    
 
     // Use insert with hint 
     auto it = DB_.insert
     (
-        std::pair<scalar,scalarRectangularMatrix>(key,std::move(A))
+        std::pair<int32_t,scalarRectangularMatrix>(key,std::move(A))
     );
-    
-    return it;
+    return it;    
 }
 
 
-int Foam::matrixDB::hashMatrix
+int32_t Foam::matrixDB::hashMatrix
 (
     const scalarRectangularMatrix& A
 )
 {
-    /* Returns a representation of the specified floating-point value
-     * according to the IEEE 754 floating-point "double
-     * format" bit layout, preserving Not-a-Number (NaN) values.
-     * 
-     * Bit 63 (the bit that is selected by the mask 0x8000000000000000L) 
-     * represents the sign of the floating-point number. Bits 62-52 
-     * (the bits that are selected by the mask 0x7ff0000000000000L represent 
-     * the exponent. Bits 51-0 (the bits that are selected by the mask 
-     * 0x000fffffffffffffL) represent the significand (sometimes called the 
-     * mantissa) of the floating-point number. 
-     *
-     * If the argument is positive infinity, the result is
-     * 0x7ff0000000000000L.
-     * 
-     * If the argument is negative infinity, the result is
-     * 0xfff0000000000000L.
-     * 
-     * If the argument is NaN, the result is the long
-     * integer representing the actual NaN value.  
-     */
-    auto doubleToRawBits = [](double x) -> uint64_t
+    auto maxMag = [] (const scalarRectangularMatrix& A) -> double
     {
-        uint64_t bits;
-        memcpy(&bits, &x, sizeof bits);
-        return bits;
+        double maxA = 0;
+        for (int i = 0; i < A.m(); i++)
+        {
+            for (int j = 0; j < A.n(); j++)
+            {
+                if (mag(A[i][j]) > maxA)
+                    maxA = mag(A[i][j]);
+            }
+        }
+        return maxA;
     };
+
+    int32_t key = 0;
     
-    // Hash function of Java Arrays.hashCode 
-    // (http://developer.classpath.org/doc/java/util/Arrays-source.html)
-    int key = 1;
+    double mult = 1.0E+6/maxMag(A);
     for (int i = 0; i < A.m(); i++)
     {
         for (int j = 0; j < A.n(); j++)
         {
-            long long int l = doubleToRawBits(A[i][j]);
-            int elt = static_cast<int>(l ^ (l >> 32));
-            key = 31*key + elt;
+            key += int32_t(A[i][j] *mult);
         }
     }
-    return key;
+    return key; 
+    
+    /******************** Hash Algorithm Java *********************************\
+    //auto doubleToRawBits = [](double x) -> uint64_t
+    //{
+        //uint64_t bits;
+        //memcpy(&bits, &x, sizeof bits);
+        //return bits;
+    //};
+    
+    //// Hash function of Java Arrays.hashCode 
+    //// (http://developer.classpath.org/doc/java/util/Arrays-source.html)
+    //int32_t key = 1;
+    //for (int i = 0; i < A.m(); i++)
+    //{
+        //for (int j = 0; j < A.n(); j++)
+        //{
+            //uint64_t l = doubleToRawBits(A[i][j]);
+            //int32_t elt = static_cast<int32_t>(l ^ (l >> 32));
+            //key = 31*key + elt;
+        //}
+    //}
+    //return key;
+    \**************************************************************************/
 }
 
 
