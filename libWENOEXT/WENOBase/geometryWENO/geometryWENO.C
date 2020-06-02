@@ -113,6 +113,9 @@ void Foam::geometryWENO::initIntegrals
 
     const labelList pLabels(cc.labels(fcs));
     const labelList pEdge = mesh.pointPoints()[pLabels[0]];
+    
+    const scalar cellVolume = mesh.V()[cellI];
+    
 
     // Create reference frame of new space
 
@@ -134,10 +137,10 @@ void Foam::geometryWENO::initIntegrals
     label k = 1;
 
     // Check the quality of the chosen frame and change if necessary
-
     while
     (
-        det(jacobi(pts,referenceFrame)) < 1E-10
+        referenceFrame.size() < 4 
+     || mag(det(jacobi(pts,referenceFrame)))/cellVolume < 1E-10 // cell normalized determinante 
     )
     {
         if (k >= pLabels.size())
@@ -164,7 +167,11 @@ void Foam::geometryWENO::initIntegrals
 
         k++;
 
-        referenceFrame = modrefFrame;
+
+        // For some meshs it is possible that a point connects only two edges 
+        // and thus does not span a tetrahedar
+        if (modrefFrame.size() > 3)
+            referenceFrame = modrefFrame;
     }
 
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
