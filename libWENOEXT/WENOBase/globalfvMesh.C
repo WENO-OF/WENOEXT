@@ -232,47 +232,25 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
         {
             // Fill cellID list
             labelList localToGlobalCellID(localMesh_.nCells(),-1);
-            
-            // user defined tolerance 
-            const double tol = 1E-15;
-            
-            int startCell = 0;
-            
+           
+ 
             const vectorField& localCellCenters  = localMesh_.C();
             
             const vectorField& globalCellCenters = globalMesh_.C();
-            
-            const int nCells = globalMesh_.nCells();
-            
+
             // Loop over all local cells and look for cell center
             forAll(localCellCenters,cellI)
             {
-                // Search through global mesh
-                for (int j=0; j < nCells; j++)
-                {
-                    // Loop forward
-                    int globalCellIndex =  
-                        (startCell + j) >= nCells ?  (startCell + j - nCells) : (startCell + j);
-                        
-                    if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
-                    {
-                        localToGlobalCellID[cellI] = globalCellIndex;
-                        startCell = globalCellIndex;
-                        break;
-                    }
-                    
-                    // loop backwards
-                    globalCellIndex =  
-                        (startCell - j) < 0 ? (j - startCell) : (startCell - j);
-                        
-                    if (mag(localCellCenters[cellI] - globalCellCenters[globalCellIndex]) < tol)
-                    {
-                        localToGlobalCellID[cellI] = globalCellIndex;
-                        startCell = globalCellIndex;
-                        break;
-                    }
-
-                }
+                // Find cell
+                label globalCellIndex = findCellIndex(globalMesh_,localCellCenters[cellI]);
+                if (globalCellIndex >= 0)
+                    localToGlobalCellID[cellI] = globalCellIndex;
+                else
+                    FatalError << "localToGlobalCellID: Local point not found in global mesh" <<nl
+                               << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCenters[cellI])<<nl
+                               << "For cell location: " << localCellCenters[cellI] << " at processor "<<Pstream::myProcNo() << nl 
+                               << "Found cell index " << globalCellIndex << " at cell location: " << globalCellCenters[globalCellIndex] <<nl 
+                               << exit(FatalError);
             }
             return localToGlobalCellID;
         }()
@@ -323,48 +301,24 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     
                 const vectorField& globalCellCenters = globalMesh_.C();
                     
-                const int nCells = globalMesh_.nCells();
-                
                 // Loop over all global cells and find corresponding cell center
                 forAll(cellCentersList,procI)
-                {
-                    // user defined tolerance 
-                    const double tol = 1E-15;
-                    
-                    int startCell = 0;
-                    
+                 { 
                     const vectorField& localCellCentersI = cellCentersList[procI];
                     
                     forAll(localCellCentersI,cellI)
-                    {
-                        // Search through global mesh
-                        for (int j=0; j < nCells; j++)
+                    { 
+                        // Find cell
+                        label globalCellIndex = findCellIndex(globalMesh_,localCellCentersI[cellI]);
+                        if (globalCellIndex >= 0)
                         {
-                            // Loop forward
-                            int globalCellIndex =  
-                                (startCell + j) >= nCells ?  (startCell + j - nCells) : (startCell + j);
-                                
-                            if (mag(localCellCentersI[cellI] - globalCellCenters[globalCellIndex]) < tol)
-                            {
-                                globalToLocalCellID[globalCellIndex] = cellI;
-                                procList_[globalCellIndex] = neighborProcessor_[procI];
-                                startCell = globalCellIndex;
-                                break;
-                            }
-                            
-                            // loop backwards
-                            globalCellIndex =  
-                                (startCell - j) < 0 ? (j - startCell) : (startCell - j);
-                                
-                            if (mag(localCellCentersI[cellI] - globalCellCenters[globalCellIndex]) < tol)
-                            {
-                                globalToLocalCellID[globalCellIndex] = cellI;
-                                procList_[globalCellIndex] = neighborProcessor_[procI];
-                                startCell = globalCellIndex;
-                                break;
-                            }
-
+                            globalToLocalCellID[globalCellIndex] = cellI;
+                            procList_[globalCellIndex] = neighborProcessor_[procI];
                         }
+                        else
+                            FatalError << "Local point not found in global mesh" <<nl
+                                       << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCentersI[cellI])
+                                       << exit(FatalError);
                     }
                 }
             }
@@ -386,6 +340,30 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     #endif
 }
 
+
+
+Foam::label Foam::WENO::globalfvMesh::findCellIndex(const fvMesh& mesh, const point& p)
+{
+    const scalar mergeTol = 1E-6;
+    // Read point on individual processors to determine merge tolerance
+    // (otherwise single cell domains might give problems)
+    const boundBox bb = mesh.bounds();
+    const scalar tol = mergeTol*bb.mag();
+    
+    // Try to find with tet decomposition
+    label celli = mesh.findCell(p);
+
+    if (celli >= 0 && mag(mesh.C()[celli] - p) < tol)
+        return celli;
+
+    // If not found make exhaustive search
+    forAll(mesh.C(),cellI)
+    {
+        if (mag(mesh.C()[cellI] - p) < tol)
+            return cellI;
+    }
+    return -1;
+}
 
 
 bool Foam::WENO::globalfvMesh::isLocalCell(const int globalCellID) const

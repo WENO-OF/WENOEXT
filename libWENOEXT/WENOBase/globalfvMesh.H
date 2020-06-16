@@ -85,12 +85,10 @@ class globalfvMesh
         const labelList globalToLocalCellID_;
         
     // Member functions
-        
-        //- Sort the local mesh cells to get the global cellID
-        labelList sortLocalCells();
-        
-        //- Get the local cellID of other processors
-        void distributeAndCollect();
+
+        //- Find closest cell and return cell index
+        //  if not found return -1
+        label findCellIndex(const fvMesh& mesh, const point& p);
         
     public:
     
