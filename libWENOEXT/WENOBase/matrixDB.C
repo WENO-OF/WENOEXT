@@ -108,6 +108,10 @@ Foam::matrixDB::similar
     // Search the next neighbours
     auto itStart = DB_.lower_bound(key-checkRange_);
     auto itEnd = DB_.lower_bound(key+checkRange_);
+    
+    if (itStart == itEnd && itStart != DB_.begin())
+        itStart--;
+    
     for (auto it = itStart; it != itEnd;it++)
     {
         const scalarRectangularMatrix& cmpA = it->second;
@@ -119,8 +123,8 @@ Foam::matrixDB::similar
             {
                 for (int j = 0; j < A.n(); j++)
                 {
-					if (mag(A[i][j]) < SMALL)
-						continue;
+                    if (mag(A[i][j]) < SMALL)
+                        continue;
                     if (mag((cmpA[i][j] - A[i][j])) > tol)
                     {
                         validEntry = false;
@@ -178,7 +182,7 @@ int32_t Foam::matrixDB::hashMatrix
             key += int32_t(A[i][j] *mult);
         }
     }
-    return key; 
+    return key;
     
     /******************** Hash Algorithm Java *********************************\
     //auto doubleToRawBits = [](double x) -> uint64_t
