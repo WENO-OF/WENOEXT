@@ -90,6 +90,17 @@ class globalfvMesh
         //  if not found return -1
         label findCellIndex(const fvMesh& mesh, const point& p);
         
+        // Generate the lists for the constructor
+        labelList neighborProcessorList(const fvMesh& mesh);
+        
+        labelList sendToProcessorList(const fvMesh& mesh);
+        
+        autoPtr<fvMesh> createGlobalMesh(const fvMesh& mesh);
+        
+        labelList localToGlobalCellIDList();
+        
+        labelList globalToLocalCellIDList();
+        
     public:
     
     // Constructor

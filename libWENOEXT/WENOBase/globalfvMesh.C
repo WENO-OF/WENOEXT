@@ -32,308 +32,17 @@ Author
 
 Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
 :
-    neighborProcessor_
-    (
-        [](const fvMesh& mesh)
-        {
-            /******************************************************************\
-            Neighbour Processor List:
-                Contains the neighbouring processors and its neighbours. 
-                With this all processors around the central processor are found.
-                
-                            *------*------*------*
-                            |  CD  |  D   |  DA  |
-                            |      |      |      |
-                            *------*------*------*
-                            |  C   | Main |  A   |
-                            |      |      |      |
-                            *------*------*------*
-                            |  CB  |  B   |  AB  |
-                            |      |      |      |
-                            *------*------*------*
-                
-                The processors A,B,C and D are direct neighbours. To get the 
-                processors CD, DA, AB and CB the neighbour of the neighbours 
-                are collected. Here called second neighbours.
-                
-                **IMPORTANT** Reconstructing the mesh reads the processor 
-                direcotries and creates an MPI blocking when the lists are not
-                equally sized for all processors!
-            \******************************************************************/
-            
-            
-            if (Pstream::parRun())
-            {
-                const fvPatchList& patches = mesh.boundary();
-                
-                labelList myNeighbourProc;
-                
-                // Keep track of processor IDs already added to avoid duplicate
-                // entries
-                std::set<label> addedProcessor;
-            
-                // Add your own processor ID
-                myNeighbourProc.append(Pstream::myProcNo());
-                addedProcessor.insert(Pstream::myProcNo());
-                
-                forAll(patches, patchI)
-                {
-                    if(isA<processorFvPatch>(patches[patchI]))
-                    {
-                        label procID = 
-                            (
-                                refCast<const processorFvPatch>
-                                (patches[patchI]).neighbProcNo()
-                            );
-                        if (addedProcessor.find(procID) == addedProcessor.end())
-                            myNeighbourProc.append(procID);
-                            
-                        addedProcessor.insert(procID);
-                    }
-                }
-                
-                // distribute the list
-                List<labelList> allNeighbours(Pstream::nProcs());
-
-                allNeighbours[Pstream::myProcNo()] = myNeighbourProc;
-
-                Pstream::gatherList(allNeighbours);
-                
-                Pstream::scatterList(allNeighbours);
-
-                // Get the neighbour and second neighbour list for your processor
-                labelList secondNeighborList;
-                forAll(myNeighbourProc,procI)
-                {
-                    const label neighbourProcI = myNeighbourProc[procI];
-                    secondNeighborList.append(allNeighbours[neighbourProcI]);
-                }
-                
-                forAll(secondNeighborList,i)
-                {
-                    if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
-                    {
-                        myNeighbourProc.append(secondNeighborList[i]);
-                        addedProcessor.insert(secondNeighborList[i]);
-                    }
-                }
-                
-                // Get the maximum of myNeighbourProc cells and make everyone equal
-                List<labelList> allValues(Pstream::nProcs());
-                allValues[Pstream::myProcNo()] = myNeighbourProc;
-
-                Pstream::gatherList(allValues);
-                
-                Pstream::scatterList(allValues);
-                
-                label maxProcNumber = 0;
-                forAll(allValues,i)
-                {
-                    if (allValues[i].size()>maxProcNumber)
-                        maxProcNumber = allValues[i].size();
-                }
-                
-                while (myNeighbourProc.size() < maxProcNumber)
-                {
-                    // Get the neighbour and second neighbour list for your processor
-                    secondNeighborList.clear();
-                    forAll(myNeighbourProc,procI)
-                    {
-                        const label neighbourProcI = myNeighbourProc[procI];
-                        secondNeighborList.append(allNeighbours[neighbourProcI]);
-                    }
-                    
-                    forAll(secondNeighborList,i)
-                    {
-                        if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
-                        {
-                            myNeighbourProc.append(secondNeighborList[i]);
-                            addedProcessor.insert(secondNeighborList[i]);
-                        }
-                    }
-                }
-                
-                // resize list
-                myNeighbourProc.resize(maxProcNumber);
-
-                #ifdef FULLDEBUG
-                    Info << "Number of neighbour processor: "<<maxProcNumber<<endl;
-                #endif
-                return myNeighbourProc;
-            }
-            else
-            {
-                return labelList(0);
-            }
-        }(mesh)
-    ),
-    sendToProcessor_
-    (
-        [this](const fvMesh& mesh) -> labelList
-        {
-            if (Pstream::parRun())
-            {
-                labelList sendToProcessor;
-                
-                // distribute the list
-                List<labelList> allValues(Pstream::nProcs());
-
-                allValues[Pstream::myProcNo()] = neighborProcessor_;
-
-                Pstream::gatherList(allValues);
-                
-                Pstream::scatterList(allValues);
-
-                forAll(allValues,procI)
-                {
-                    if (procI != Pstream::myProcNo())
-                    {
-                        forAll(allValues[procI],i)
-                        {
-                            if (allValues[procI][i] == Pstream::myProcNo())
-                            {
-                                sendToProcessor.append(procI);
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                stableSort(sendToProcessor);
-               
-                return sendToProcessor;
-            }
-            else
-            {
-                return labelList(0);
-            }
-        }(mesh)
-    ),
-    globalMeshPtr_
-    (
-        [this](const fvMesh& mesh) -> autoPtr<fvMesh>
-        {
-            if (Pstream::parRun())
-            {
-                return reconstructRegionalMesh::reconstruct(neighborProcessor_,mesh);
-            }
-            return autoPtr<fvMesh>(nullptr);
-        }(mesh) 
-    ),
+    neighborProcessor_(neighborProcessorList(mesh)),
+    sendToProcessor_(sendToProcessorList(mesh)),
+    globalMeshPtr_(createGlobalMesh(mesh)),
     globalMesh_
     (   
         globalMeshPtr_.valid() ? globalMeshPtr_() : mesh
     ),
     localMesh_(mesh),
     procList_(),
-    localToGlobalCellID_
-    (
-        [this]()
-        {
-            // Fill cellID list
-            labelList localToGlobalCellID(localMesh_.nCells(),-1);
-           
- 
-            const vectorField& localCellCenters  = localMesh_.C();
-            
-            const vectorField& globalCellCenters = globalMesh_.C();
-
-            // Loop over all local cells and look for cell center
-            forAll(localCellCenters,cellI)
-            {
-                // Find cell
-                label globalCellIndex = findCellIndex(globalMesh_,localCellCenters[cellI]);
-                if (globalCellIndex >= 0)
-                    localToGlobalCellID[cellI] = globalCellIndex;
-                else
-                    FatalError << "localToGlobalCellID: Local point not found in global mesh" <<nl
-                               << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCenters[cellI])<<nl
-                               << "For cell location: " << localCellCenters[cellI] << " at processor "<<Pstream::myProcNo() << nl 
-                               << "Found cell index " << globalCellIndex << " at cell location: " << globalCellCenters[globalCellIndex] <<nl 
-                               << exit(FatalError);
-            }
-            return localToGlobalCellID;
-        }()
-    ),
-    globalToLocalCellID_
-    (
-        [this]() -> labelList
-        {
-            labelList globalToLocalCellID(globalMesh_.nCells(),-1);
-            
-            procList_.setSize(globalMesh_.nCells(),-1);
-
-            // Check if parallel 
-            if (Pstream::parRun())
-            {
-                       
-                PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
-              
-                // Distribute the cell centers of the local mesh
-                forAll(sendToProcessor_, procI)
-                {
-                    // Have to send tmpList because vectorField cannot use 
-                    // overload of operator<<() for reading the list from buffer
-                    UOPstream toBuffer(sendToProcessor_[procI], pBufs);
-                    List<vector> tmpList(localMesh_.C());
-                    toBuffer << tmpList;
-                }
-                
-                pBufs.finishedSends();
-                
-                // Neighbour processor list contains the own processor itself.
-                List<vectorField> cellCentersList(neighborProcessor_.size());
-                
-                forAll(neighborProcessor_, procI)
-                {
-                    if (neighborProcessor_[procI] != Pstream::myProcNo())
-                    {
-                        List<vector> tmpList;
-                        UIPstream fromBuffer(neighborProcessor_[procI], pBufs);
-                        fromBuffer >> tmpList;
-                        cellCentersList[procI] = vectorField(tmpList);
-                    }
-                    else
-                    {
-                        cellCentersList[procI] = localMesh_.C();
-                    }
-                }
-    
-                const vectorField& globalCellCenters = globalMesh_.C();
-                    
-                // Loop over all global cells and find corresponding cell center
-                forAll(cellCentersList,procI)
-                 { 
-                    const vectorField& localCellCentersI = cellCentersList[procI];
-                    
-                    forAll(localCellCentersI,cellI)
-                    { 
-                        // Find cell
-                        label globalCellIndex = findCellIndex(globalMesh_,localCellCentersI[cellI]);
-                        if (globalCellIndex >= 0)
-                        {
-                            globalToLocalCellID[globalCellIndex] = cellI;
-                            procList_[globalCellIndex] = neighborProcessor_[procI];
-                        }
-                        else
-                            FatalError << "Local point not found in global mesh" <<nl
-                                       << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCentersI[cellI])
-                                       << exit(FatalError);
-                    }
-                }
-            }
-            // If it is running in serial
-            else
-            {
-                forAll(globalToLocalCellID,cellI)
-                {
-                    globalToLocalCellID[cellI] = cellI;
-                }
-            }
-            
-            return globalToLocalCellID;
-        }()
-    )
+    localToGlobalCellID_(localToGlobalCellIDList()),
+    globalToLocalCellID_(globalToLocalCellIDList())
 {
     #ifdef FULLDEBUG
     Pout << "Reconstructed Mesh for processor "<<Pstream::myProcNo() << endl;
@@ -364,6 +73,309 @@ Foam::label Foam::WENO::globalfvMesh::findCellIndex(const fvMesh& mesh, const po
     }
     return -1;
 }
+
+
+Foam::labelList Foam::WENO::globalfvMesh::neighborProcessorList(const fvMesh& mesh)
+{
+    /******************************************************************\
+    Neighbour Processor List:
+        Contains the neighbouring processors and its neighbours. 
+        With this all processors around the central processor are found.
+        
+                    *------*------*------*
+                    |  CD  |  D   |  DA  |
+                    |      |      |      |
+                    *------*------*------*
+                    |  C   | Main |  A   |
+                    |      |      |      |
+                    *------*------*------*
+                    |  CB  |  B   |  AB  |
+                    |      |      |      |
+                    *------*------*------*
+        
+        The processors A,B,C and D are direct neighbours. To get the 
+        processors CD, DA, AB and CB the neighbour of the neighbours 
+        are collected. Here called second neighbours.
+        
+        **IMPORTANT** Reconstructing the mesh reads the processor 
+        direcotries and creates an MPI blocking when the lists are not
+        equally sized for all processors!
+    \******************************************************************/
+    
+    
+    if (Pstream::parRun())
+    {
+        const fvPatchList& patches = mesh.boundary();
+        
+        labelList myNeighbourProc;
+        
+        // Keep track of processor IDs already added to avoid duplicate
+        // entries
+        std::set<label> addedProcessor;
+    
+        // Add your own processor ID
+        myNeighbourProc.append(Pstream::myProcNo());
+        addedProcessor.insert(Pstream::myProcNo());
+        
+        forAll(patches, patchI)
+        {
+            if(isA<processorFvPatch>(patches[patchI]))
+            {
+                label procID = 
+                    (
+                        refCast<const processorFvPatch>
+                        (patches[patchI]).neighbProcNo()
+                    );
+                if (addedProcessor.find(procID) == addedProcessor.end())
+                    myNeighbourProc.append(procID);
+                    
+                addedProcessor.insert(procID);
+            }
+        }
+        
+        // distribute the list
+        List<labelList> allNeighbours(Pstream::nProcs());
+
+        allNeighbours[Pstream::myProcNo()] = myNeighbourProc;
+
+        Pstream::gatherList(allNeighbours);
+        
+        Pstream::scatterList(allNeighbours);
+
+        // Get the neighbour and second neighbour list for your processor
+        labelList secondNeighborList;
+        forAll(myNeighbourProc,procI)
+        {
+            const label neighbourProcI = myNeighbourProc[procI];
+            secondNeighborList.append(allNeighbours[neighbourProcI]);
+        }
+        
+        forAll(secondNeighborList,i)
+        {
+            if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
+            {
+                myNeighbourProc.append(secondNeighborList[i]);
+                addedProcessor.insert(secondNeighborList[i]);
+            }
+        }
+        
+        // Get the maximum of myNeighbourProc cells and make everyone equal
+        List<labelList> allValues(Pstream::nProcs());
+        allValues[Pstream::myProcNo()] = myNeighbourProc;
+
+        Pstream::gatherList(allValues);
+        
+        Pstream::scatterList(allValues);
+        
+        label maxProcNumber = 0;
+        forAll(allValues,i)
+        {
+            if (allValues[i].size()>maxProcNumber)
+                maxProcNumber = allValues[i].size();
+        }
+        
+        while (myNeighbourProc.size() < maxProcNumber)
+        {
+            // Get the neighbour and second neighbour list for your processor
+            secondNeighborList.clear();
+            forAll(myNeighbourProc,procI)
+            {
+                const label neighbourProcI = myNeighbourProc[procI];
+                secondNeighborList.append(allNeighbours[neighbourProcI]);
+            }
+            
+            forAll(secondNeighborList,i)
+            {
+                if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
+                {
+                    myNeighbourProc.append(secondNeighborList[i]);
+                    addedProcessor.insert(secondNeighborList[i]);
+                }
+            }
+        }
+        
+        // resize list
+        myNeighbourProc.resize(maxProcNumber);
+
+        #ifdef FULLDEBUG
+            Info << "Number of neighbour processor: "<<maxProcNumber<<endl;
+        #endif
+        return myNeighbourProc;
+    }
+
+    // If not parallel return label list 0
+    return labelList(0);
+}
+        
+        
+Foam::labelList Foam::WENO::globalfvMesh::sendToProcessorList(const fvMesh& mesh)
+{
+    if (Pstream::parRun())
+    {
+        labelList sendToProcessor;
+        
+        // distribute the list
+        List<labelList> allValues(Pstream::nProcs());
+
+        allValues[Pstream::myProcNo()] = neighborProcessor_;
+
+        Pstream::gatherList(allValues);
+        
+        Pstream::scatterList(allValues);
+
+        forAll(allValues,procI)
+        {
+            if (procI != Pstream::myProcNo())
+            {
+                forAll(allValues[procI],i)
+                {
+                    if (allValues[procI][i] == Pstream::myProcNo())
+                    {
+                        sendToProcessor.append(procI);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        stableSort(sendToProcessor);
+       
+        return sendToProcessor;
+    }
+
+    // If not parallel return label list 0
+    return labelList(0);
+}
+        
+Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createGlobalMesh(const fvMesh& mesh)
+{
+    if (Pstream::parRun())
+    {
+        return reconstructRegionalMesh::reconstruct(neighborProcessor_,mesh);
+    }
+    return autoPtr<fvMesh>(nullptr);
+}
+        
+Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
+{
+
+    // Fill cellID list
+    labelList localToGlobalCellID(localMesh_.nCells(),-1);
+       
+    if (Pstream::parRun())
+    {
+        const vectorField& localCellCenters  = localMesh_.C();
+        
+        const vectorField& globalCellCenters = globalMesh_.C();
+
+        // Loop over all local cells and look for cell center
+        forAll(localCellCenters,cellI)
+        {
+            // Find cell
+            label globalCellIndex = findCellIndex(globalMesh_,localCellCenters[cellI]);
+            if (globalCellIndex >= 0)
+                localToGlobalCellID[cellI] = globalCellIndex;
+            else
+                FatalError << "localToGlobalCellID: Local point not found in global mesh" <<nl
+                           << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCenters[cellI])<<nl
+                           << "For cell location: " << localCellCenters[cellI] << " at processor "<<Pstream::myProcNo() << nl 
+                           << "Found cell index " << globalCellIndex << " at cell location: " << globalCellCenters[globalCellIndex] <<nl 
+                           << exit(FatalError);
+        }
+    }
+    // If it is running in serial
+    else
+    {
+        forAll(localToGlobalCellID,cellI)
+        {
+            localToGlobalCellID[cellI] = cellI;
+        }
+    }
+    
+    return localToGlobalCellID;
+}
+        
+Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
+{
+   labelList globalToLocalCellID(globalMesh_.nCells(),-1);
+    
+    procList_.setSize(globalMesh_.nCells(),-1);
+
+    // Check if parallel 
+    if (Pstream::parRun())
+    {
+               
+        PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+      
+        // Distribute the cell centers of the local mesh
+        forAll(sendToProcessor_, procI)
+        {
+            // Have to send tmpList because vectorField cannot use 
+            // overload of operator<<() for reading the list from buffer
+            UOPstream toBuffer(sendToProcessor_[procI], pBufs);
+            List<vector> tmpList(localMesh_.C());
+            toBuffer << tmpList;
+        }
+        
+        pBufs.finishedSends();
+        
+        // Neighbour processor list contains the own processor itself.
+        List<vectorField> cellCentersList(neighborProcessor_.size());
+        
+        forAll(neighborProcessor_, procI)
+        {
+            if (neighborProcessor_[procI] != Pstream::myProcNo())
+            {
+                List<vector> tmpList;
+                UIPstream fromBuffer(neighborProcessor_[procI], pBufs);
+                fromBuffer >> tmpList;
+                cellCentersList[procI] = vectorField(tmpList);
+            }
+            else
+            {
+                cellCentersList[procI] = localMesh_.C();
+            }
+        }
+
+        const vectorField& globalCellCenters = globalMesh_.C();
+            
+        // Loop over all global cells and find corresponding cell center
+        forAll(cellCentersList,procI)
+         { 
+            const vectorField& localCellCentersI = cellCentersList[procI];
+            
+            forAll(localCellCentersI,cellI)
+            { 
+                // Find cell
+                label globalCellIndex = findCellIndex(globalMesh_,localCellCentersI[cellI]);
+                if (globalCellIndex >= 0)
+                {
+                    globalToLocalCellID[globalCellIndex] = cellI;
+                    procList_[globalCellIndex] = neighborProcessor_[procI];
+                }
+                else
+                    FatalError << "Local point not found in global mesh" <<nl
+                               << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCentersI[cellI])
+                               << exit(FatalError);
+            }
+        }
+    }
+    // If it is running in serial
+    else
+    {
+        forAll(globalToLocalCellID,cellI)
+        {
+            globalToLocalCellID[cellI] = cellI;
+        }
+    }
+    
+    return globalToLocalCellID;
+}
+
+
+// ***************************************************************************
+//                   Public Member Functions
+
 
 
 bool Foam::WENO::globalfvMesh::isLocalCell(const int globalCellID) const
