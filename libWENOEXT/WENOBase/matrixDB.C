@@ -72,7 +72,7 @@ bool Foam::matrixDB::scalarRectangularMatrixPtr::valid() const
 
 // * * * * * * * * * * * * * * * matrixDB  * * * * * * * * * * * * * * * * * //
 
-std::multimap<int32_t,Foam::scalarRectangularMatrix>::const_iterator
+std::multimap<Foam::matrixDB::keyType,Foam::scalarRectangularMatrix>::const_iterator
 Foam::matrixDB::similar
 (
     const scalarRectangularMatrix&& A
@@ -147,13 +147,13 @@ Foam::matrixDB::similar
     // Use insert with hint 
     auto it = DB_.insert
     (
-        std::pair<int32_t,scalarRectangularMatrix>(key,std::move(A))
+        std::pair<keyType,scalarRectangularMatrix>(key,std::move(A))
     );
     return it;    
 }
 
 
-int32_t Foam::matrixDB::hashMatrix
+Foam::matrixDB::keyType Foam::matrixDB::hashMatrix
 (
     const scalarRectangularMatrix& A
 )
@@ -172,14 +172,14 @@ int32_t Foam::matrixDB::hashMatrix
         return maxA;
     };
 
-    int32_t key = 0;
+    keyType key = 0;
     
     double mult = 1.0E+6/maxMag(A);
     for (int i = 0; i < A.m(); i++)
     {
         for (int j = 0; j < A.n(); j++)
         {
-            key += int32_t(A[i][j] *mult);
+            key += keyType(A[i][j] *mult);
         }
     }
     return key;
@@ -250,15 +250,83 @@ void Foam::matrixDB::info()
 
 
 void Foam::matrixDB::write(Ostream& os) const
-{    
-    os << LSmatrix_.size()<<endl;
+{
+    // Write out the data bank
+    
+    os << DB_.size()<<endl;
+    
+    auto it = DB_.begin();
+    while (it != DB_.end())
+    {
+        auto key = it->first;        
+        int count = DB_.count(key);
+        os << key   << endl;
+        os << count << endl;
+
+        for (int i=0; i<count; i++)
+        {
+            os << it->second << endl;
+            it++;
+            if (it == DB_.end())
+                break;
+        }
+    }
+    
+    // Write out the LSMatrix list
+    // Write out the integer of the key position
+    os <<LSmatrix_.size()<<endl;
     forAll(LSmatrix_,cellI)
     {
-        os << LSmatrix_[cellI].size()<<endl;
+        os <<LSmatrix_[cellI].size()<<endl;
         forAll(LSmatrix_[cellI],stencilI)
         {
-            os << LSmatrix_[cellI][stencilI].iterator()->first<<endl;
-            os << LSmatrix_[cellI][stencilI].iterator()->second<<endl;
+            // Deleted cells have invalid iterators
+            // see: WENOBase.C constructor
+            bool validBit = LSmatrix_[cellI][stencilI].valid();
+            
+            os << validBit<<endl;
+            if (!validBit)
+                continue;
+            
+            iterType it = LSmatrix_[cellI][stencilI].iterator();
+            os <<it->first<<endl;
+            
+            // Get key
+            auto key = it->first;
+            auto A   = it->second;
+
+            bool valid = false;
+            int i=0;
+            for 
+            (
+                iterType posIt = DB_.lower_bound(key);
+                posIt != DB_.upper_bound(key);
+                posIt++, i++
+            )
+            {
+                auto& cmpA = posIt->second;
+                if (cmpA.size() != A.size())
+                    continue;
+                    
+                valid = true;
+                for (int i = 0; i < A.m(); i++)
+                {
+                    for (int j = 0; j < A.n(); j++)
+                    {
+                        if (mag(A[i][j]-cmpA[i][j])>SMALL)
+                            valid = false;
+                    }
+                }
+                
+                if (valid)
+                {
+                    os <<i<<endl;
+                    break;
+                }
+            }
+            if (valid == false)
+                FatalErrorInFunction()
+                    << "Cannot find matrix in databank" << exit(FatalError);
         }
     }
 }
@@ -267,11 +335,35 @@ void Foam::matrixDB::write(Ostream& os) const
 void Foam::matrixDB::read(Istream& is)
 {
     scalarRectangularMatrix matrix;
-    scalar key;
-    // Read in the LSMatrix list
+    keyType key;
+    
+    int DBSize;
+    is >> DBSize;
+    int i = 0;
+    while (i<DBSize)
+    {
+        is >> key;
+        
+        int count;
+        is >> count;
+
+        for (int n=0; n<count; n++)
+        {
+            is >> matrix;
+            DB_.insert
+            (
+                std::pair<keyType,scalarRectangularMatrix>(key,matrix)
+            );
+            i++;
+        }
+    }
+
+    // Construct LSmatrix
     label size;
     is >> size;
     LSmatrix_.resize(size);
+    
+    bool validBit;
     
     forAll(LSmatrix_,cellI)
     {
@@ -280,9 +372,20 @@ void Foam::matrixDB::read(Istream& is)
         
         forAll(LSmatrix_[cellI],stencilI)
         {
+            is >> validBit;
+            if (!validBit)
+                continue;
+                
             is >> key;
-            is >> matrix;
-            LSmatrix_[cellI][stencilI].add(std::move(matrix));
+            int position;
+            is >> position;
+
+            iterType it = DB_.lower_bound(key);
+            
+            for (int i = 0; i< position; i++)
+                it++;
+            
+            LSmatrix_[cellI][stencilI].set(it);
         }
     }
 }

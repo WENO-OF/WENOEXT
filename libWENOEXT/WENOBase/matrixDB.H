@@ -64,7 +64,10 @@ Ostream& operator << (Ostream&, const matrixDB&);
 
 class matrixDB
 {
-    using iterType = std::multimap<int32_t, scalarRectangularMatrix>::const_iterator;
+    using keyType = int32_t;
+    
+    using iterType = std::multimap<keyType, scalarRectangularMatrix>::const_iterator;
+    
     
     class scalarRectangularMatrixPtr
     {
@@ -91,6 +94,9 @@ class matrixDB
             scalarRectangularMatrixPtr(matrixDB*);
             
         // Public Member
+        
+            //- set the iterator
+            void set(iterType it) {itr_ = it;}
         
             //- add a new element
             void add(const scalarRectangularMatrix&& A);
@@ -125,7 +131,7 @@ class matrixDB
         List<List<scalarRectangularMatrixPtr> > LSmatrix_;
 
         //- Map of stored matrices as the underlying data bank
-        std::multimap<int32_t, scalarRectangularMatrix> DB_;
+        std::multimap<keyType, scalarRectangularMatrix> DB_;
 
 
     //- Private member functions
@@ -139,7 +145,7 @@ class matrixDB
         
         //- Create a hash value of a matrix. 
         //  Not used but good code for possible future use
-        int32_t hashMatrix(const scalarRectangularMatrix& A);
+        keyType hashMatrix(const scalarRectangularMatrix& A);
 
 public:
 
