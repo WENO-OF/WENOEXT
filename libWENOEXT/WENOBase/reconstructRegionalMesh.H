@@ -96,6 +96,15 @@ namespace reconstructRegionalMesh
         
         return List<Type>(is);
     }
+    
+    autoPtr<mapAddedPolyMesh> add
+    (
+        fvMesh& mesh0,
+        const fvMesh& mesh1,
+        const faceCoupleInfo& coupleInfo,
+        const bool validBoundary
+    );
+    
 }
 
 }
