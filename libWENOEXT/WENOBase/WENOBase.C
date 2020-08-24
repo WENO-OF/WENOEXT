@@ -805,11 +805,16 @@ Foam::WENOBase::WENOBase
             refFacAr_
         );
 
-        // Write Lists to constant folder
-        writeList
-        (
-            localMesh
-        );
+
+        bool writeOutData = WENODict.lookupOrAddDefault<bool>("writeData",true);
+        if (writeOutData)
+        {
+            // Write Lists to constant folder
+            writeList
+            (
+                localMesh
+            );
+        }
     }
     
 

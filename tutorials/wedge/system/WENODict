@@ -27,4 +27,6 @@ FoamFile
 	p				4.0;
 	dm				1000.0;
 
+    writeData       true;   // Write out the stencil list - default is true
+
 // ************************************************************************* //
