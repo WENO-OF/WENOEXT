@@ -455,54 +455,6 @@ Foam::scalar Foam::geometryWENO::gaussQuad
         const vector v2
 )
 {
-    // Points and weights for the Gaussian quadrature of a standard triangle
-    // - 1.row: x-values
-    // - 2.row: y-values
-    // - 3.row: weights
-    scalar xw[13][3];
-
-
-    xw[0][0] = 0.33333333333333;
-    xw[0][1] = 0.33333333333333;
-    xw[0][2] = -0.14957004446768;
-    xw[1][0] = 0.26034596607904;
-    xw[1][1] = 0.26034596607904;
-    xw[1][2] = 0.17561525743321;
-    xw[2][0] = 0.26034596607904;
-    xw[2][1] = 0.47930806784192;
-    xw[2][2] = 0.17561525743321;
-    xw[3][0] = 0.47930806784192;
-    xw[3][1] = 0.26034596607904;
-    xw[3][2] = 0.17561525743321;
-    xw[4][0] = 0.06513010290222;
-    xw[4][1] = 0.06513010290222;
-    xw[4][2] = 0.05334723560884;
-    xw[5][0] = 0.06513010290222;
-    xw[5][1] = 0.86973979419557;
-    xw[5][2] = 0.05334723560884;
-    xw[6][0] = 0.86973979419557;
-    xw[6][1] = 0.06513010290222;
-    xw[6][2] = 0.05334723560884;
-    xw[7][0] = 0.31286549600487;
-    xw[7][1] = 0.63844418856981;
-    xw[7][2] = 0.07711376089026;
-    xw[8][0] = 0.63844418856981;
-    xw[8][1] = 0.04869031542532;
-    xw[8][2] = 0.07711376089026;
-    xw[9][0] = 0.04869031542532;
-    xw[9][1] = 0.31286549600487;
-    xw[9][2] = 0.07711376089026;
-    xw[10][0] = 0.63844418856981;
-    xw[10][1] = 0.31286549600487;
-    xw[10][2] = 0.07711376089026;
-    xw[11][0] = 0.31286549600487;
-    xw[11][1] = 0.04869031542532;
-    xw[11][2] = 0.07711376089026;
-    xw[12][0] = 0.04869031542532;
-    xw[12][1] = 0.63844418856981;
-    xw[12][2] = 0.07711376089026;
-
-
     // For integer power it is much faster to do an integer multiplication
     // This depends on the compiler used! For portability it is explicitly defined
     // here
@@ -523,17 +475,17 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     for (label j = 0; j < 13; j++)
     {
         scalar xi =
-            v0.x()*(1 - xw[j][0] - xw[j][1])
-          + v1.x()*xw[j][0] + v2.x()*xw[j][1];
+            v0.x()*(1 - gaussCoeff[j][0] - gaussCoeff[j][1])
+          + v1.x()*gaussCoeff[j][0] + v2.x()*gaussCoeff[j][1];
         scalar eta =
-            v0.y()* (1- xw[j][0]- xw[j][1])
-          + v1.y()* xw[j][0] +v2.y()* xw[j][1] ;
+            v0.y()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
+          + v1.y()* gaussCoeff[j][0] +v2.y()* gaussCoeff[j][1] ;
         scalar zeta =
-            v0.z()* (1- xw[j][0]- xw[j][1])
-          + v1.z()* xw[j][0] +v2.z()* xw[j][1] ;
+            v0.z()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
+          + v1.z()* gaussCoeff[j][0] +v2.z()* gaussCoeff[j][1] ;
 
         sum +=
-            xw[j][2]*intPow(xi - xi0.x(), n)
+            gaussCoeff[j][2]*intPow(xi - xi0.x(), n)
            *intPow(eta - xi0.y(), m)*intPow(zeta - xi0.z(), l);
     }
 
