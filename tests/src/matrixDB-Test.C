@@ -38,6 +38,7 @@ Author
 #include "matrixDB.H"
 #include "OFstream.H"
 #include "IFstream.H"
+#include "blaze/Math.h"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -72,13 +73,13 @@ TEST_CASE("matrixDB Test Case","[3D]")
     };
     
     // function to check the sum 
-    auto compareMatrix = [](const scalarRectangularMatrix A, const scalarRectangularMatrix B) -> void
+    auto compareMatrix = [](const scalarRectangularMatrix& A, const blaze::DynamicMatrix<double>& B) -> void
     {
         for (int i = 0; i < A.m(); i++)
         {
             for (int j = 0; j < A.n(); j++)
             {
-                REQUIRE(A[i][j] == B[i][j]);
+                REQUIRE(A(i,j) == B(i,j));
             }
         }
     };

@@ -11,7 +11,8 @@ EXE_INC = \
     -I$(LIB_SRC)/dynamicMesh/lnInclude \
     -I$(LIB_SRC)/fileFormats/lnInclude \
     -I../../versionRules \
-    -g
+    -I../../blaze-3.8 \
+    -std=c++14 -g
 
 
 EXE_LIBS = \

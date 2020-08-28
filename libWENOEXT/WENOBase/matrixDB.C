@@ -31,14 +31,14 @@ Author
 #include <inttypes.h>
 // * * * * * * * * * * *  ScalarRectangularMatrixPtr * * * * * * * * * * * * //
 
-Foam::matrixDB::scalarRectangularMatrixPtr::scalarRectangularMatrixPtr(matrixDB* db)
+Foam::matrixDB::MatrixPtr::MatrixPtr(matrixDB* db)
 : 
     matrixDB_(db),
     itr_(db->DB_.end())
 {}
 
 
-void Foam::matrixDB::scalarRectangularMatrixPtr::add
+void Foam::matrixDB::MatrixPtr::add
 (
     const scalarRectangularMatrix&& A
 )
@@ -48,8 +48,8 @@ void Foam::matrixDB::scalarRectangularMatrixPtr::add
 }
 
 
-const Foam::scalarRectangularMatrix& 
-Foam::matrixDB::scalarRectangularMatrixPtr::operator()() const
+const blaze::DynamicMatrix<double>& 
+Foam::matrixDB::MatrixPtr::operator()() const
 {
     #ifdef FULLDEBUG
         if (!this->valid())
@@ -61,7 +61,7 @@ Foam::matrixDB::scalarRectangularMatrixPtr::operator()() const
 }
 
 
-bool Foam::matrixDB::scalarRectangularMatrixPtr::valid() const
+bool Foam::matrixDB::MatrixPtr::valid() const
 {
     if ((matrixDB_ != nullptr) && (itr_ != matrixDB_->DB_.end()))
         return true;
@@ -72,7 +72,7 @@ bool Foam::matrixDB::scalarRectangularMatrixPtr::valid() const
 
 // * * * * * * * * * * * * * * * matrixDB  * * * * * * * * * * * * * * * * * //
 
-std::multimap<Foam::matrixDB::keyType,Foam::scalarRectangularMatrix>::const_iterator
+std::multimap<Foam::matrixDB::keyType,blaze::DynamicMatrix<double>>::const_iterator
 Foam::matrixDB::similar
 (
     const scalarRectangularMatrix&& A
@@ -82,7 +82,7 @@ Foam::matrixDB::similar
     
     if (DB_.size() == 0)
     {
-        auto it = DB_.emplace(key,A);
+        auto it = DB_.emplace(key,convertToBlaze(A));
         return it;
     }
     
@@ -114,18 +114,18 @@ Foam::matrixDB::similar
     
     for (auto it = itStart; it != itEnd;it++)
     {
-        const scalarRectangularMatrix& cmpA = it->second;
+        auto& cmpA = it->second;
         
         bool validEntry = true;
-        if (cmpA.size() == A.size())
+        if (blaze::size(cmpA) == A.size())
         {
             for (int i = 0; i < A.m(); i++)
             {
                 for (int j = 0; j < A.n(); j++)
                 {
-                    if (mag(A[i][j]) < SMALL)
+                    if (mag(A(i,j)) < SMALL)
                         continue;
-                    if (mag((cmpA[i][j] - A[i][j])) > tol)
+                    if (mag((cmpA(i,j) - A(i,j))) > tol)
                     {
                         validEntry = false;
                         break;
@@ -142,14 +142,25 @@ Foam::matrixDB::similar
             }
         } 
     }
-    
 
-    // Use insert with hint 
-    auto it = DB_.insert
+    return DB_.insert
     (
-        std::pair<keyType,scalarRectangularMatrix>(key,std::move(A))
-    );
-    return it;    
+        std::pair<keyType,blaze::DynamicMatrix<double>>(key,convertToBlaze(A))
+    );   
+}
+
+
+blaze::DynamicMatrix<double> Foam::matrixDB::convertToBlaze(const scalarRectangularMatrix& A)
+{
+    blaze::DynamicMatrix<double> M(A.m(),A.n());
+    for (int i=0; i<A.m(); i++)
+    {
+        for (int j=0; j<A.n(); j++)
+        {
+            M(i,j) = A[i][j];
+        }
+    }
+    return M;
 }
 
 
@@ -209,14 +220,14 @@ Foam::matrixDB::keyType Foam::matrixDB::hashMatrix
 }
 
 
-const Foam::List<Foam::matrixDB::scalarRectangularMatrixPtr>& 
+const Foam::List<Foam::matrixDB::MatrixPtr>& 
 Foam::matrixDB::operator[](const label celli) const
 {
     return LSmatrix_[celli];
 }
 
 
-Foam::List<Foam::matrixDB::scalarRectangularMatrixPtr>& 
+Foam::List<Foam::matrixDB::MatrixPtr>& 
 Foam::matrixDB::operator[](const label celli)
 {
     return LSmatrix_[celli];
@@ -225,7 +236,7 @@ Foam::matrixDB::operator[](const label celli)
 
 void Foam::matrixDB::resizeSubList(const label cellI, const label size)
 {
-    LSmatrix_[cellI].resize(size,scalarRectangularMatrixPtr(this));
+    LSmatrix_[cellI].resize(size,MatrixPtr(this));
 }
 
 
@@ -293,7 +304,7 @@ void Foam::matrixDB::write(Ostream& os) const
             
             // Get key
             auto key = it->first;
-            auto A   = it->second;
+            auto& A   = it->second;
 
             bool valid = false;
             int i=0;
@@ -305,15 +316,15 @@ void Foam::matrixDB::write(Ostream& os) const
             )
             {
                 auto& cmpA = posIt->second;
-                if (cmpA.size() != A.size())
+                if (blaze::size(cmpA) != blaze::size(A))
                     continue;
                     
                 valid = true;
-                for (int i = 0; i < A.m(); i++)
+                for (unsigned int i = 0; i < A.rows(); i++)
                 {
-                    for (int j = 0; j < A.n(); j++)
+                    for (unsigned int j = 0; j < A.columns(); j++)
                     {
-                        if (mag(A[i][j]-cmpA[i][j])>SMALL)
+                        if (mag(A(i,j)-cmpA(i,j))>SMALL)
                             valid = false;
                     }
                 }
@@ -334,13 +345,13 @@ void Foam::matrixDB::write(Ostream& os) const
 
 void Foam::matrixDB::read(Istream& is)
 {
-    scalarRectangularMatrix matrix;
+    blaze::DynamicMatrix<double> matrix;
     keyType key;
     
     int DBSize;
     is >> DBSize;
     int i = 0;
-    while (i<DBSize)
+    while (i < DBSize)
     {
         is >> key;
         
@@ -352,7 +363,7 @@ void Foam::matrixDB::read(Istream& is)
             is >> matrix;
             DB_.insert
             (
-                std::pair<keyType,scalarRectangularMatrix>(key,matrix)
+                std::pair<keyType,blaze::DynamicMatrix<double>>(key,matrix)
             );
             i++;
         }
@@ -368,7 +379,7 @@ void Foam::matrixDB::read(Istream& is)
     forAll(LSmatrix_,cellI)
     {
         is >> size;
-        LSmatrix_[cellI].resize(size,scalarRectangularMatrixPtr(this));
+        LSmatrix_[cellI].resize(size,MatrixPtr(this));
         
         forAll(LSmatrix_[cellI],stencilI)
         {
@@ -401,5 +412,46 @@ Foam::Istream& Foam::operator >>(Istream& is, matrixDB& matrixDB_)
 Foam::Ostream& Foam::operator <<(Ostream& os,const matrixDB& matrixDB_)
 {
     matrixDB_.write(os);
+    return os;
+}
+
+
+Foam::Istream& Foam::operator >>(Istream& is, blaze::DynamicMatrix<double>& M)
+{
+    // Frist write out the size 
+    unsigned int rows;
+    unsigned int columns;
+    
+    is >> rows;
+    is >> columns;
+    
+    M.resize(rows,columns);
+    
+    for (unsigned int i=0; i<M.rows(); i++)
+    {
+        for (unsigned int j=0; j<M.columns(); j++)
+        {
+            is >> M(i,j);
+        }
+    }
+    
+    return is;
+}
+
+
+Foam::Ostream& Foam::operator <<(Ostream& os,const blaze::DynamicMatrix<double>& M)
+{
+    // Frist write out the size 
+    os << M.rows() << endl;
+    os << M.columns() << endl;
+    
+    for (unsigned int i=0; i<M.rows(); i++)
+    {
+        for (unsigned int j=0; j<M.columns(); j++)
+        {
+            os << M(i,j)<<endl;
+        }
+    }
+    
     return os;
 }

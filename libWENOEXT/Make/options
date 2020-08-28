@@ -8,7 +8,9 @@ $(TRISURFACE_INC) \
  -I$(LIB_SRC)/surfMesh/lnInclude \
  -I$(LIB_SRC)/fileFormats/lnInclude \
  -DGIT_BUILD=\"$(GIT_BUILD)\" \
- -I../versionRules 
+ -std=c++14 \
+ -I../versionRules \
+ -I../blaze-3.8
 
 
 LIB_LIBS = \

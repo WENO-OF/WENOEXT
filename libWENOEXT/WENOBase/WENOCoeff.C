@@ -30,7 +30,7 @@ Author
 #include "codeRules.H"
 #include "WENOCoeff.H"
 #include "DynamicField.H"
-
+#include "blaze/Math.h"
 #include "processorFvPatch.H"
 
 
@@ -124,7 +124,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
 {
     const List<label>& stencilsIDI =
         WENOBase_.stencilsID()[cellI][stencilI];
-    const scalarRectangularMatrix& A =
+    const blaze::DynamicMatrix<double>& A =
         WENOBase_.LSmatrix()[cellI][stencilI]();
     const List<label>& cellToProcMapI =
         WENOBase_.cellToProcMap()[cellI][stencilI];
@@ -133,8 +133,9 @@ void Foam::WENOCoeff<Type>::calcCoeff
     // First line is always constraint line
     
     coeff.setSize(nDvt_,pTraits<Type>::zero);
-
-    Type bJ = pTraits<Type>::zero;
+    
+    // Create bJ vector
+    blaze::DynamicVector<Type> bJ(A.columns(),pTraits<Type>::zero);
 
     for (label j = 1; j < stencilsIDI.size(); j++)
     {
@@ -142,24 +143,22 @@ void Foam::WENOCoeff<Type>::calcCoeff
         // Distinguish between local and halo cells
         if (cellToProcMapI[j] == int(WENOBase::Cell::local))
         {
-            bJ = vf[stencilsIDI[j]] - vf[cellI];
-
-            for (label i = 0; i < nDvt_; i++)
-            {
-                coeff[i] += A[i][j-1]*bJ;
-            }
+            bJ[j-1] = vf[stencilsIDI[j]] - vf[cellI];
         }
         else if(cellToProcMapI[j] != int(WENOBase::Cell::deleted))
         {
-            bJ =
+            bJ[j-1] =
                 haloData_[cellToProcMapI[j]][stencilsIDI[j]]
               - vf[cellI];
-
-            for (label i = 0; i < nDvt_; i++)
-            {
-                coeff[i] += A[i][j-1]*bJ;
-            }
         }
+    }
+    
+    // calculate coefficients
+    auto aCoeff = A*bJ;
+    
+    forAll(coeff,i)
+    {
+        coeff[i] = aCoeff[i];
     }
 }
 

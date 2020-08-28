@@ -44,6 +44,7 @@ Author
 
 #include "linear.H"
 #include "Ostream.H"
+#include "blaze/Math.h"
 #include <map>
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -57,6 +58,10 @@ Istream& operator >> (Istream&, matrixDB&);
 
 Ostream& operator << (Ostream&, const matrixDB&);
 
+// Read write operators for blaze matrix
+Istream& operator >> (Istream&, blaze::DynamicMatrix<double>&);
+
+Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double>&);
 
 /*---------------------------------------------------------------------------*\
                             Class matrixDB Declaration
@@ -64,12 +69,13 @@ Ostream& operator << (Ostream&, const matrixDB&);
 
 class matrixDB
 {
+    using DynamicMatrix = blaze::DynamicMatrix<double>;
     using keyType = int32_t;
     
-    using iterType = std::multimap<keyType, scalarRectangularMatrix>::const_iterator;
+    using iterType = std::multimap<keyType, DynamicMatrix>::const_iterator;
     
     
-    class scalarRectangularMatrixPtr
+    class MatrixPtr
     {
         private:
             //- Reference to parent object
@@ -88,10 +94,10 @@ class matrixDB
         // Constructor
         
             //- Default construtor
-            scalarRectangularMatrixPtr() = default;
+            MatrixPtr() = default;
         
             //- Constructor
-            scalarRectangularMatrixPtr(matrixDB*);
+            MatrixPtr(matrixDB*);
             
         // Public Member
         
@@ -103,7 +109,7 @@ class matrixDB
             
             //- Dereference the pointer
             //  Throw an execption if called for a nullptr
-            const scalarRectangularMatrix& operator()() const;
+            const DynamicMatrix& operator()() const;
             
             //- Return const iterator
             const iterType& iterator() const {return itr_;}
@@ -128,10 +134,10 @@ class matrixDB
     
         //- Lists of pseudoinverses for each stencil of each cell
         //  Stored as a pointer to the underlying data structure
-        List<List<scalarRectangularMatrixPtr> > LSmatrix_;
+        List<List<MatrixPtr> > LSmatrix_;
 
         //- Map of stored matrices as the underlying data bank
-        std::multimap<keyType, scalarRectangularMatrix> DB_;
+        std::multimap<keyType, DynamicMatrix> DB_;
 
 
     //- Private member functions
@@ -144,8 +150,10 @@ class matrixDB
         );
         
         //- Create a hash value of a matrix. 
-        //  Not used but good code for possible future use
         keyType hashMatrix(const scalarRectangularMatrix& A);
+        
+        //- Convert OpenFOAM Matrix to Blaze dynamic matrix
+        DynamicMatrix convertToBlaze(const scalarRectangularMatrix& A);
 
 public:
 
@@ -169,9 +177,9 @@ public:
         void resizeSubList(const label cellI, const label size);
         
         //- Access an element
-        const List<scalarRectangularMatrixPtr>& operator[](const label celli) const;
+        const List<MatrixPtr>& operator[](const label celli) const;
         
-        List<scalarRectangularMatrixPtr>& operator[](const label celli);
+        List<MatrixPtr>& operator[](const label celli);
         
     // Access
         
