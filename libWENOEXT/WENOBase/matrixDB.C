@@ -427,13 +427,23 @@ Foam::Istream& Foam::operator >>(Istream& is, blaze::DynamicMatrix<double>& M)
     
     M.resize(rows,columns);
     
-    for (unsigned int i=0; i<M.rows(); i++)
+    if (is.format() == IOstream::ASCII)
     {
-        for (unsigned int j=0; j<M.columns(); j++)
+        for (unsigned int i=0; i<M.rows(); i++)
         {
-            is >> M(i,j);
+            for (unsigned int j=0; j<M.columns(); j++)
+            {
+                is >> M(i,j);
+            }
         }
     }
+    else
+    {
+        unsigned int spacing;
+        is >> spacing;
+        is.read(reinterpret_cast<char*>(M.data()),rows*spacing*sizeof(double));
+    }
+    
     
     return is;
 }
@@ -445,12 +455,23 @@ Foam::Ostream& Foam::operator <<(Ostream& os,const blaze::DynamicMatrix<double>&
     os << M.rows() << endl;
     os << M.columns() << endl;
     
-    for (unsigned int i=0; i<M.rows(); i++)
+    if (os.format() == IOstream::ASCII)
     {
-        for (unsigned int j=0; j<M.columns(); j++)
+        for (unsigned int i=0; i<M.rows(); i++)
         {
-            os << M(i,j)<<endl;
+            for (unsigned int j=0; j<M.columns(); j++)
+            {
+                os << M(i,j)<<" ";
+            }
+            os << endl;
         }
+    }
+    else
+    {
+        // Matrix can be padded for alignment. Rows and columns does not give 
+        // the spacing
+        os << M.spacing()<<endl;
+        os.write(reinterpret_cast<const char*>(M.data()),(M.spacing()*M.rows()* sizeof(double)));
     }
     
     return os;
