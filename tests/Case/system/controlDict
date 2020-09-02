@@ -14,7 +14,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application             compressiblePhaseChangeFoam;
+application             test.exe;
 
 startFrom               startTime;
 
@@ -22,17 +22,15 @@ startTime               0;
 
 stopAt                  endTime;
 
-endTime                 0.01;
+endTime                 2;
 
-deltaT                  5e-7;
+deltaT                  1;
 
-writeControl            adjustableRunTime;
+writeControl            timeStep;
 
-writeInterval           0.0005;
+writeInterval           1;
 
-purgeWrite              100;
-
-writeFormat             ascii;
+writeFormat             binary;
 
 writePrecision          6;
 
@@ -46,21 +44,6 @@ adjustTimeStep          on;
 
 maxCo                   0.25;
 
-maxAlphaCo                  0.5;
-
 maxDeltaT               5e-7;
 
-
-libs (
-        "libcustomBoundary.so"
-     );
-
-
-
-
-// Enable debug messages
-DebugSwitches
-{
-  phaseChangeMixtureThermo 0;
-}
 // ************************************************************************* //3

@@ -13,23 +13,29 @@ FoamFile
     object      blockMeshDict;
 }
 
+PI 3.14159265359;
+
+x #calc  "6*$PI";
+y #calc  "6*$PI";
+
+nCells 50;
 
 vertices
     (
-        ( 0    0      0)    // vertex number 0
-        ( 1    0      0)    // vertex number 1
-        ( 1    0.1    0)    // vertex number 2
-        ( 0    0.1    0)    // vertex number 3
-        ( 0    0      0.1)    // vertex number 4
-        ( 1    0      0.1)    // vertex number 5
-        ( 1    0.1    0.1)    // vertex number 6
-        ( 0    0.1    0.1)    // vertex number 7
+        ( 0    0     0)    // vertex number 0
+        ( $x   0     0)    // vertex number 1
+        ( $x   $y    0)    // vertex number 2
+        ( 0    $y    0)    // vertex number 3
+        ( 0    0     0.1)    // vertex number 4
+        ( $x   0     0.1)    // vertex number 5
+        ( $x   $y    0.1)    // vertex number 6
+        ( 0    $y    0.1)    // vertex number 7
     );
 
   blocks
     (
         hex (0 1 2 3 4 5 6 7)    // vertex numbers
-        (40 1 1)               // numbers of cells in each direction
+        ($nCells $nCells 1)               // numbers of cells in each direction
         simpleGrading (1 1 1)    // cell expansion ratios
     );
 
@@ -52,9 +58,9 @@ vertices
                 (1 2 6 5)
             );
         }
-        defaultFaces
+        walls
         {
-            type empty;
+            type wall;
             faces
             (
                 (0 1 5 4)

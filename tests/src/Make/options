@@ -10,7 +10,8 @@ EXE_INC = \
     -I../../libWENOEXT/WENOBase \
     -I$(LIB_SRC)/dynamicMesh/lnInclude \
     -I$(LIB_SRC)/fileFormats/lnInclude \
-    -I../../versionRules
+    -I../../versionRules \
+    -g
 
 
 EXE_LIBS = \

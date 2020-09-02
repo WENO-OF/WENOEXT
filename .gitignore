@@ -25,6 +25,10 @@
 
 # Exclude the Make linux files
 libWENOEXT/Make/linux*
+tests/**/linux*
+
+# Exclude dynamic code
+**/dynamicCode/
 
 versionRules/foamVersion4weno.H
 versionRules/foamVersion
@@ -50,8 +54,8 @@ lnInclude/
 *.exe
 
 # Ignore the polyMesh files
-tests/case-1D/constant/polyMesh
-tests/case-3D/constant/polyMesh
+tests/Case/constant/polyMesh
+tests/Case/0
 
 # ignore WENO directories
 tests/**/WENOBase*

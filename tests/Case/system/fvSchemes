@@ -17,7 +17,7 @@ FoamFile
 
 ddtSchemes
 {
-    default         Euler;
+    default         steadyState;
 }
 
 gradSchemes
@@ -27,23 +27,9 @@ gradSchemes
 
 divSchemes
 {
-    div(phi,alpha)      Gauss vanLeer;
-    div(phirb,alpha)    Gauss vanLeer;
-
-    div(phi,rho)        Gauss limitedLinear 1;
-
-    div(phi,p_rgh)      Gauss linearUpwind grad(p_rgh);
-    
-    div(rhoPhi,omega)   Gauss linearUpwind grad(omega);
-    div(rhoPhi,epsilon) Gauss linearUpwind grad(epsilon);
-    
-    div(rhoPhi,U)       Gauss linearUpwind grad(U);
-    div(rhoPhi,T)       Gauss linearUpwind grad(T); 
-    div(rhoAlphaPhi,heLiq)  Gauss linearUpwind grad(heLiq);
-    div(rhoPhi,K)       Gauss limitedLinear 1;
-    div(rhoPhi,k)       Gauss limitedLinear 1;
-    div(phi,p)          Gauss vanLeer; 
-    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+    default         none;
+    div(WENO)       Gauss WENOUpwindFit 3 0;
+    div(Linear)     Gauss linear;
 }
 
 laplacianSchemes
@@ -53,7 +39,10 @@ laplacianSchemes
 
 interpolationSchemes
 {
-    default         linear;
+    default             none;
+    flux(U)             linear;
+    interpolate(psiWENO)   WENOUpwindFit 3 0;
+    interpolate(psiLinear) linear;
 }
 
 snGradSchemes
