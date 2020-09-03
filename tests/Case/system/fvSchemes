@@ -27,9 +27,10 @@ gradSchemes
 
 divSchemes
 {
-    default         none;
-    div(WENO)       Gauss WENOUpwindFit 3 0;
-    div(Linear)     Gauss linear;
+    default             none;
+    div(WENO)           Gauss WENOUpwindFit 3 0;
+    div(Linear)         Gauss linear;
+    div(LimitedLinear)  Gauss limitedLinear 1;
 }
 
 laplacianSchemes

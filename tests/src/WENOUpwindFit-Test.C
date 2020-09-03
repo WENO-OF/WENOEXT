@@ -180,6 +180,7 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         // Test the surface interpolation scheme
         volScalarField divWENO = fvc::div(phi,psi,"div(WENO)");
         volScalarField divLinear = fvc::div(phi,psi,"div(Linear)");
+        volScalarField divLimitedLinear = fvc::div(phi,psi,"div(LimitedLinear)");
 
         // Analytical sultion
         auto analyticalSoultion = [](const double x, const double y)
@@ -214,32 +215,41 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         dimensionedScalar dimSmall("dimSmall",dimensionSet(0,0,-1,0,0),SMALL);
         volScalarField errorWENO = (divWENO-analSolu)/(analSolu+dimSmall);
         volScalarField errorLinear = (divLinear-analSolu)/(analSolu+dimSmall);
+        volScalarField errorLimitedLinear = (divLimitedLinear-analSolu)/(analSolu+dimSmall);
         
         double meanErrorWENO = 0;
         double meanErrorLinear = 0;
+        double meanErrorLimitedLinear = 0;
         double maxErrorWENO = 0;
         double maxErrorLinear = 0;
+        double maxErrorLimitedLinear = 0;
         
         // Calculate the mean of the result and exclude first and second entry
         forAll(errorWENO,celli)
         {
             meanErrorWENO += std::abs(errorWENO[celli]);
             meanErrorLinear += std::abs(errorLinear[celli]);
+            meanErrorLimitedLinear += std::abs(errorLimitedLinear[celli]);
             if (std::abs(errorWENO[celli]) > maxErrorWENO)
                 maxErrorWENO = std::abs(errorWENO[celli]);
             if (std::abs(errorLinear[celli]) > maxErrorLinear)
                 maxErrorLinear = std::abs(errorLinear[celli]);
+            if (std::abs(errorLimitedLinear[celli]) > maxErrorLimitedLinear)
+                maxErrorLimitedLinear = std::abs(errorLimitedLinear[celli]);
         }
-        meanErrorWENO /= (errorWENO.size()-2);
-        meanErrorLinear /= (errorLinear.size()-2);
+        meanErrorWENO /= (errorWENO.size());
+        meanErrorLinear /= (errorLinear.size());
+        meanErrorLimitedLinear /= (errorLimitedLinear.size());
         
         Info << "---------------------------\n"
              << "       Divergence          \n"
              << "---------------------------\n"
-             << "Mean Error Linear: "<<meanErrorLinear<<nl
-             << "Mean Error WENO:   "<<meanErrorWENO<<nl<<nl
-             << "Max Error Linear:  "<<maxErrorLinear<<nl
-             << "Max Error WENO:    "<<maxErrorWENO << nl
+             << "Mean Error Linear:        "<<meanErrorLinear<<nl
+             << "Mean Error LimitedLinear: "<<meanErrorLimitedLinear<<nl
+             << "Mean Error WENO:          "<<meanErrorWENO<<nl<<nl
+             << "Max Error Linear:         "<<maxErrorLinear<<nl
+             << "Max Error LimitedLinear:  "<<maxErrorLimitedLinear<<nl
+             << "Max Error WENO:           "<<maxErrorWENO << nl
              << "---------------------------" << endl; 
         
         REQUIRE(meanErrorLinear > meanErrorWENO);
