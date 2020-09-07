@@ -159,14 +159,13 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 std::move(points),
                 std::move(faces),
                 std::move(owner),
-                std::move(neighbour),
+                std::move(neighbour)
             #else
                 xferMove(points),
                 xferMove(faces),
                 xferMove(owner),
-                xferMove(neighbour),
+                xferMove(neighbour)
             #endif
-            false // Do not synchronize --> in polyMesh() bounds_ calls an mpirecv 
         );
 
         // Now add the boundaries by creating a polyPatch with a type patch 
@@ -215,47 +214,16 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         );
 
         // Add elements to mesh
-        autoPtr<mapAddedPolyMesh> map = add
+        autoPtr<mapAddedPolyMesh> map = fvMeshAdder::add
         (
             *masterMesh,
             meshToAdd,
-            couples,
-            false // do not synchronize
+            couples
         );
         
     }
     
     return autoPtr<fvMesh>(masterMesh);
-}
-
-
-Foam::autoPtr<Foam::mapAddedPolyMesh> Foam::reconstructRegionalMesh::add
-(
-    fvMesh& mesh0,
-    const fvMesh& mesh1,
-    const faceCoupleInfo& coupleInfo,
-    const bool validBoundary
-)
-{
-    // -----------------------------------
-    // Function taken from fvMeshAddr::add
-    // -----------------------------------
-    
-    mesh0.clearOut();
-    
-    // Resulting merged mesh (polyMesh only!)
-    autoPtr<mapAddedPolyMesh> mapPtr
-    (
-        polyMeshAdder::add
-        (
-            mesh0,
-            mesh1,
-            coupleInfo,
-            validBoundary
-        )
-    );
-    
-    return mapPtr;
 }
 
 
