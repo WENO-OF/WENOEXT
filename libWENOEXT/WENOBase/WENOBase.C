@@ -866,7 +866,7 @@ Foam::WENOBase::WENOBase
             forAll(LSmatrix_[cellI],stencilI)
             {
                 if (stencilsID_[cellI][stencilI][0] != int(Cell::deleted))
-                    PseudoInverseDimension[cellI] += LSmatrix_[cellI][stencilI]().size();
+                    PseudoInverseDimension[cellI] += blaze::size(LSmatrix_[cellI][stencilI]());
             }
         }
         
