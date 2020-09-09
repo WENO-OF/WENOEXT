@@ -395,14 +395,14 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     // This depends on the compiler used! For portability it is explicitly defined
     // here.
     // Using inplace multiplication!
-    auto intPow = [](double& base,const unsigned int exponent) -> scalar
+    auto intPow = [](double& base,const unsigned int exponent) -> void
     {
-        if (exponent == 0) return 1.0;
+        if (exponent == 0) 
+            base = 1.0;
         for (unsigned int i =1; i<exponent;i++)
         {
             base *= base;
         }
-        return base;
     };
 
     // Sum up over Gaussian points with transformation on projected triangle
@@ -412,17 +412,21 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     for (label j = 0; j < 13; j++)
     {
         scalar xi =
-            v0.x()*(1 - gaussCoeff[j][0] - gaussCoeff[j][1])
-          + v1.x()*gaussCoeff[j][0] + v2.x()*gaussCoeff[j][1] - xi0.x();
+            v0.x()* (1 - gaussCoeff[j][0] - gaussCoeff[j][1])
+          + v1.x()* gaussCoeff[j][0] + v2.x()*gaussCoeff[j][1] - xi0.x();
         scalar eta =
             v0.y()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
           + v1.y()* gaussCoeff[j][0] +v2.y()* gaussCoeff[j][1] - xi0.y();
         scalar zeta =
             v0.z()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
-          + v1.z()* gaussCoeff[j][0] +v2.z()* gaussCoeff[j][1] -xi0.z();
+          + v1.z()* gaussCoeff[j][0] +v2.z()* gaussCoeff[j][1] - xi0.z();
+    
+        // use in place power function
+        intPow(xi,n);
+        intPow(eta,m);
+        intPow(zeta,l);
 
-        sum +=
-            gaussCoeff[j][2]*intPow(xi, n)*intPow(eta, m)*intPow(zeta, l);
+        sum += gaussCoeff[j][2]*xi*eta*zeta;
     }
 
     return sum;
