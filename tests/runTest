@@ -10,7 +10,8 @@ cd ../ && ./Allwmake
 
 cd ${currDir}/src && wmake
 
-cd ${currDir}/Case && blockMesh && ../src/tests.exe
+cd ${currDir}/Case 
+sed -i "s/^nCells.*/nCells 50;/" system/blockMeshDict && blockMesh && ../src/tests.exe
 
 # Run globalFvMesh test case
 cd ${currDir}/globalFvMeshTest/src

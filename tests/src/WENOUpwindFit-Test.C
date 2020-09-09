@@ -57,7 +57,13 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
     // -------------------------------------------------------------------------
     //                          Create Input Data 
     // -------------------------------------------------------------------------
-        
+    
+    
+    // Mesh has two patches, outlet with fixed value and empty direction
+    wordList patchTypes(2);
+    patchTypes[0] = "fixedValue"; 
+    patchTypes[1] = "empty";
+    
     // Create a volScalarField with the sinus curve
     volScalarField psi
     (
@@ -71,7 +77,7 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         ),
         mesh,
         dimensionedScalar("0", dimless, 0.0),
-        "zeroGradient"
+        patchTypes
     );
 
     auto calcSinus = [](const double x, const double y) -> double
@@ -83,6 +89,17 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
     forAll(mesh.C(),celli)
     {
         psi[celli] = calcSinus(centre[celli].x(),centre[celli].y());
+    }
+    
+    {
+        const label outletIndex = mesh.boundary().findPatchID("outlet");
+        auto& PatchField = psi.boundaryFieldRef()[outletIndex];
+        const vectorField& faceCenters = PatchField.patch().Cf();
+    
+        forAll(PatchField,facei)
+        {
+            PatchField[facei] = calcSinus(faceCenters[facei].x(),faceCenters[facei].y());
+        }
     }
 
     psi.write();
@@ -103,7 +120,7 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         ),
         mesh,
         dimensionedVector("0", dimVelocity, vector(0.0,0.0,0.0)),
-        "zeroGradient"
+        patchTypes
     );
     
     forAll(mesh.C(),celli)
@@ -112,6 +129,21 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         const double y = centre[celli].y();
         double mag = (x*x+y*y);
         U[celli] = vector(x/mag,y/mag,0);
+    }
+    // Correct the boundary
+    // Find patch outlet
+    {
+        const label outletIndex = mesh.boundary().findPatchID("outlet");
+        auto& PatchField = U.boundaryFieldRef()[outletIndex];
+        const vectorField& faceCenters = PatchField.patch().Cf();
+    
+        forAll(PatchField,facei)
+        {
+            const double x = faceCenters[facei].x();
+            const double y = faceCenters[facei].y();
+            double mag = (x*x+y*y);
+            PatchField[facei] = vector(x/mag,y/mag,0);
+        }
     }
     
     U.write();
@@ -178,9 +210,13 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         //                     Run Test Divergence
         // ---------------------------------------------------------------------
         // Test the surface interpolation scheme
-        volScalarField divWENO = fvc::div(phi,psi,"div(WENO)");
-        volScalarField divLinear = fvc::div(phi,psi,"div(Linear)");
-        volScalarField divLimitedLinear = fvc::div(phi,psi,"div(LimitedLinear)");
+        volScalarField divWENO("divWENO",fvc::div(phi,psi,"div(WENO)"));
+        volScalarField divLinear("divLinear",fvc::div(phi,psi,"div(Linear)"));
+        volScalarField divLimitedLinear("divLimitedLinear",fvc::div(phi,psi,"div(LimitedLinear)"));
+
+        divWENO.write();
+        divLinear.write();
+        divLimitedLinear.write();
 
         // Analytical sultion
         auto analyticalSoultion = [](const double x, const double y)
@@ -224,9 +260,27 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         double maxErrorLinear = 0;
         double maxErrorLimitedLinear = 0;
         
+        // Exclude the cells at the outlet boundary as there the boundary condition
+        // "zeroGradient" is not correct. 
+        const label outletIndex = mesh.boundary().findPatchID("outlet");
+        const auto& boundaryCells = mesh.boundary()[outletIndex].faceCells();
+        
+        
+        int sampleSize = 0;
         // Calculate the mean of the result and exclude first and second entry
         forAll(errorWENO,celli)
         {
+            //// check if celli is a boundary cell
+            //bool boundaryCell = false;
+            //forAll(boundaryCells,bCelli)
+            //{
+                //if (boundaryCells[bCelli] == celli)
+                    //boundaryCell = true;
+            //}
+            //if (boundaryCell)
+                //continue;
+            
+            sampleSize++;
             meanErrorWENO += std::abs(errorWENO[celli]);
             meanErrorLinear += std::abs(errorLinear[celli]);
             meanErrorLimitedLinear += std::abs(errorLimitedLinear[celli]);
@@ -237,9 +291,9 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
             if (std::abs(errorLimitedLinear[celli]) > maxErrorLimitedLinear)
                 maxErrorLimitedLinear = std::abs(errorLimitedLinear[celli]);
         }
-        meanErrorWENO /= (errorWENO.size());
-        meanErrorLinear /= (errorLinear.size());
-        meanErrorLimitedLinear /= (errorLimitedLinear.size());
+        meanErrorWENO /= sampleSize;
+        meanErrorLinear /= sampleSize;
+        meanErrorLimitedLinear /= sampleSize;
         
         Info << "---------------------------\n"
              << "       Divergence          \n"
