@@ -159,46 +159,8 @@ Foam::labelList Foam::WENO::globalfvMesh::neighborProcessorList(const fvMesh& me
             }
         }
         
-        // Get the maximum of myNeighbourProc cells and make everyone equal
-        List<labelList> allValues(Pstream::nProcs());
-        allValues[Pstream::myProcNo()] = myNeighbourProc;
-
-        Pstream::gatherList(allValues);
-        
-        Pstream::scatterList(allValues);
-        
-        label maxProcNumber = 0;
-        forAll(allValues,i)
-        {
-            if (allValues[i].size()>maxProcNumber)
-                maxProcNumber = allValues[i].size();
-        }
-        
-        while (myNeighbourProc.size() < maxProcNumber)
-        {
-            // Get the neighbour and second neighbour list for your processor
-            secondNeighborList.clear();
-            forAll(myNeighbourProc,procI)
-            {
-                const label neighbourProcI = myNeighbourProc[procI];
-                secondNeighborList.append(allNeighbours[neighbourProcI]);
-            }
-            
-            forAll(secondNeighborList,i)
-            {
-                if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
-                {
-                    myNeighbourProc.append(secondNeighborList[i]);
-                    addedProcessor.insert(secondNeighborList[i]);
-                }
-            }
-        }
-        
-        // resize list
-        myNeighbourProc.resize(maxProcNumber);
-
         #ifdef FULLDEBUG
-            Info << "Number of neighbour processor: "<<maxProcNumber<<endl;
+            Pout << "Number of neighbour processor: "<<myNeighbourProc<<endl;
         #endif
         return myNeighbourProc;
     }
