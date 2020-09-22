@@ -29,6 +29,7 @@ Author
 
 #include "globalfvMesh.H"
 #include "reconstructRegionalMesh.H"
+#include "meshSearch.H"
 
 Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
 :
@@ -47,31 +48,6 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     #ifdef FULLDEBUG
     Pout << "Reconstructed Mesh for processor "<<Pstream::myProcNo() << endl;
     #endif
-}
-
-
-
-Foam::label Foam::WENO::globalfvMesh::findCellIndex(const fvMesh& mesh, const point& p)
-{
-    const scalar mergeTol = 1E-6;
-    // Read point on individual processors to determine merge tolerance
-    // (otherwise single cell domains might give problems)
-    const boundBox bb = mesh.bounds();
-    const scalar tol = mergeTol*bb.mag();
-    
-    // Try to find with tet decomposition
-    label celli = mesh.findCell(p);
-
-    if (celli >= 0 && mag(mesh.C()[celli] - p) < tol)
-        return celli;
-
-    // If not found make exhaustive search
-    forAll(mesh.C(),cellI)
-    {
-        if (mag(mesh.C()[cellI] - p) < tol)
-            return cellI;
-    }
-    return -1;
 }
 
 
@@ -230,11 +206,20 @@ Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
         
         const vectorField& globalCellCenters = globalMesh_.C();
 
+        meshSearch mSearch(globalMesh_);
+
+        label oldCellIndex = 0;
+
         // Loop over all local cells and look for cell center
         forAll(localCellCenters,cellI)
         {
             // Find cell
-            label globalCellIndex = findCellIndex(globalMesh_,localCellCenters[cellI]);
+            label globalCellIndex = mSearch.findCell(localCellCenters[cellI],oldCellIndex);
+            if (globalCellIndex == -1)
+                globalCellIndex = mSearch.findCell(localCellCenters[cellI]);
+                
+            oldCellIndex = globalCellIndex;
+            
             if (globalCellIndex >= 0)
                 localToGlobalCellID[cellI] = globalCellIndex;
             else
@@ -300,16 +285,25 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
         }
 
         const vectorField& globalCellCenters = globalMesh_.C();
-            
+        
+        meshSearch mSearch(globalMesh_);
+        
         // Loop over all global cells and find corresponding cell center
         forAll(cellCentersList,procI)
          { 
             const vectorField& localCellCentersI = cellCentersList[procI];
             
+            label oldCellIndex = 0;
+            
             forAll(localCellCentersI,cellI)
             { 
                 // Find cell
-                label globalCellIndex = findCellIndex(globalMesh_,localCellCentersI[cellI]);
+                label globalCellIndex = mSearch.findCell(localCellCentersI[cellI],oldCellIndex);
+                if (globalCellIndex == -1)
+                    globalCellIndex = mSearch.findCell(localCellCentersI[cellI]);
+                    
+                oldCellIndex = globalCellIndex;
+                    
                 if (globalCellIndex >= 0)
                 {
                     globalToLocalCellID[globalCellIndex] = cellI;

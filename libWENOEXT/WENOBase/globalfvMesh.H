@@ -85,10 +85,6 @@ class globalfvMesh
         const labelList globalToLocalCellID_;
         
     // Member functions
-
-        //- Find closest cell and return cell index
-        //  if not found return -1
-        label findCellIndex(const fvMesh& mesh, const point& p);
         
         // Generate the lists for the constructor
         labelList neighborProcessorList(const fvMesh& mesh);
