@@ -5,7 +5,10 @@
 [ -d EPS ] || mkdir EPS
 # --- END System Commands ---
 
+
 gnuplot <<-EOFMarker
+    # Select if a epslatex or an eps file
+    # is created.
     DIR = "TEX";
 
 
