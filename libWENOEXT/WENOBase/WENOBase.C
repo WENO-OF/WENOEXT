@@ -818,6 +818,9 @@ Foam::WENOBase::WENOBase
     }
     
 
+    // Print information about LSmatrix databank
+    LSmatrix_.info();
+
     #ifdef FULLDEBUG
         volScalarField excludedStencils
         (
@@ -844,8 +847,6 @@ Foam::WENOBase::WENOBase
 
         excludedStencils.write();
         
-        // Print information about LSmatrix databank
-        LSmatrix_.info();
         
         volScalarField PseudoInverseDimension
         (

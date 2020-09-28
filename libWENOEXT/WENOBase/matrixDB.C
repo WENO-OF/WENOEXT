@@ -242,7 +242,7 @@ void Foam::matrixDB::resizeSubList(const label cellI, const label size)
 
 void Foam::matrixDB::info()
 {
-    scalar numElements = 0;
+    int numElements = 0;
     forAll(LSmatrix_,celli)
     {
         forAll(LSmatrix_[celli],stencilI)
@@ -252,11 +252,35 @@ void Foam::matrixDB::info()
         }
     }
     
-    Pout << "\tMatrix Database Statistics: "<<nl
-         << "\t\tTotal Number of matrices: "<< numElements << nl
-         << "\t\tNumber matrices stored: "<<DB_.size() <<nl
-         << "\t\tMemory reduction:       "<<100.0 - double(DB_.size())/numElements*100.0<<nl
-         << "\t\tCounter: "<<counter_<< endl;
+    // get the information of all processors 
+    List<int> processorNumElements(Pstream::nProcs());
+    List<int> processorDBSize(Pstream::nProcs());
+    List<int> processorCounter(Pstream::nProcs());
+
+
+    processorNumElements[Pstream::myProcNo()] = numElements;
+    processorDBSize[Pstream::myProcNo()] = DB_.size();
+    processorCounter[Pstream::myProcNo()] = counter_;
+
+    Pstream::gatherList(processorNumElements);
+    Pstream::gatherList(processorDBSize);
+    Pstream::gatherList(processorCounter);
+    
+    int sumElements = 0;
+    int sumDBSize = 0;
+    int sumCounter = 0;
+    forAll(processorNumElements,proci)
+    {
+        sumElements += processorNumElements[proci];
+        sumDBSize += processorDBSize[proci];
+        sumCounter += processorCounter[proci];
+    }
+    
+    Info << "\tMatrix Database Statistics: "<<nl
+         << "\t\tTotal Number of matrices: "<< sumElements << nl
+         << "\t\tNumber matrices stored: "<<sumDBSize <<nl
+         << "\t\tMemory reduction:       "<<100.0 - double(sumDBSize)/double(sumElements)*100.0<<nl
+         << "\t\tCounter: "<<sumCounter<< endl;
 }
 
 
