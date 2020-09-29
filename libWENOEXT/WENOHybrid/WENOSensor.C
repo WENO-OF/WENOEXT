@@ -34,6 +34,7 @@ Author
 #include "processorFvPatch.H"
 
 
+
 // * * * * * * * * * * * * * * * * * Constructor * * * * * * * * * * * * * * //
 
 template<class Type>
@@ -73,7 +74,7 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
     Field<scalar>& coeffsWeightedI,
     const label cellI,
     const GeometricField<scalar, fvPatchField, volMesh>& vf,
-    const List<List<scalar> >& coeffsI
+    const List<coeffType>& coeffsI
 ) const
 {
     scalar gamma = 0.0;
@@ -86,17 +87,17 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
     
     forAll(coeffsI, stencilI)
     {
-        const List<scalar> coeffsIsI = coeffsI[stencilI];
+        const auto& coeffsIsI = coeffsI[stencilI];
 
         // Get smoothness indicator
 
         scalar smoothInd = 0.0;
 
-        forAll(coeffsIsI, coeffP)
+        forAllU(coeffsIsI, coeffP)
         {
             scalar sumB = 0.0;
 
-            forAll(coeffsIsI, coeffQ)
+            forAllU(coeffsIsI, coeffQ)
             {
                 sumB +=
                     this->WENOBase_.B()[cellI][coeffP][coeffQ]
@@ -122,7 +123,7 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
         gammaSum += gamma;
 
 
-        forAll(coeffsIsI, coeffI)
+        forAllU(coeffsIsI, coeffI)
         {
             coeffsWeightedI[coeffI] += coeffsIsI[coeffI]*gamma;
         }
@@ -145,7 +146,7 @@ void Foam::WENOSensor<Type>::calcWeight
     Field<Type>& coeffsWeightedI,
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const List<List<Type> >& coeffsI
+    const List<coeffType>& coeffsI
 ) const 
 {
     scalar gamma = 0.0;
@@ -161,17 +162,17 @@ void Foam::WENOSensor<Type>::calcWeight
         
         forAll(coeffsI, stencilI)
         {
-            const List<Type>& coeffsIsI = coeffsI[stencilI];
+            const auto& coeffsIsI = coeffsI[stencilI];
 
             // Get smoothness indicator
 
             scalar smoothInd = 0.0;
 
-            forAll(coeffsIsI, coeffP)
+            forAllU(coeffsIsI, coeffP)
             {
                 scalar sumB = 0.0;
 
-                forAll(coeffsIsI, coeffQ)
+                forAllU(coeffsIsI, coeffQ)
                 {
                     sumB +=
                     (
@@ -198,7 +199,7 @@ void Foam::WENOSensor<Type>::calcWeight
             
             gammaSum += gamma;
 
-            forAll(coeffsIsI, coeffI)
+            forAllU(coeffsIsI, coeffI)
             {
                 coeffsWeightedI[coeffI][compI] += coeffsIsI[coeffI][compI]*gamma;
             }

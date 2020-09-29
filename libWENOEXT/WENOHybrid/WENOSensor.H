@@ -74,6 +74,8 @@ class WENOSensor
         //- Exponent for shock sensor
         scalar theta_;
 
+        using coeffType = blaze::DynamicVector<Type>;
+
         //- Disallow default bitwise copy construct
         WENOSensor(const WENOSensor&);
 
@@ -86,7 +88,7 @@ class WENOSensor
             Field<Type>& coeffsWeightedI,
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            const List<List<Type> >& coeffsI
+            const List<coeffType>& coeffsI
         ) const override;
 
 public:

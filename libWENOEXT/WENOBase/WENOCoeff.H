@@ -41,6 +41,7 @@ Author
 
 #include "DynamicField.H"
 #include "WENOBase.H"
+#include "blaze/Math.h"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -66,6 +67,9 @@ protected:
         //- C++11 typedef for squareMatrix
         //  This is used for Jacobian matrix
         using scalarSquareMatrix = SquareMatrix<scalar>;
+        
+        //- Typedef for coefficient type with blaze object
+        using coeffType = blaze::DynamicVector<Type>;
 
         //- Static variable to print WENODict just once during runtime
         static bool printWENODict_;
@@ -109,7 +113,7 @@ protected:
         (
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& dataField,
-            List<Type>& dvtI,
+            coeffType& coeff,
             const label stencilI
         ) const;
 
@@ -120,7 +124,7 @@ protected:
             Field<Type>& coeffsWeightedI,
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            const List<List<Type> >& coeffsI
+            const List<coeffType>& coeffsI
         ) const;
 
 

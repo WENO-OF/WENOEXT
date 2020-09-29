@@ -30,7 +30,6 @@ Author
 #include "codeRules.H"
 #include "WENOCoeff.H"
 #include "DynamicField.H"
-#include "blaze/Math.h"
 #include "processorFvPatch.H"
 
 
@@ -38,7 +37,9 @@ Author
     #define GIT_BUILD "NaN"
 #endif
 
-
+// Generate macro for forAll expansion of unsigned integers
+#define forAllU(list,i) \
+    for (unsigned int i=0; i<(list).size();i++)
 
 // * * * * * * * * * * * * * *  Static Variables * * * * * * * * * * * * * * //
 template<class Type>
@@ -118,7 +119,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
 (
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    List<Type>& coeff,
+    coeffType& coeff,
     const label stencilI
 ) const
 {
@@ -131,8 +132,6 @@ void Foam::WENOCoeff<Type>::calcCoeff
 
     // Calculate degrees of freedom of stencil as a matrix vector product
     // First line is always constraint line
-    
-    coeff.setSize(nDvt_,pTraits<Type>::zero);
     
     // Create bJ vector
     blaze::DynamicVector<Type> bJ(A.columns(),pTraits<Type>::zero);
@@ -154,12 +153,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
     }
     
     // calculate coefficients
-    auto aCoeff = A*bJ;
-    
-    forAll(coeff,i)
-    {
-        coeff[i] = aCoeff[i];
-    }
+    coeff = A*bJ;
 }
 
 
@@ -250,7 +244,7 @@ Foam::WENOCoeff<Type>::getWENOPol
                 coeffSize++;
         }
         
-        List<List<Type> > coeffsI(coeffSize);
+        List<coeffType> coeffsI(coeffSize);
         
         
         // counter for coeff index
@@ -296,7 +290,7 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
     Field<scalar>& coeffsWeightedI,
     const label cellI,
     const GeometricField<scalar, fvPatchField, volMesh>& vf,
-    const List<List<scalar> >& coeffsI
+    const List<coeffType>& coeffsI
 ) const
 {
     scalar gamma = 0.0;
@@ -304,17 +298,17 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
 
     forAll(coeffsI, stencilI)
     {
-        const List<scalar> coeffsIsI = coeffsI[stencilI];
+        const auto& coeffsIsI = coeffsI[stencilI];
 
         // Get smoothness indicator
 
         scalar smoothInd = 0.0;
 
-        forAll(coeffsIsI, coeffP)
+        forAllU(coeffsIsI, coeffP)
         {
             scalar sumB = 0.0;
 
-            forAll(coeffsIsI, coeffQ)
+            forAllU(coeffsIsI, coeffQ)
             {
                 sumB +=
                     WENOBase_.B()[cellI][coeffP][coeffQ]
@@ -337,7 +331,7 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
 
         gammaSum += gamma;
 
-        forAll(coeffsIsI, coeffI)
+        forAllU(coeffsIsI, coeffI)
         {
             coeffsWeightedI[coeffI] += coeffsIsI[coeffI]*gamma;
         }
@@ -357,7 +351,7 @@ void Foam::WENOCoeff<Type>::calcWeight
     Field<Type>& coeffsWeightedI,
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const List<List<Type> >& coeffsI
+    const List<coeffType>& coeffsI
 ) const 
 {
     scalar gamma = 0.0;
@@ -368,17 +362,17 @@ void Foam::WENOCoeff<Type>::calcWeight
 
         forAll(coeffsI, stencilI)
         {
-            const List<Type>& coeffsIsI = coeffsI[stencilI];
+            const auto& coeffsIsI = coeffsI[stencilI];
 
             // Get smoothness indicator
 
             scalar smoothInd = 0.0;
 
-            forAll(coeffsIsI, coeffP)
+            forAllU(coeffsIsI, coeffP)
             {
                 scalar sumB = 0.0;
 
-                forAll(coeffsIsI, coeffQ)
+                forAllU(coeffsIsI, coeffQ)
                 {
                     sumB +=
                     (
@@ -405,7 +399,7 @@ void Foam::WENOCoeff<Type>::calcWeight
 
 
 
-            forAll(coeffsIsI, coeffI)
+            forAllU(coeffsIsI, coeffI)
             {
                 coeffsWeightedI[coeffI][compI] += coeffsIsI[coeffI][compI]*gamma;
             }
