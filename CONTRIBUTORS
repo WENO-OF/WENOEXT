@@ -4,17 +4,12 @@ The weighted essentially non-oscillatory library was initially developed by
 Tobias Martin at the University of Rostock. The method and its validation has 
 been demonstrated in
 
-@Article{computation6010006,
-AUTHOR = {Martin, Tobias and Shevchuk, Ivan},
-TITLE = {Implementation and Validation of Semi-Implicit WENO Schemes Using OpenFOAM},
-JOURNAL = {Computation},
-VOLUME = {6},
-YEAR = {2018},
-NUMBER = {1},
-ARTICLE NUMBER = {6}
-}
+[1] J. W. Gärtner, A. Kronenburg, and T. Martin, “SoftwareX Efficient WENO library for OpenFOAM,” 
+    SoftwareX, vol. 12, p. 100611, 2020, doi: 10.1016/j.softx.2020.100611.
+[2] T. Martin and I. Shevchuk, “Implementation and validation of semi-implicit WENO schemes using OpenFOAM®,” 
+    Computation, vol. 6, no. 1, pp. 1–36, 2018, doi: 10.3390/computation6010006.
 
-Please make a proper reference to this open access paper if the library is used. 
+When using this work please cite the first citation [1] for the newest version and for using version v-0.1 [2]. 
 
 
 ---------------------------
@@ -24,3 +19,39 @@ Other contributors to this development are:
 Ivan Shevchuk
 Timofey Mukha
 Jan Gärtner
+
+
+---------------------------
+Bibtex Entry
+---------------------------
+
+@article{Gartner2020,
+author = {G{\"{a}}rtner, Jan Wilhelm and Kronenburg, Andreas and Martin, Tobias},
+doi = {10.1016/j.softx.2020.100611},
+issn = {2352-7110},
+journal = {SoftwareX},
+pages = {100611},
+publisher = {Elsevier B.V.},
+title = {{SoftwareX Efficient WENO library for OpenFOAM}},
+url = {https://doi.org/10.1016/j.softx.2020.100611},
+volume = {12},
+year = {2020}
+}
+
+
+
+
+@article{Martin2018,
+author = {Martin, Tobias and Shevchuk, Ivan},
+doi = {10.3390/computation6010006},
+issn = {20793197},
+journal = {Computation},
+number = {1},
+pages = {1--36},
+title = {{Implementation and validation of semi-implicit WENO schemes using OpenFOAM{\textregistered}}},
+volume = {6},
+year = {2018}
+}
+
+
+
