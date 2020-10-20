@@ -72,15 +72,15 @@ Foam::WENOCoeff<Type>::WENOCoeff
             (polOrder_ + 1.0)*(polOrder_ + 2.0)*(polOrder_ + 3.0)
            /6.0 - 1.0;
 
-        Info<< "Reconstruction using WENO"
-            << polOrder_ << " (3D version)" << endl;
+        //Info<< "Reconstruction using WENO"
+            //<< polOrder_ << " (3D version)" << endl;
     }
     else // 2D version
     {
         nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)/2.0 - 1.0;
 
-        Info<< "Reconstruction using WENO"
-            << polOrder_ << " (2D version)" << endl;
+        //Info<< "Reconstruction using WENO"
+            //<< polOrder_ << " (2D version)" << endl;
     }
 
     // Read expert factors
@@ -290,33 +290,17 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
     Field<scalar>& coeffsWeightedI,
     const label cellI,
     const GeometricField<scalar, fvPatchField, volMesh>& vf,
-    const List<coeffType>& coeffsI
+    const List<coeffType>& coeffsList
 ) const
 {
     scalar gamma = 0.0;
     scalar gammaSum = 0.0;
 
-    forAll(coeffsI, stencilI)
+    forAll(coeffsList, stencilI)
     {
-        const auto& coeffsIsI = coeffsI[stencilI];
+        const auto& coeffs = coeffsList[stencilI];
 
-        // Get smoothness indicator
-
-        scalar smoothInd = 0.0;
-
-        forAllU(coeffsIsI, coeffP)
-        {
-            scalar sumB = 0.0;
-
-            forAllU(coeffsIsI, coeffQ)
-            {
-                sumB +=
-                    WENOBase_.B()[cellI][coeffP][coeffQ]
-                   *coeffsIsI[coeffQ];
-            }
-
-            smoothInd += coeffsIsI[coeffP]*sumB;
-        }
+        const scalar smoothInd = trans(coeffs) * (WENOBase_.B()[cellI]*coeffs);
 
         // Calculate gamma for central and sectorial stencils
 
@@ -331,9 +315,9 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
 
         gammaSum += gamma;
 
-        forAllU(coeffsIsI, coeffI)
+        forAllU(coeffs, coeffI)
         {
-            coeffsWeightedI[coeffI] += coeffsIsI[coeffI]*gamma;
+            coeffsWeightedI[coeffI] += coeffs[coeffI]*gamma;
         }
     }
 
@@ -351,7 +335,7 @@ void Foam::WENOCoeff<Type>::calcWeight
     Field<Type>& coeffsWeightedI,
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const List<coeffType>& coeffsI
+    const List<coeffType>& coeffsList
 ) const 
 {
     scalar gamma = 0.0;
@@ -360,28 +344,17 @@ void Foam::WENOCoeff<Type>::calcWeight
     {
         scalar gammaSum = 0.0;
 
-        forAll(coeffsI, stencilI)
+        forAll(coeffsList, stencilI)
         {
-            const auto& coeffsIsI = coeffsI[stencilI];
+            const auto& coeffs = coeffsList[stencilI];
 
             // Get smoothness indicator
 
             scalar smoothInd = 0.0;
-
-            forAllU(coeffsIsI, coeffP)
+            auto sumB =  WENOBase_.B()[cellI] * coeffs;
+            forAllU(coeffs, coeffP)
             {
-                scalar sumB = 0.0;
-
-                forAllU(coeffsIsI, coeffQ)
-                {
-                    sumB +=
-                    (
-                        WENOBase_.B()[cellI][coeffP][coeffQ]
-                       *coeffsIsI[coeffQ][compI]
-                    );
-                }
-
-                smoothInd += coeffsIsI[coeffP][compI]*sumB;
+                smoothInd += coeffs[coeffP][compI]*sumB[coeffP][compI];
             }
 
             // Calculate gamma for central and sectorial stencils
@@ -397,11 +370,9 @@ void Foam::WENOCoeff<Type>::calcWeight
 
             gammaSum += gamma;
 
-
-
-            forAllU(coeffsIsI, coeffI)
+            forAllU(coeffs, coeffI)
             {
-                coeffsWeightedI[coeffI][compI] += coeffsIsI[coeffI][compI]*gamma;
+                coeffsWeightedI[coeffI][compI] += coeffs[coeffI][compI]*gamma;
             }
         }
 

@@ -90,23 +90,8 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
         const auto& coeffsIsI = coeffsI[stencilI];
 
         // Get smoothness indicator
-
-        scalar smoothInd = 0.0;
-
-        forAllU(coeffsIsI, coeffP)
-        {
-            scalar sumB = 0.0;
-
-            forAllU(coeffsIsI, coeffQ)
-            {
-                sumB +=
-                    this->WENOBase_.B()[cellI][coeffP][coeffQ]
-                   *coeffsIsI[coeffQ];
-            }
-
-            smoothInd += coeffsIsI[coeffP]*sumB;
-        }
-
+        const scalar smoothInd = trans(coeffsIsI) * (WENOBase_.B()[cellI]*coeffsIsI);
+        
         smoothIndList[stencilI] = smoothInd;
 
         // Calculate gamma for central and sectorial stencils
@@ -176,7 +161,7 @@ void Foam::WENOSensor<Type>::calcWeight
                 {
                     sumB +=
                     (
-                        this->WENOBase_.B()[cellI][coeffP][coeffQ]
+                        this->WENOBase_.B()[cellI](coeffP,coeffQ)
                        *coeffsIsI[coeffQ][compI]
                     );
                 }

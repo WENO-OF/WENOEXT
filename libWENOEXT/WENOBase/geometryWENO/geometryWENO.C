@@ -562,7 +562,7 @@ Foam::geometryWENO::volIntegralType Foam::geometryWENO::smoothIndIntegrals
 }
 
 
-Foam::scalarRectangularMatrix Foam::geometryWENO::getB
+Foam::geometryWENO::DynamicMatrix Foam::geometryWENO::getB
 (
     const fvMesh& mesh,
     const label cellI,
@@ -573,7 +573,7 @@ Foam::scalarRectangularMatrix Foam::geometryWENO::getB
     const labelList& dim
 )
 {
-    scalarRectangularMatrix B
+    DynamicMatrix B
     (
         nDvt,
         nDvt,
@@ -656,7 +656,7 @@ Foam::scalarRectangularMatrix Foam::geometryWENO::getB
 
                                                 if (K != 0)
                                                 {
-                                                    B[p][q] +=
+                                                    B(p,q) +=
                                                        K*intB[n1 + n2 - 2*alpha]
                                                        [m1 + m2 - 2*beta]
                                                        [l1 + l2 - 2*gamma];

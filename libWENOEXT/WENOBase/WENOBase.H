@@ -42,6 +42,7 @@ Author
 #include "linear.H"
 #include "globalfvMesh.H"
 #include "matrixDB.H"
+#include "geometryWENO.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -160,7 +161,7 @@ class WENOBase
         matrixDB LSmatrix_;
 
         //- Lists of oscillation matrices for each stencil of each cell
-        List<scalarRectangularMatrix> B_;
+        List<geometryWENO::DynamicMatrix> B_;
 
 
     //- Private member functions
@@ -318,7 +319,7 @@ public:
             return LSmatrix_;
         }
         
-        inline const List<scalarRectangularMatrix>& B() const 
+        inline const List<geometryWENO::DynamicMatrix>& B() const 
         {
             return B_;
         }

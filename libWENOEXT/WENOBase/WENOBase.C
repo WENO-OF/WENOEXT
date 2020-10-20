@@ -29,7 +29,6 @@ Author
 
 #include "codeRules.H"
 #include "WENOBase.H"
-#include "geometryWENO.H"
 #include "SVD.H"
 #include "processorFvPatch.H"
 #include "labelListIOList.H"

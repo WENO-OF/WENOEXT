@@ -43,6 +43,7 @@ Author
 #include "polyMeshTetDecomposition.H"
 #include "fvMesh.H"
 #include "fvCFD.H"
+#include "blaze/Math.h"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -59,7 +60,8 @@ namespace geometryWENO
     //- Typedef for 3D scalar matrix
     using volIntegralType = List< List< List<scalar> > > ;
     using scalarSquareMatrix = SquareMatrix<scalar>;
-
+    using DynamicMatrix = blaze::DynamicMatrix<scalar>;
+    
     // Member Functions
 
         //- Evaluate the surface integral using Gaussian quadrature
@@ -126,7 +128,7 @@ namespace geometryWENO
         );
 
         //- Calculate the smoothness indicator matrices
-        scalarRectangularMatrix getB
+        DynamicMatrix getB
         (
             const fvMesh& mesh,
             const label cellI,
