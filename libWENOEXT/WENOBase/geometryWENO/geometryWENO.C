@@ -394,15 +394,14 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     // For integer power it is much faster to do an integer multiplication
     // This depends on the compiler used! For portability it is explicitly defined
     // here.
-    // Using inplace multiplication!
-    auto intPow = [](double& base,const unsigned int exponent) -> void
+    auto intPow = [](const scalar base,const unsigned int exponent) -> scalar
     {
-        if (exponent == 0) 
-            base = 1.0;
-        for (unsigned int i =1; i<exponent;i++)
+        scalar temp = 1.0;
+        for (unsigned int i =0; i<exponent;i++)
         {
-            base *= base;
+            temp *= base;
         }
+        return temp;
     };
 
     // Sum up over Gaussian points with transformation on projected triangle
@@ -421,12 +420,7 @@ Foam::scalar Foam::geometryWENO::gaussQuad
             v0.z()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
           + v1.z()* gaussCoeff[j][0] +v2.z()* gaussCoeff[j][1] - xi0.z();
     
-        // use in place power function
-        intPow(xi,n);
-        intPow(eta,m);
-        intPow(zeta,l);
-
-        sum += gaussCoeff[j][2]*xi*eta*zeta;
+        sum += gaussCoeff[j][2]* intPow(xi,n)*intPow(eta,m)*intPow(zeta,l);
     }
 
     return sum;

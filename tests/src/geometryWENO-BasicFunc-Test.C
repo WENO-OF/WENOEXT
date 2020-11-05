@@ -176,6 +176,26 @@ TEST_CASE("geometryWENO: Quadrature","[baseTest]")
             
         }
     }
+    
+    
+    SECTION("Regression Test: Gauss Quadratur")
+    {
+        Foam::vector v0(0.05,0.21,0.08);
+        Foam::vector v1(0.03,1.5,0.03);
+        Foam::vector v2(1.87,0.1,0.01);
+        
+        THEN("Calculate Gauss quadrature")
+        {            
+            // Reference point p0
+            point p0(0.333,0.333,1);
+            
+            scalar Int = geometryWENO::gaussQuad(1,2,4,p0,v0,v1,v2);
+            
+            // The result to check is obtained from old commit 
+            REQUIRE(Approx(Int) == 0.0039776813);
+        }
+    }
+    
 }
 
 
