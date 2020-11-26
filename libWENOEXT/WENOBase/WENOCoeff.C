@@ -101,6 +101,8 @@ Foam::WENOCoeff<Type>::WENOCoeff
     dm_ = WENODict.lookupOrAddDefault<scalar>("dm", 1000.0);
     epsilon_ = WENODict.lookupOrAddDefault<scalar>("epsilon",1E-40);
     
+    // Add pol order for printing 
+    WENODict.add<label>("polOrder",polOrder_);
     if (!printWENODict_)
     {
         Info << "WENO Version: "<< word(GIT_BUILD) << nl
