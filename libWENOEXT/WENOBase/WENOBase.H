@@ -110,6 +110,10 @@ class WENOBase
         //- Switch to calculate all pseudo inverse combination 
         //  To find the best conditioned matrix, default off
         bool bestConditioned_;
+        
+        //- Inverse of the maximum condition of SVD matrix 
+        //  Value given as relative to max(S) of SVD decomposition
+        scalar maxCondition_;
 
         //- Lists of central and sectorial stencil ID's for each cell
         //  For a prallel case this stores the processor local cellID

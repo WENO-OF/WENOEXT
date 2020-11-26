@@ -495,6 +495,8 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
             scalar maxS = -GREAT;
             forAll(S,i)
             {
+                if (S[i] == 0)
+                    continue;
                 if (S[i] < minS)
                     minS = S[i];
                 if (S[i] > maxS)
@@ -507,7 +509,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         
         // Returning pseudoinverse using SVD
         svdCurrPtr.clear();
-        svdCurrPtr.set(new SVD(A, 1e-5));
+        svdCurrPtr.set(new SVD(A, maxCondition_));
         
         if (svdCurrPtr->nZeros() == 0 && svdCurrPtr->converged())
         {
@@ -684,6 +686,8 @@ Foam::WENOBase::WENOBase
             WENODict.lookupOrAddDefault<scalar>("extendRatio", 2.5);
 
         bestConditioned_ = WENODict.lookupOrAddDefault<bool>("bestConditioned",false);
+
+        maxCondition_ = WENODict.lookupOrAddDefault<scalar>("maxCondition",1e-05);
 
         // ------------- Initialize Lists --------------------------------------
 

@@ -103,6 +103,10 @@ FoamFile
     writeData       true; // Write out the collected stencil list and matrix data
                           // default is 'true' 
 
+    maxCondition    1E-05;// Inverse of the maximum condition that the pseudo 
+                          // inverse can have. Only change if you know what you
+                          // are doing!
+
 // ************************************************************************* /
 ```
 
