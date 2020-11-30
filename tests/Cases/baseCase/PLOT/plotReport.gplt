@@ -1,0 +1,42 @@
+#!/bin/bash
+
+
+set term png font 'Helvetica,26'
+
+set style line 1 lt 1 lc rgb "black"   lw 5  ps 2 pt 4 
+set style line 2 lt 1 lc rgb "red"     lw 5  ps 2 pt 5
+set style line 3 lt 1 lc rgb "blue"    lw 5  ps 2 pt 6
+set style line 5 lt 2 lc rgb "black"   lw 6  dt 2
+set style line 6 lt 2 lc rgb "red"     lw 6  dt 2
+set style line 7 lt 4 lc rgb "black"   lw 6  dt 2
+set style line 8 lt 2 lc rgb "blue"    lw 6  dt 2
+
+
+set xtics font ", 22"
+set ytics font ", 22"
+
+# set grid
+
+# -------------------------------------------------------------------
+#                           Plots
+# -------------------------------------------------------------------
+
+
+set xtics ("WENO 3" 0.375, "WENO 4" 1.25)
+set ylabel "Mean Error";
+set format y "%.2E"
+
+set style fill solid
+set boxwidth 0.25
+
+set output "meanError-WENO.png"
+
+plot "results.dat" every 2::0 using ($0+0.24):3 with boxes ls 2 notitle,\
+     "results.dat" every 2::1 using ($0+0.51):3 with boxes ls 3 title 'best cond.'
+
+
+set ylabel "Max Error";
+set output "maxError-WENO.png"
+plot "results.dat" every 2::0 using ($0+0.24):6 with boxes ls 2 notitle,\
+     "results.dat" every 2::1 using ($0+0.51):6 with boxes ls 3 title 'best cond.'
+

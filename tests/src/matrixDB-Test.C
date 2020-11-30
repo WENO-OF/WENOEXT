@@ -42,7 +42,7 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("matrixDB Test Case","[3D]")
+TEST_CASE("matrixDB Test Case","[baseTest]")
 {
     // Replace setRootCase.H for Catch2   
     int argc = 1;

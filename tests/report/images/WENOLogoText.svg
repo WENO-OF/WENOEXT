@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg width="41.901mm" height="9.6325mm" version="1.1" viewBox="0 0 41.901 9.6325" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+ <metadata>
+  <rdf:RDF>
+   <cc:Work rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:title/>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <g transform="translate(-80.815 -45.946)">
+  <g transform="translate(56.528)" fill="#000000" font-family="sans-serif" font-size="10.583px" letter-spacing="0px" stroke-width=".26458" word-spacing="0px">
+   <text x="24.054346" y="55.130486" style="line-height:1.25" xml:space="preserve"><tspan x="24.054346" y="55.130486" stroke-width=".26458"><tspan x="24.054346" y="55.130486" font-family="Montserrat" font-weight="bold" stroke-width=".26458">Weno</tspan></tspan></text>
+   <text x="56.260437" y="50.390976" style="line-height:1.25" xml:space="preserve"><tspan x="56.260437" y="50.390976" stroke-width=".26458"><tspan x="56.260437" y="50.390976" fill="#ff6347" font-family="Montserrat" font-size="6.35px" stroke="#ff6347" stroke-width=".26458">Ext</tspan></tspan></text>
+  </g>
+ </g>
+</svg>

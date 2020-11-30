@@ -2,21 +2,122 @@
 
 set -e
 
+RUNALL=false
+
+
+while [ $# -gt 0 ] ; do
+  case $1 in
+    --runAll) RUNALL=true ;;
+    --runSimple) RUNALL=false;;
+    \-? ) echo "Usage: runTest"
+          echo "  --runAll: Run all test cases and view result at report/testReport.html"
+          echo "  --runSimple: Run only catch2 test cases"
+  esac
+  shift
+done
+
+
 currDir=$(pwd)
 
-# Check that the library is compiled
+
+function checkParaView {
+if ! command -v pvpython &> /dev/null; then
+    echo "  ** pvpython seems to be not installed **"
+    echo "  Not generating figures from advection test case"
+else
+    pvpython createFigures.py
+fi
+}
+
+function runAll {
+    # ---------------------------------------------------------------------------
+    #                      Run Test Cases - Single Processor
+    # ---------------------------------------------------------------------------
+
+    cd ${currDir}/Cases/baseCase
+
+    ../../src/tests.exe [baseTest]
+
+    # Clean up 
+    [[ -e "PLOT/results.dat" ]] && rm PLOT/results.dat
+
+    # run with WENO 3 0
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
+    # run with WENO 4 0
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 4 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
+    # run with WENO 3 0 bestConditioned
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned true;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
+    # run with WENO 4 0 bestConditioned
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 4 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned true;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
+
+    cd ${currDir}/Cases/advectionCase
+
+    ../../src/tests.exe [2D-Advection]
+    checkParaView
+
+    # ---------------------------------------------------------------------------
+    #                      Run Test Cases - MPI Processor
+    # ---------------------------------------------------------------------------
+    cd ${currDir}/Cases/globalFvMeshTestCase/src
+    wmake > /dev/null
+    cd ../case-3D
+    blockMesh > /dev/null && decomposePar -force > /dev/null 
+    mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
+}
+
+
+
+function runSimple {
+    # ---------------------------------------------------------------------------
+    #                      Run Test Cases - Single Processor
+    # ---------------------------------------------------------------------------
+
+    cd ${currDir}/Cases/baseCase
+
+    ../../src/tests.exe [baseTest]
+
+    # Clean up 
+    [[ -e "PLOT/results.dat" ]] && rm PLOT/results.dat
+
+    # run with WENO 3 0
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
+    # ---------------------------------------------------------------------------
+    #                      Run Test Cases - MPI Processor
+    # ---------------------------------------------------------------------------
+    cd ${currDir}/Cases/globalFvMeshTestCase/src
+    wmake > /dev/null
+    cd ../case-3D
+    blockMesh > /dev/null && decomposePar -force > /dev/null 
+    mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
+}
+# ---------------------------------------------------------------------------
+#                           Compile Libray
+# ---------------------------------------------------------------------------
 cd ../ && ./Allwmake
 
 
 cd ${currDir}/src && wmake
 
-cd ${currDir}/Case 
-sed -i "s/^nCells.*/nCells 50;/" system/blockMeshDict && blockMesh && ../src/tests.exe
+if [[ RUNALL == true ]]; then
+    runAll
+else
+    runSimple
+fi
 
-# Run globalFvMesh test case
-cd ${currDir}/globalFvMeshTest/src
-wmake > /dev/null
-cd ../case-3D
-blockMesh > /dev/null && decomposePar -force > /dev/null 
-mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
- 
+
+

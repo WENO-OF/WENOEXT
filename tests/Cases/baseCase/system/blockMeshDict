@@ -21,7 +21,11 @@ y0 #calc  "$PI";
 x  #calc  "7*$PI";
 y  #calc  "7*$PI";
 
-nCells 150;
+//x0 #calc  "0";
+//y0 #calc  "0";
+//x  #calc  "7";
+//y  #calc  "7";
+nCells 100;
 
 vertices
     (

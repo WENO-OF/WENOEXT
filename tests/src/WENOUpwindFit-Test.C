@@ -33,9 +33,9 @@ Author
 \*---------------------------------------------------------------------------*/
 
 #include "catch.hpp"
-
+#include "WENOBase.H"
 #include "fvCFD.H"
-
+#include "writeToFile.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -61,9 +61,23 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
     
     // Mesh has two patches, outlet with fixed value and empty direction
     wordList patchTypes(2);
-    patchTypes[0] = "fixedValue"; 
-    patchTypes[1] = "empty";
+    patchTypes[mesh.boundary()["outlet"].index()] = "fixedValue"; 
+    patchTypes[mesh.boundary()["empty"].index()] = "empty";
     
+
+    auto psiFunc = [](const double x, const double y) -> double
+    {
+        //return std::sin(std::sqrt(2.0)/2.0*(x+y));
+        return std::sin(x);
+    };
+
+    // Analytical sultion
+    auto divPsiFunc = [](const double x, const double y)
+    {
+        //return std::sqrt(2.0)*std::cos(std::sqrt(2.0)/2.0*(x+y));
+        return std::cos(x);
+    };
+
     // Create a volScalarField with the sinus curve
     volScalarField psi
     (
@@ -80,31 +94,62 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         patchTypes
     );
 
-    auto calcSinus = [](const double x, const double y) -> double
-    {
-        return std::sin(std::sqrt(x*x+y*y));
-    };
-
     // populate psi
     forAll(mesh.C(),celli)
     {
-        psi[celli] = calcSinus(centre[celli].x(),centre[celli].y());
+        psi[celli] = psiFunc(centre[celli].x(),centre[celli].y());
     }
     
     {
-        const label outletIndex = mesh.boundary().findPatchID("outlet");
-        auto& PatchField = psi.boundaryFieldRef()[outletIndex];
-        const vectorField& faceCenters = PatchField.patch().Cf();
-    
-        forAll(PatchField,facei)
+        auto& PatchField = psi.boundaryFieldRef();
+        forAll(PatchField,patchi)
         {
-            PatchField[facei] = calcSinus(faceCenters[facei].x(),faceCenters[facei].y());
+            const vectorField& faceCenters = PatchField[patchi].patch().Cf();
+            forAll(PatchField[patchi],facei)
+            {
+                PatchField[patchi][facei] = psiFunc(faceCenters[facei].x(),faceCenters[facei].y());
+            }
         }
     }
-
     psi.write();
     
+    
+    volScalarField analSolu
+    (
+        IOobject
+        (
+            "analyticalSolution",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionedScalar("0", dimensionSet(0,0,-1,0,0), 0.0),
+        "fixedValue"
+    );
 
+    forAll(mesh.C(),celli)
+    {
+        const double x = centre[celli].x();
+        const double y = centre[celli].y();
+        analSolu[celli] = divPsiFunc(x,y);
+    }
+    
+    {
+        auto& PatchField = analSolu.boundaryFieldRef();
+        forAll(PatchField,patchi)
+        {
+            const vectorField& faceCenters = PatchField[patchi].patch().Cf();
+            forAll(PatchField[patchi],facei)
+            {
+                PatchField[patchi][facei] = divPsiFunc(faceCenters[facei].x(),faceCenters[facei].y());
+            }
+        }
+    }
+    
+        
+    analSolu.write();
     
     
     // Create velocity field 
@@ -125,39 +170,54 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
     
     forAll(mesh.C(),celli)
     {
-        const double x = centre[celli].x();
-        const double y = centre[celli].y();
-        double mag = (x*x+y*y);
-        U[celli] = vector(x/mag,y/mag,0);
+        U[celli] = vector(1,1,0);
     }
     // Correct the boundary
     // Find patch outlet
     {
         const label outletIndex = mesh.boundary().findPatchID("outlet");
         auto& PatchField = U.boundaryFieldRef()[outletIndex];
-        const vectorField& faceCenters = PatchField.patch().Cf();
     
         forAll(PatchField,facei)
         {
-            const double x = faceCenters[facei].x();
-            const double y = faceCenters[facei].y();
-            double mag = (x*x+y*y);
-            PatchField[facei] = vector(x/mag,y/mag,0);
+            PatchField[facei] = vector(1,1,0);
         }
     }
     
     U.write();
     
+    // Get the surface fields
     surfaceScalarField phi = fvc::flux(U);
-    
-    // Surface field of psi
     surfaceScalarField psiSf = fvc::interpolate(psi,phi,"interpolate(psiLinear)");
-    // Correct
+    
+    // Correct surface fields with analytical solution
     auto surfCenters = psiSf.mesh().Cf();
+    auto surfCentersPhi = phi.mesh().Cf();
+    auto Sf = phi.mesh().Sf();
     forAll(psiSf,facei)
     {
-        psiSf[facei] = calcSinus(surfCenters[facei].x(),surfCenters[facei].y());
+        const scalar x = surfCenters[facei].x();
+        const scalar y = surfCenters[facei].y();
+        psiSf[facei] = psiFunc(x,y);
+        phi[facei] = Sf[facei] & vector(1,1,0);
     }
+    
+    // Correct boundary
+    forAll(phi.boundaryField(),patchi)
+    {
+        auto& psiSfPatchField = psiSf.boundaryFieldRef()[patchi];
+        auto& phiPatchField = phi.boundaryFieldRef()[patchi];
+        const vectorField& faceCenters = phiPatchField.patch().Cf();
+        auto Sf = phiPatchField.patch().Sf();
+        forAll(phiPatchField,facei)
+        {
+            const scalar x = faceCenters[facei].x();
+            const scalar y = faceCenters[facei].y();
+            psiSfPatchField[facei] = psiFunc(x,y);
+            phiPatchField[facei] = Sf[facei] & vector(1,1,0);
+        }
+    }
+    
         
             
     SECTION("Interpolate Function")
@@ -170,26 +230,25 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         surfaceScalarField interpLinear = fvc::interpolate(psi,phi,"interpolate(psiLinear)");
 
         dimensionedScalar dimSmall("dimSmall",dimless,SMALL);
-        surfaceScalarField errorWENO = (interpWENO-psiSf)/(psiSf+SMALL);
-        surfaceScalarField errorLinear = (interpLinear-psiSf)/(psiSf+SMALL);
+        surfaceScalarField errorWENO = (interpWENO-psiSf);
+        surfaceScalarField errorLinear = (interpLinear-psiSf);
         
         double meanErrorWENO = 0;
         double meanErrorLinear = 0;
         double maxErrorWENO = 0;
         double maxErrorLinear = 0;
         
-        // Calculate the mean of the result and exclude first and second entry
-        for (int facei = 1; facei < (errorWENO.size()-1); facei++)
+        for (int facei = 0; facei < errorWENO.size(); facei++)
         {
-            meanErrorWENO += std::abs(errorWENO[facei]);
-            meanErrorLinear += std::abs(errorLinear[facei]);
-            if (std::abs(errorWENO[facei]) > maxErrorWENO)
-                maxErrorWENO = std::abs(errorWENO[facei]);
-            if (std::abs(errorLinear[facei]) > maxErrorLinear)
-                maxErrorLinear = std::abs(errorLinear[facei]);
+            meanErrorWENO += std::fabs(errorWENO[facei]);
+            meanErrorLinear += std::fabs(errorLinear[facei]);
+            if (std::fabs(errorWENO[facei]) > maxErrorWENO)
+                maxErrorWENO = std::fabs(errorWENO[facei]);
+            if (std::fabs(errorLinear[facei]) > maxErrorLinear)
+                maxErrorLinear = std::fabs(errorLinear[facei]);
         }
-        meanErrorWENO /= (errorWENO.size()-2);
-        meanErrorLinear /= (errorLinear.size()-2);
+        meanErrorWENO /= (errorWENO.size());
+        meanErrorLinear /= (errorLinear.size());
         
         Info << "---------------------------\n"
              << "       Interpolate         \n"
@@ -200,8 +259,8 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
              << "Max Error WENO:    "<<maxErrorWENO << nl
              << "---------------------------" << endl; 
         
-        REQUIRE(meanErrorLinear > meanErrorWENO);
-        CHECK_NOFAIL(maxErrorLinear > maxErrorWENO);
+        CHECK(meanErrorLinear > meanErrorWENO);
+        CHECK(maxErrorLinear > maxErrorWENO);
     }
     
     SECTION("Divergence Function")
@@ -217,41 +276,10 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         divWENO.write();
         divLinear.write();
         divLimitedLinear.write();
-
-        // Analytical sultion
-        auto analyticalSoultion = [](const double x, const double y)
-        {
-            auto L = std::sqrt(x*x+y*y);
-            return std::cos(L)/(L);
-        };
         
-        volScalarField analSolu
-        (
-            IOobject
-            (
-                "analyticalSolution",
-                mesh.time().timeName(),
-                mesh,
-                IOobject::NO_READ,
-                IOobject::NO_WRITE
-            ),
-            mesh,
-            dimensionedScalar("0", dimensionSet(0,0,-1,0,0), 0.0),
-            "zeroGradient"
-        );
-
-        forAll(mesh.C(),celli)
-        {
-            const double x = centre[celli].x();
-            const double y = centre[celli].y();
-            analSolu[celli] = analyticalSoultion(x,y);
-        }
-        analSolu.write();
-
-        dimensionedScalar dimSmall("dimSmall",dimensionSet(0,0,-1,0,0),SMALL);
-        volScalarField errorWENO = (divWENO-analSolu)/(analSolu+dimSmall);
-        volScalarField errorLinear = (divLinear-analSolu)/(analSolu+dimSmall);
-        volScalarField errorLimitedLinear = (divLimitedLinear-analSolu)/(analSolu+dimSmall);
+        volScalarField errorWENO = (divWENO-analSolu);
+        volScalarField errorLinear = (divLinear-analSolu);
+        volScalarField errorLimitedLinear = (divLimitedLinear-analSolu);
         
         double meanErrorWENO = 0;
         double meanErrorLinear = 0;
@@ -260,40 +288,22 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
         double maxErrorLinear = 0;
         double maxErrorLimitedLinear = 0;
         
-        // Exclude the cells at the outlet boundary as there the boundary condition
-        // "zeroGradient" is not correct. 
-        const label outletIndex = mesh.boundary().findPatchID("outlet");
-        const auto& boundaryCells = mesh.boundary()[outletIndex].faceCells();
-        
-        
-        int sampleSize = 0;
-        // Calculate the mean of the result and exclude first and second entry
+
         forAll(errorWENO,celli)
         {
-            //// check if celli is a boundary cell
-            //bool boundaryCell = false;
-            //forAll(boundaryCells,bCelli)
-            //{
-                //if (boundaryCells[bCelli] == celli)
-                    //boundaryCell = true;
-            //}
-            //if (boundaryCell)
-                //continue;
-            
-            sampleSize++;
-            meanErrorWENO += std::abs(errorWENO[celli]);
-            meanErrorLinear += std::abs(errorLinear[celli]);
-            meanErrorLimitedLinear += std::abs(errorLimitedLinear[celli]);
-            if (std::abs(errorWENO[celli]) > maxErrorWENO)
-                maxErrorWENO = std::abs(errorWENO[celli]);
-            if (std::abs(errorLinear[celli]) > maxErrorLinear)
-                maxErrorLinear = std::abs(errorLinear[celli]);
-            if (std::abs(errorLimitedLinear[celli]) > maxErrorLimitedLinear)
-                maxErrorLimitedLinear = std::abs(errorLimitedLinear[celli]);
+            meanErrorWENO += std::fabs(errorWENO[celli]);
+            meanErrorLinear += std::fabs(errorLinear[celli]);
+            meanErrorLimitedLinear += std::fabs(errorLimitedLinear[celli]);
+            if (std::fabs(errorWENO[celli]) > maxErrorWENO)
+                maxErrorWENO = std::fabs(errorWENO[celli]);
+            if (std::fabs(errorLinear[celli]) > maxErrorLinear)
+                maxErrorLinear = std::fabs(errorLinear[celli]);
+            if (std::fabs(errorLimitedLinear[celli]) > maxErrorLimitedLinear)
+                maxErrorLimitedLinear = std::fabs(errorLimitedLinear[celli]);
         }
-        meanErrorWENO /= sampleSize;
-        meanErrorLinear /= sampleSize;
-        meanErrorLimitedLinear /= sampleSize;
+        meanErrorWENO /= errorWENO.size();
+        meanErrorLinear /= errorLinear.size();
+        meanErrorLimitedLinear /= errorLimitedLinear.size();
         
         Info << "---------------------------\n"
              << "       Divergence          \n"
@@ -306,120 +316,18 @@ TEST_CASE("WENOUpwindFit 2D Test","[2D]")
              << "Max Error WENO:           "<<maxErrorWENO << nl
              << "---------------------------" << endl; 
         
-        REQUIRE(meanErrorLinear > meanErrorWENO);
-        CHECK_NOFAIL(maxErrorLinear > maxErrorWENO);
+        CHECK(meanErrorLinear > meanErrorWENO);
+        CHECK(maxErrorLinear > maxErrorWENO);
+        
+        // Write Results to file
+        std::vector<double> data = 
+        {
+            meanErrorLinear,meanErrorLimitedLinear,meanErrorWENO,
+            maxErrorLinear,maxErrorLimitedLinear,maxErrorWENO
+        };
+        writeToFile(data);
     }
 }
 
-//SECTION("Step Function")
-    //{
-     //// ---------------------------------------------------------------------
-        ////                   Create Input Data 
-        //// ---------------------------------------------------------------------
-            
-            //// Create a volScalarField with the sinus curve
-            //volScalarField psi
-            //(
-                //IOobject
-                //(
-                    //"psi",
-                    //mesh.time().timeName(),
-                    //mesh,
-                    //IOobject::NO_READ,
-                    //IOobject::NO_WRITE
-                //),
-                //mesh,
-                //dimensionedScalar("0", dimless, 0.0),
-                //"zeroGradient"
-            //);
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-            //auto calcStepFunction = [](const double x, const double y) -> double
-            //{
-                //return std::sin(std::sqrt(x*x+y*y)) > 0 ? 1.0 : -0.5;
-            //};
-
-            //// populate psi
-            //forAll(mesh.C(),celli)
-            //{
-                //psi[celli] = calcStepFunction(centre[celli].x(),centre[celli].y());
-            //}
-
-            //psi.write();
-            
-
-            
-            
-            //// Create velocity field 
-            //volVectorField U
-            //(
-                //IOobject
-                //(
-                    //"U",
-                    //mesh.time().timeName(),
-                    //mesh,
-                    //IOobject::NO_READ,
-                    //IOobject::NO_WRITE
-                //),
-                //mesh,
-                //dimensionedVector("0", dimless, vector(0.0,0.0,0.0)),
-                //"zeroGradient"
-            //);
-            
-            //forAll(mesh.C(),celli)
-            //{
-                //const double x = centre[celli].x();
-                //const double y = centre[celli].y();
-                //double mag = (x*x+y*y);
-                //U[celli] = vector(x/mag,y/mag,0);
-            //}
-            
-            //U.write();
-            
-            //surfaceScalarField phi = fvc::flux(U);
-            
-            //// Surface field of psi
-            //surfaceScalarField psiSf = fvc::interpolate(psi,phi,"interpolate(psiLinear)");
-            //// Correct
-            //auto surfCenters = psiSf.mesh().Cf();
-            //forAll(psiSf,facei)
-            //{
-                //psiSf[facei] = calcStepFunction(surfCenters[facei].x(),surfCenters[facei].y());
-            //}
-        //// ---------------------------------------------------------------------
-        ////                     Run Test 
-        //// ---------------------------------------------------------------------
-        //// Test the surface interpolation scheme
-        //surfaceScalarField interpWENO = fvc::interpolate(psi,phi,"interpolate(psiWENO)");
-        //surfaceScalarField interpLinear = fvc::interpolate(psi,phi,"interpolate(psiLinear)");
-
-        //dimensionedScalar dimSmall("dimSmall",dimless,SMALL);
-        //surfaceScalarField errorWENO = (interpWENO-psiSf)/(psiSf+SMALL);
-        //surfaceScalarField errorLinear = (interpLinear-psiSf)/(psiSf+SMALL);
-        
-        //double meanErrorWENO = 0;
-        //double meanErrorLinear = 0;
-        //double maxErrorWENO = 0;
-        //double maxErrorLinear = 0;
-        
-        //// Calculate the mean of the result and exclude first and second entry
-        //for (int facei = 1; facei < (errorWENO.size()-1); facei++)
-        //{
-            //meanErrorWENO += std::abs(errorWENO[facei]);
-            //meanErrorLinear += std::abs(errorLinear[facei]);
-            //if (std::abs(errorWENO[facei]) > maxErrorWENO)
-                //maxErrorWENO = std::abs(errorWENO[facei]);
-            //if (std::abs(errorLinear[facei]) > maxErrorLinear)
-                //maxErrorLinear = std::abs(errorLinear[facei]);
-        //}
-        //meanErrorWENO /= (errorWENO.size()-2);
-        //meanErrorLinear /= (errorLinear.size()-2);
-        
-        //Info << "---------------------------\n"
-             //<< "Mean Error Linear: "<<meanErrorLinear<<nl
-             //<< "Mean Error WENO:   "<<meanErrorWENO<<nl<<nl
-             //<< "Max Error Linear:  "<<maxErrorLinear<<nl
-             //<< "Max Error WENO:    "<<maxErrorWENO<<endl;
-        
-        //REQUIRE(meanErrorLinear > meanErrorWENO);
-        //CHECK(maxErrorLinear > maxErrorWENO);
-    //}

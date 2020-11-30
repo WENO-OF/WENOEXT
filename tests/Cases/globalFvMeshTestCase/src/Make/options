@@ -4,12 +4,12 @@ EXE_INC = \
     -I$(LIB_SRC)/surfMesh/lnInclude \
     -I$(LIB_SRC)/sampling/lnInclude \
     -I$(LIB_SRC)/triSurface/lnInclude \
-    -I../../../libWENOEXT/WENOBase/geometryWENO\
-    -I../../../libWENOEXT/WENOUpwindFit \
-    -I../../../libWENOEXT/WENOBase \
+    -I../../../../libWENOEXT/WENOBase/geometryWENO\
+    -I../../../../libWENOEXT/WENOUpwindFit \
+    -I../../../../libWENOEXT/WENOBase \
     -I$(LIB_SRC)/dynamicMesh/lnInclude \
     -I$(LIB_SRC)/fileFormats/lnInclude \
-    -I../../../versionRules
+    -I../../../../versionRules
 
 
 EXE_LIBS = \

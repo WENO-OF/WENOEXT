@@ -1,0 +1,36 @@
+html {
+    font-size: 16px;
+}
+
+.header img {
+  float: left;
+  height: 3rem;
+  background: #FFFFFF;
+}
+
+.header h1 {
+  position: relative;
+  bottom: -0.1rem;
+  left: 5px;
+  font-size: 3rem;
+  font-family: "Montserrat",Arial
+}
+
+.picture2{
+  float: left;
+  width: 30%;
+  padding: 5px;
+}
+
+.picture3{
+  float: left;
+  width: 30%;
+  padding: 5px;
+}
+
+/* Clear floats after image containers */
+.pictureRow::after {
+  content: "";
+  clear: both;
+  display: table;
+}

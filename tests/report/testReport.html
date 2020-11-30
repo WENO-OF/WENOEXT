@@ -1,0 +1,46 @@
+<!-- Web Page to display test report -->
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="reportStyle.css">
+    <title>
+    My Test Report
+    </title>    
+</head>
+<body>
+    <div class=header>
+        <img src="./images/WENOLogoText.svg" alt="TEST" \>
+        <h1> Library Test Report</h1>
+    </div>
+
+<div>
+   <div class=pictureRow>
+   <h2>Interpolation and Divergenze Test</h2>
+    <div class=picture2>
+        <h3>Mean Error</h3>
+        <img src="../Cases/baseCase/PLOT/meanError-WENO.png" alt="NO FIGURE" style="width:100%">
+    </div>
+    <div class=picture2>
+        <h3>Max Error</h3>
+        <img src="../Cases/baseCase/PLOT/maxError-WENO.png" alt="NO FIGURE" style="width:100%">
+    </div>
+   </div>
+</div>
+
+   <div class=pictureRow>
+    <h2>Advection Test Case</h2>
+    <div class=picture3>
+        <h3>AnalyticalSolution</h3>
+        <img src="../Cases/advectionCase/Figures/analyticalResult.png" alt="Analytical Solution" style="width:100%">
+    </div>
+    <div class=picture3>
+        <h3>WENO Result</h3>
+        <img src="../Cases/advectionCase/Figures/WENO.png" alt="WENO Result" style="width:100%">
+    </div>
+    <div class=picture3>
+        <h3>Limited Linear Result</h3>
+        <img src="../Cases/advectionCase/Figures/limitedLinear.png" alt="Limited Linear Result" style="width:100%">
+    </div>
+   </div>
+</body>
+</html>
