@@ -61,8 +61,9 @@ class WENOBase
         //  halo cells have positive IDs that correspond with their cellID
         enum class Cell
         {
-            local    = -1,   // is a local cell, in e.g.: cellToPatchMap
-            deleted  = -4    // was deleted in splitStencil
+            local    = -1,   // Is a local cell, in e.g.: cellToPatchMap
+            deleted  = -4,   // Was deleted in splitStencil
+            empty    = -10   // No valid stencils in cell
         };
 
 
@@ -269,7 +270,15 @@ class WENOBase
             const WENO::globalfvMesh& globalfvMesh,
             volIntegralType& volIntegrals
         );
+        
+        //- Delete stencil from list
+        //  Remove a strencil from the list if e.g. the number of cells can not 
+        //  be reached or the matrix A cannot be calculated
+        void deleteStencil(const label cellI, const label stencilI);
 
+
+        //- Check pseudo inverse matrix list
+        void LSMatrixCheck();
 
 public:
 

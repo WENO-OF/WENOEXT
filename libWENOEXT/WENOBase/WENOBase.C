@@ -176,9 +176,8 @@ void Foam::WENOBase::splitStencil
 
     // Reject sectors without enough cells
     // and cut the stencils to the necessary size
-
     const scalar necSize = 2.0*nDvt_ + 1;
-
+    
     forAll(stencilsID_[localCellI], stencilI)
     {
         if (stencilsID_[localCellI][stencilI].size() >= necSize)
@@ -189,14 +188,7 @@ void Foam::WENOBase::splitStencil
         }
         else
         {
-            stencilsID_[localCellI][stencilI].resize(1);
-            cellToProcMap_[localCellI][stencilI].resize(1);
-            stencilsID_[localCellI][stencilI][0] = int(Cell::deleted);
-            cellToProcMap_[localCellI][stencilI][0] = int(Cell::deleted);
-            
-            stencilsGlobalID_[localCellI][stencilI].resize(1);
-            stencilsGlobalID_[localCellI][stencilI][0] = int(Cell::deleted);
-
+            deleteStencil(localCellI,stencilI);
             nStencilsI--;
         }
     }
@@ -495,8 +487,6 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
             scalar maxS = -GREAT;
             forAll(S,i)
             {
-                if (S[i] == 0)
-                    continue;
                 if (S[i] < minS)
                     minS = S[i];
                 if (S[i] > maxS)
@@ -511,13 +501,13 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         svdCurrPtr.clear();
         svdCurrPtr.set(new SVD(A, maxCondition_));
         
-        if (svdCurrPtr->nZeros() == 0 && svdCurrPtr->converged())
+        if (svdCurrPtr->converged())
         {
             // Check if bestConditioned pointer is valid 
             if (svdBestCondPtr.valid())
             {
                 // is condition of new pointer better
-                if (cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
+                if (svdCurrPtr->nZeros() == 0 && cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
                 {
                     svdBestCondPtr = svdCurrPtr;
                 }
@@ -541,11 +531,18 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                 << "Could not calculate SVD"
                 <<exit(FatalError);
     }
-    
-    
+
+
+    // If zero entries are found in the matrix remove this stencil from the list
+    if (stencilI == 0 && svdCurrPtr->nZeros() > 0)
+    {
+        deleteStencil(localCellI,stencilI);
+        return scalarRectangularMatrix(nCells,nDvt_,scalar(0.0));
+    }
+
     scalarRectangularMatrix AInv  = svdCurrPtr->VSinvUt();
+
     
-    // Resize list if necessary
     if (AInv.n() != stencilSize-1)
     {
         stencilsID_[localCellI][stencilI].resize(AInv.n()+1);
@@ -765,6 +762,9 @@ Foam::WENOBase::WENOBase
             }
 
         }
+        
+        LSMatrixCheck();
+        
         
         Info << "\t5) Calcualte smoothness indicator B..."<<endl;
         // Get the smoothness indicator matrices
@@ -1392,6 +1392,42 @@ void Foam::WENOBase::writeList
     forAll(B_, cellI)
     {
         osB<< B_[cellI] << endl;
+    }
+}
+
+
+void Foam::WENOBase::deleteStencil(const label cellI, const label stencilI)
+{
+    stencilsID_[cellI][stencilI].resize(1);
+    cellToProcMap_[cellI][stencilI].resize(1);
+    stencilsID_[cellI][stencilI][0] = int(Cell::deleted);
+    cellToProcMap_[cellI][stencilI][0] = int(Cell::deleted);
+    
+    stencilsGlobalID_[cellI][stencilI].resize(1);
+    stencilsGlobalID_[cellI][stencilI][0] = int(Cell::deleted);
+}
+
+
+void Foam::WENOBase::LSMatrixCheck() 
+{
+    int invalidCells = 0;
+    forAll(stencilsID_,celli)
+    {
+        int validStencilCount = 0;
+        forAll(stencilsID_[celli],stencilI)
+        {
+            if (stencilsID_[celli][stencilI][0] != int(Cell::deleted))
+                validStencilCount++;
+        }
+        if (validStencilCount == 0)
+        {
+            Pout 
+                << "********************************************************\n"
+                << "       Cell "<<celli<<" has no valid stencils!"
+                << "********************************************************\n";
+            stencilsID_[celli][0][0] = int(Cell::empty);
+            invalidCells++;
+        }
     }
 }
 

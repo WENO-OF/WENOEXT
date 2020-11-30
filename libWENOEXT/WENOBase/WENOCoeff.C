@@ -238,6 +238,11 @@ Foam::WENOCoeff<Type>::getWENOPol
     {
         coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
         
+        // If no valid stencils are given return zero list of weighted 
+        // coefficients
+        if (WENOBase_.stencilsID()[cellI][0][0] == int(WENOBase::Cell::empty))
+            continue;
+        
         // Create coeffs list and exclude deleted stencils
         label coeffSize = 0;
         forAll(WENOBase_.stencilsID()[cellI],stencilI)
@@ -246,7 +251,7 @@ Foam::WENOCoeff<Type>::getWENOPol
                 coeffSize++;
         }
         
-        List<coeffType> coeffsI(coeffSize);
+        List<coeffType> coeffsI(coeffSize,coeffType(1,pTraits<Type>::zero));
         
         
         // counter for coeff index
@@ -301,7 +306,7 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
     forAll(coeffsList, stencilI)
     {
         const auto& coeffs = coeffsList[stencilI];
-
+        
         const scalar smoothInd = trans(coeffs) * (WENOBase_.B()[cellI]*coeffs);
 
         // Calculate gamma for central and sectorial stencils
@@ -326,7 +331,7 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
     forAll(coeffsWeightedI, coeffI)
     {
         coeffsWeightedI[coeffI] /= gammaSum;
-    }
+    }       
 }
 
 
