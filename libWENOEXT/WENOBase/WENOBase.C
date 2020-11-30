@@ -487,9 +487,11 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
             scalar maxS = -GREAT;
             forAll(S,i)
             {
-                if (S[i] < minS)
+                if (S[i] == 0)
+                    return GREAT;
+                else if (S[i] < minS)
                     minS = S[i];
-                if (S[i] > maxS)
+                else if (S[i] > maxS)
                     maxS = S[i];
             }
             
@@ -501,13 +503,13 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         svdCurrPtr.clear();
         svdCurrPtr.set(new SVD(A, maxCondition_));
         
-        if (svdCurrPtr->converged())
+        if (svdCurrPtr->nZeros() == 0 &&svdCurrPtr->converged())
         {
             // Check if bestConditioned pointer is valid 
             if (svdBestCondPtr.valid())
             {
                 // is condition of new pointer better
-                if (svdCurrPtr->nZeros() == 0 && cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
+                if (cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
                 {
                     svdBestCondPtr = svdCurrPtr;
                 }
@@ -537,7 +539,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     if (stencilI == 0 && svdCurrPtr->nZeros() > 0)
     {
         deleteStencil(localCellI,stencilI);
-        return scalarRectangularMatrix(nCells,nDvt_,scalar(0.0));
+        return scalarRectangularMatrix(nCells,nDvt_,scalar(1.0));
     }
 
     scalarRectangularMatrix AInv  = svdCurrPtr->VSinvUt();
