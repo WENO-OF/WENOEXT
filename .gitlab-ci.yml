@@ -29,7 +29,7 @@ unitTests:
     stage: Tests
     script:
         - cd ./tests/
-        - ./runTest
+        - ./runTest --runSimple 
 
 Cavity:
     stage: Tutorials
