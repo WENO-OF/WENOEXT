@@ -35,7 +35,7 @@ function runAll {
     # ---------------------------------------------------------------------------
 
     cd ${currDir}/Cases/baseCase
-
+    blockMesh > /dev/null
     ../../src/tests.exe [baseTest]
 
     # Clean up 
@@ -85,7 +85,7 @@ function runSimple {
     # ---------------------------------------------------------------------------
 
     cd ${currDir}/Cases/baseCase
-
+    blockMesh > /dev/null
     ../../src/tests.exe [baseTest]
 
     # Clean up 
