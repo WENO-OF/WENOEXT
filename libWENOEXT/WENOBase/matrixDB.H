@@ -72,8 +72,8 @@ class matrixDB
     using DynamicMatrix = blaze::DynamicMatrix<double>;
     using keyType = int32_t;
     
-    using iterType = std::multimap<keyType, DynamicMatrix>::const_iterator;
-    
+    using iterType = std::multimap<keyType, DynamicMatrix>::iterator;
+    using constIterType = std::multimap<keyType, DynamicMatrix>::const_iterator;
     
     class MatrixPtr
     {
@@ -81,7 +81,7 @@ class matrixDB
             //- Reference to parent object
             matrixDB* matrixDB_ = nullptr;
             
-            //- Const iterator to the scalar matrix
+            //- Iterator to the scalar matrix
             //  An iterator is storead as the standard states:
             //  All Associative Containers: The insert and emplace members shall
             //  not affect the validity of iterators and references
@@ -112,8 +112,10 @@ class matrixDB
             const DynamicMatrix& operator()() const;
             
             //- Return const iterator
-            const iterType& iterator() const {return itr_;}
+            const constIterType iterator() const {return itr_;}
             
+            //- Return non-const iterator
+            iterType iterator() {return itr_;}
             
             //- Check if the container is valid
             bool valid() const;

@@ -72,7 +72,7 @@ bool Foam::matrixDB::MatrixPtr::valid() const
 
 // * * * * * * * * * * * * * * * matrixDB  * * * * * * * * * * * * * * * * * //
 
-std::multimap<Foam::matrixDB::keyType,blaze::DynamicMatrix<double>>::const_iterator
+Foam::matrixDB::iterType
 Foam::matrixDB::similar
 (
     const scalarRectangularMatrix&& A
@@ -323,7 +323,7 @@ void Foam::matrixDB::write(Ostream& os) const
             if (!validBit)
                 continue;
             
-            iterType it = LSmatrix_[cellI][stencilI].iterator();
+            constIterType it = LSmatrix_[cellI][stencilI].iterator();
             os <<it->first<<endl;
             
             // Get key
@@ -334,7 +334,7 @@ void Foam::matrixDB::write(Ostream& os) const
             int i=0;
             for 
             (
-                iterType posIt = DB_.lower_bound(key);
+                constIterType posIt = DB_.lower_bound(key);
                 posIt != DB_.upper_bound(key);
                 posIt++, i++
             )
