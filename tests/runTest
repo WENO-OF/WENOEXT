@@ -61,9 +61,11 @@ function runAll {
     sed -i "s/bestConditioned.*/bestConditioned true;/" system/WENODict
     sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
 
+    cd PLOT/ && gnuplot plotReport.gplt
+    
 
     cd ${currDir}/Cases/advectionCase
-
+    blockMesh > /dev/null 
     ../../src/tests.exe [2D-Advection]
     checkParaView
 
@@ -113,7 +115,7 @@ cd ../ && ./Allwmake
 
 cd ${currDir}/src && wmake
 
-if [[ RUNALL == true ]]; then
+if [[ $RUNALL == true ]]; then
     runAll
 else
     runSimple

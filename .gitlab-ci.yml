@@ -25,11 +25,19 @@ Source:
             - build/
         expire_in: 7 days
 
-unitTests:
+unitTests-simple:
     stage: Tests
     script:
         - cd ./tests/
         - ./runTest --runSimple 
+
+unitTests:
+    stage: Tests
+    script:
+        - cd ./tests/
+        - ./runTest --runAll
+    only:
+        - merge_request
 
 Cavity:
     stage: Tutorials
