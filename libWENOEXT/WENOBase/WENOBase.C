@@ -389,6 +389,24 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     const label   stencilI
 )
 {
+    auto cond = [](const scalarDiagonalMatrix& S) -> scalar
+    {
+        scalar minS = GREAT;
+        scalar maxS = -GREAT;
+        forAll(S,i)
+        {
+            if (S[i] == 0)
+                continue;
+            if (S[i] < minS)
+                minS = S[i];
+            if (S[i] > maxS)
+                maxS = S[i];
+        }
+        
+        return maxS/minS;
+    };
+            
+    
     const label stencilSize = stencilsID_[localCellI][stencilI].size();
 
     /********************************* NOTE **********************************\
@@ -408,121 +426,110 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     
     int nCells = stencilSize-1;
 
-    if (bestConditioned_)
-    {   
-        nCells = nDvt_+2;
-    }
+    scalarRectangularMatrix A
+    (
+        nCells,
+        nDvt_,
+        scalar(0.0)
+    );
+    
+    // First generate full matrix
 
-    for ( ; nCells < stencilSize; nCells++)
+    point transCenterI = Foam::geometryWENO::transformPoint
+    (
+        JInv_[localCellI],
+        localMesh.C()[localCellI],
+        refPoint_[localCellI]
+    );
+
+    volIntegralType volIntegralsIJ = volIntegralsList_[localCellI];
+
+    // Add one line per cell
+    for (label cellJ = 1; cellJ <= nCells; cellJ++)
     {
-        scalarRectangularMatrix A
-        (
-            nCells,
-            nDvt_,
-            scalar(0.0)
-        );
-        
+        point transCenterJ =
+            Foam::geometryWENO::transformPoint
+            (
+                JInv_[localCellI],
+                globalMesh.C()[stencilsGlobalID_[localCellI][stencilI][cellJ]],
+                refPoint_[localCellI]
+            );
 
-        point transCenterI = Foam::geometryWENO::transformPoint
-        (
-            JInv_[localCellI],
-            localMesh.C()[localCellI],
-            refPoint_[localCellI]
-        );
+        volIntegralType transVolMom =
+            Foam::geometryWENO::transformIntegral
+            (
+                globalMesh,
+                stencilsGlobalID_[localCellI][stencilI][cellJ],
+                transCenterJ,
+                polOrder_,
+                JInv_[localCellI],
+                refPoint_[localCellI],
+                refDet_[localCellI]
+            );
 
-        volIntegralType volIntegralsIJ = volIntegralsList_[localCellI];
-
-        // Add one line per cell
-        for (label cellJ = 1; cellJ <= nCells; cellJ++)
+        for (label n = 0; n <= dimList_[localCellI][0]; n++)
         {
-            point transCenterJ =
-                Foam::geometryWENO::transformPoint
-                (
-                    JInv_[localCellI],
-                    globalMesh.C()[stencilsGlobalID_[localCellI][stencilI][cellJ]],
-                    refPoint_[localCellI]
-                );
-
-            volIntegralType transVolMom =
-                Foam::geometryWENO::transformIntegral
-                (
-                    globalMesh,
-                    stencilsGlobalID_[localCellI][stencilI][cellJ],
-                    transCenterJ,
-                    polOrder_,
-                    JInv_[localCellI],
-                    refPoint_[localCellI],
-                    refDet_[localCellI]
-                );
-
-            for (label n = 0; n <= dimList_[localCellI][0]; n++)
+            for (label m = 0; m <= dimList_[localCellI][1]; m++)
             {
-                for (label m = 0; m <= dimList_[localCellI][1]; m++)
+                for (label l = 0; l <= dimList_[localCellI][2]; l++)
                 {
-                    for (label l = 0; l <= dimList_[localCellI][2]; l++)
+                    if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
                     {
-                        if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
-                        {
-                            volIntegralsIJ[n][m][l] =
-                                calcGeom
-                                (
-                                    transCenterJ - transCenterI,
-                                    n,
-                                    m,
-                                    l,
-                                    transVolMom,
-                                    volIntegralsList_[localCellI]
-                                );
-                        }
+                        volIntegralsIJ[n][m][l] =
+                            calcGeom
+                            (
+                                transCenterJ - transCenterI,
+                                n,
+                                m,
+                                l,
+                                transVolMom,
+                                volIntegralsList_[localCellI]
+                            );
                     }
                 }
             }
-
-            // Populate the matrix A
-            addCoeffs(A,cellJ,polOrder_,dimList_[localCellI],volIntegralsIJ);
         }
-        
-        auto cond = [](const scalarDiagonalMatrix& S) -> scalar
+
+        // Populate the matrix A
+        addCoeffs(A,cellJ,polOrder_,dimList_[localCellI],volIntegralsIJ);
+    }
+
+    svdCurrPtr.set(new SVD(A, maxCondition_));
+    
+    if (bestConditioned_)
+    {
+        for (nCells = nDvt_+1 ; nCells < stencilSize; nCells++)
         {
-            scalar minS = GREAT;
-            scalar maxS = -GREAT;
-            forAll(S,i)
-            {
-                if (S[i] == 0)
-                    return GREAT;
-                else if (S[i] < minS)
-                    minS = S[i];
-                else if (S[i] > maxS)
-                    maxS = S[i];
-            }
+            A.shallowResize(nCells,nDvt_);
             
-            return maxS/minS;
-        };
-        
-        
-        // Returning pseudoinverse using SVD
-        svdCurrPtr.clear();
-        svdCurrPtr.set(new SVD(A, maxCondition_));
-        
-        if (svdCurrPtr->nZeros() == 0 &&svdCurrPtr->converged())
-        {
-            // Check if bestConditioned pointer is valid 
-            if (svdBestCondPtr.valid())
+            // Returning pseudoinverse using SVD
+            svdCurrPtr.clear();
+            svdCurrPtr.set(new SVD(A, maxCondition_));
+            
+            if (svdCurrPtr->converged())
             {
-                // is condition of new pointer better
-                if (cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
+                // Check if bestConditioned pointer is valid 
+                if (svdBestCondPtr.valid())
+                {
+                    // is condition of new pointer better
+                    if (svdCurrPtr->nZeros() < svdBestCondPtr->nZeros())
+                    {
+                        svdBestCondPtr = svdCurrPtr;
+                    }
+                    else if (svdCurrPtr->nZeros() == svdBestCondPtr->nZeros())
+                    {
+                        if (cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
+                            svdBestCondPtr = svdCurrPtr;
+                    }
+                }
+                else
                 {
                     svdBestCondPtr = svdCurrPtr;
                 }
             }
-            else
-            {
-                svdBestCondPtr = svdCurrPtr;
-            }
+        
         }
-    
     }
-    
     if (svdBestCondPtr.valid())
     {
         svdCurrPtr = svdBestCondPtr;
@@ -535,17 +542,8 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                 <<exit(FatalError);
     }
 
-
-    // If zero entries are found in the matrix remove this stencil from the list
-    if (stencilI == 0 && svdCurrPtr->nZeros() > 0)
-    {
-        deleteStencil(localCellI,stencilI);
-        return scalarRectangularMatrix(nCells,nDvt_,scalar(1.0));
-    }
-
     scalarRectangularMatrix AInv  = svdCurrPtr->VSinvUt();
 
-    
     if (AInv.n() != stencilSize-1)
     {
         stencilsID_[localCellI][stencilI].resize(AInv.n()+1);
