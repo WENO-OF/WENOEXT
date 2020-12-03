@@ -178,6 +178,7 @@ class WENOBase
             const fvMesh& localMesh,
             const label localCellI,
             const label globalCellI,
+            const scalar extendRatio,
             label& nStencilsI
         );
 

@@ -46,6 +46,7 @@ void Foam::WENOBase::splitStencil
     const fvMesh& localMesh,
     const label localCellI,
     const label globalCellI,
+    const scalar extendRatio,
     label& nStencilsI
 )
 {
@@ -120,7 +121,7 @@ void Foam::WENOBase::splitStencil
 
         while (attached == false)
         {
-            if (stencilsID_[localCellI][actualFace + 1].size() < 2.1*nDvt_)
+            if (stencilsID_[localCellI][actualFace + 1].size() < extendRatio*nDvt_)
             {
                 forAll(JacobiInvQ[actualFace], triangleI)
                 {
@@ -176,7 +177,7 @@ void Foam::WENOBase::splitStencil
 
     // Reject sectors without enough cells
     // and cut the stencils to the necessary size
-    const scalar necSize = 2.0*nDvt_ + 1;
+    const scalar necSize = extendRatio*nDvt_;
     
     forAll(stencilsID_[localCellI], stencilI)
     {
@@ -687,7 +688,7 @@ Foam::WENOBase::WENOBase
         bestConditioned_ = WENODict.lookupOrAddDefault<bool>("bestConditioned",false);
 
         maxCondition_ = WENODict.lookupOrAddDefault<scalar>("maxCondition",1e-05);
-
+        
         // ------------- Initialize Lists --------------------------------------
 
         stencilsID_.setSize(localMesh.nCells());
@@ -729,7 +730,7 @@ Foam::WENOBase::WENOBase
             localCellI++, globalCellI=localToGlobalCellID[localCellI < localToGlobalCellID.size() ? localCellI : 0]
         )
         {
-            splitStencil(globalMesh, localMesh, localCellI, globalCellI, nStencils[localCellI]);
+            splitStencil(globalMesh, localMesh, localCellI, globalCellI, extendRatio, nStencils[localCellI]);
         }
 
         Info << "\t4) Calculate LS matrix ..." << endl;
@@ -951,6 +952,7 @@ void Foam::WENOBase::createStencilID
         // Maximum number of iterations for extendRatio
         const label maxIter = 100;
         label iter = 0;
+        
         while (minStencilSize < 1.2*extendRatio*nDvt_*nStencils[cellI])
         {
             extendStencils
