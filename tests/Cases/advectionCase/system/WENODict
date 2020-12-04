@@ -21,7 +21,7 @@ FoamFile
 	//	- < 2.5	:	decreased computational effort. May also decrease stability 
 	//				and accuracy 
 	//	- > 2.5 :   higher stability. May influence the accuracy of the SVD
-	extendRatio		2.5;
+	extendRatio		3.0;
 	
 	//- WENO stencil weighting parameters:
 	p				4.0;
@@ -30,7 +30,7 @@ FoamFile
     //- Calculate best conditioned matrix
     //  This can save memory especially for high order WENO scheme 
     //  Increases the calculation time! Default is off
-    bestConditioned false;
+    bestConditioned true;
 
     writeData       false;
     
