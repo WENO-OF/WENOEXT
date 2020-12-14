@@ -544,6 +544,12 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
 
     scalarRectangularMatrix AInv  = svdCurrPtr->VSinvUt();
 
+    if (stencilI == 0 && svdCurrPtr->nZeros() != 0)
+    {
+        deleteStencil(localCellI,stencilI);
+        stencilsID_[localCellI][stencilI][0] = int(Cell::empty);
+    }
+
     if (AInv.n() != stencilSize-1)
     {
         stencilsID_[localCellI][stencilI].resize(AInv.n()+1);
@@ -1421,16 +1427,23 @@ void Foam::WENOBase::LSMatrixCheck()
             if (stencilsID_[celli][stencilI][0] != int(Cell::deleted))
                 validStencilCount++;
         }
-        if (validStencilCount == 0)
+        if (validStencilCount == 0 || stencilsID_[celli][0][0] == int(Cell::empty))
         {
-            Pout 
-                << "********************************************************\n"
-                << "       Cell "<<celli<<" has no valid stencils!"
-                << "********************************************************\n";
+            
+            if (invalidCells < 10)
+                Pout 
+                    << "********************************************************\n"
+                    << "       Cell "<<celli<<" has no valid stencils!\n"
+                    << "********************************************************\n";
             stencilsID_[celli][0][0] = int(Cell::empty);
             invalidCells++;
         }
     }
+
+    if (invalidCells > 10)
+        Pout << "********************************************************\n"
+             << "   "<<invalidCells<<"("<<double(invalidCells)/double(stencilsID_.size())*100.0<<"%) Cells are invalid\n"
+             << "********************************************************\n";
 }
 
 
