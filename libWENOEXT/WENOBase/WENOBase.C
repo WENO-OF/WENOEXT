@@ -1439,10 +1439,26 @@ void Foam::WENOBase::LSMatrixCheck()
             invalidCells++;
         }
     }
-
-    if (invalidCells > 10)
-        Pout << "********************************************************\n"
-             << "   "<<invalidCells<<"("<<double(invalidCells)/double(stencilsID_.size())*100.0<<"%) Cells are invalid\n"
+    
+    List<int> invalidCellsList(Pstream::nProcs());
+    invalidCellsList[Pstream::myProcNo()] = invalidCells;
+    
+    List<int> maxCellsList(Pstream::nProcs());
+    maxCellsList[Pstream::myProcNo()] = stencilsID_.size();
+    
+    Pstream::gatherList(invalidCellsList);
+    Pstream::gatherList(maxCellsList);
+    
+    int sumInvalidCells = 0;
+    int sumCellsSize = 0;
+    forAll(invalidCellsList,procI)
+    {
+        sumInvalidCells += invalidCellsList[procI];
+        sumCellsSize += maxCellsList[procI];
+    }
+    if (sumInvalidCells > 0)
+        Info << "********************************************************\n"
+             << "   "<<sumInvalidCells<<"("<<double(sumInvalidCells)/double(sumCellsSize)*100.0<<"%) Cells are invalid\n"
              << "********************************************************\n";
 }
 
