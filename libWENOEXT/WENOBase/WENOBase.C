@@ -1100,7 +1100,7 @@ void Foam::WENOBase::setDegreeOfFreedom(const fvMesh& localMesh)
     }
 
     // Set the dimList
-    labelList dummyList(3,0);
+    labelList dummyList(3);
     dimList_.setSize(localMesh.nCells(),dummyList);
     
     // Vector with valid dimensions
