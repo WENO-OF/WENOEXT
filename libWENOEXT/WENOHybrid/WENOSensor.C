@@ -74,7 +74,7 @@ inline void Foam::WENOSensor<Foam::scalar>::calcWeight
     Field<scalar>& coeffsWeightedI,
     const label cellI,
     const GeometricField<scalar, fvPatchField, volMesh>& vf,
-    const List<coeffType>& coeffsI
+    const DynamicList<coeffType>& coeffsI
 ) const
 {
     scalar gamma = 0.0;
@@ -131,7 +131,7 @@ void Foam::WENOSensor<Type>::calcWeight
     Field<Type>& coeffsWeightedI,
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const List<coeffType>& coeffsI
+    const DynamicList<coeffType>& coeffsI
 ) const 
 {
     scalar gamma = 0.0;

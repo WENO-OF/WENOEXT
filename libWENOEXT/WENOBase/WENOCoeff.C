@@ -233,7 +233,9 @@ Foam::WENOCoeff<Type>::getWENOPol
     
     Field<Field<Type> >& coeffsWeighted = coeffsWeightedTmp.ref();
     
-    
+    DynamicList<coeffType> coeffsI(10,coeffType(1,pTraits<Type>::zero));
+
+
     for (label cellI = 0; cellI < mesh_.nCells(); cellI++)
     {
         coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
@@ -251,7 +253,7 @@ Foam::WENOCoeff<Type>::getWENOPol
                 coeffSize++;
         }
         
-        List<coeffType> coeffsI(coeffSize,coeffType(1,pTraits<Type>::zero));
+        coeffsI.setSize(coeffSize);
         
         
         // counter for coeff index
@@ -297,7 +299,7 @@ inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
     Field<scalar>& coeffsWeightedI,
     const label cellI,
     const GeometricField<scalar, fvPatchField, volMesh>& vf,
-    const List<coeffType>& coeffsList
+    const DynamicList<coeffType>& coeffsList
 ) const
 {
     scalar gamma = 0.0;
@@ -342,7 +344,7 @@ void Foam::WENOCoeff<Type>::calcWeight
     Field<Type>& coeffsWeightedI,
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const List<coeffType>& coeffsList
+    const DynamicList<coeffType>& coeffsList
 ) const 
 {
     scalar gamma = 0.0;

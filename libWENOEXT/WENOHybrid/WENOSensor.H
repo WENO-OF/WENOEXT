@@ -88,7 +88,7 @@ class WENOSensor
             Field<Type>& coeffsWeightedI,
             const label cellI,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            const List<coeffType>& coeffsI
+            const DynamicList<coeffType>& coeffsI
         ) const override;
 
 public:
