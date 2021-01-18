@@ -63,26 +63,11 @@ Foam::WENOCoeff<Type>::WENOCoeff
             mesh,
             polOrder_
         )
-    )
+    ),
+    nDvt_(WENOBase_.degreesOfFreedom())
 {
-    // 3D version
-    if (mesh.nSolutionD() == 3)
-    {
-        nDvt_ =
-            (polOrder_ + 1.0)*(polOrder_ + 2.0)*(polOrder_ + 3.0)
-           /6.0 - 1.0;
-
-        //Info<< "Reconstruction using WENO"
-            //<< polOrder_ << " (3D version)" << endl;
-    }
-    else // 2D version
-    {
-        nDvt_ = (polOrder_ + 1.0)*(polOrder_ + 2.0)/2.0 - 1.0;
-
-        //Info<< "Reconstruction using WENO"
-            //<< polOrder_ << " (2D version)" << endl;
-    }
-
+    bJ_.reserve(100);
+    
     // Read expert factors
     IOdictionary WENODict
     (
@@ -121,41 +106,55 @@ void Foam::WENOCoeff<Type>::calcCoeff
 (
     const label cellI,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    coeffType& coeff,
-    const label stencilI
+    const labelListList& stencilList,
+    DynamicList<coeffType>& coeffsList
 ) const
 {
-    const List<label>& stencilsIDI =
-        WENOBase_.stencilsID()[cellI][stencilI];
-    const blaze::DynamicMatrix<double>& A =
-        WENOBase_.LSmatrix()[cellI][stencilI]();
-    const List<label>& cellToProcMapI =
-        WENOBase_.cellToProcMap()[cellI][stencilI];
-
-    // Calculate degrees of freedom of stencil as a matrix vector product
-    // First line is always constraint line
+    // Set coefficient size to number of stencils
+    coeffsList.setSize(stencilList.size(),coeffType(1,pTraits<Type>::zero));
     
-    // Create bJ vector
-    blaze::DynamicVector<Type> bJ(A.columns(),pTraits<Type>::zero);
+    label coeffIndex = 0;
+    
 
-    for (label j = 1; j < stencilsIDI.size(); j++)
+    forAll(stencilList,stencilI)
     {
+        if (stencilList[stencilI][0] != int(WENOBase::Cell::deleted))
+        {
+            const List<label>& stencilsIDI =
+                WENOBase_.stencilsID()[cellI][stencilI];
+            const blaze::DynamicMatrix<double>& A =
+                WENOBase_.LSmatrix()[cellI][stencilI]();
+           const List<label>& cellToProcMapI =
+                WENOBase_.cellToProcMap()[cellI][stencilI];
 
-        // Distinguish between local and halo cells
-        if (cellToProcMapI[j] == int(WENOBase::Cell::local))
-        {
-            bJ[j-1] = vf[stencilsIDI[j]] - vf[cellI];
-        }
-        else if(cellToProcMapI[j] != int(WENOBase::Cell::deleted))
-        {
-            bJ[j-1] =
-                haloData_[cellToProcMapI[j]][stencilsIDI[j]]
-              - vf[cellI];
+            bJ_.resize(A.columns());
+
+            // Calculate degrees of freedom of stencil as a matrix vector product
+            // First line is always constraint line
+
+            for (label j = 1; j < stencilsIDI.size(); j++)
+            {
+
+                // Distinguish between local and halo cells
+                if (cellToProcMapI[j] == int(WENOBase::Cell::local))
+                {
+                    bJ_[j-1] = vf[stencilsIDI[j]] - vf[cellI];
+                }
+                else if(cellToProcMapI[j] != int(WENOBase::Cell::deleted))
+                {
+                    bJ_[j-1] =
+                        haloData_[cellToProcMapI[j]][stencilsIDI[j]]
+                      - vf[cellI];
+                }
+            }
+            
+            // calculate coefficients
+            coeffsList[coeffIndex] = A*bJ_;
+            coeffIndex++;
         }
     }
-    
-    // calculate coefficients
-    coeff = A*bJ;
+    // Correct for deleted stencils
+    coeffsList.setSize(coeffIndex);
 }
 
 
@@ -228,7 +227,11 @@ Foam::WENOCoeff<Type>::getWENOPol
     
     tmp<Field<Field<Type> > > coeffsWeightedTmp
     (
-        new Field<Field<Type> >(mesh_.nCells())
+        new Field<Field<Type> >
+        (
+            mesh_.nCells(),
+            Field<Type>(nDvt_,pTraits<Type>::zero)
+        )
     );
     
     Field<Field<Type> >& coeffsWeighted = coeffsWeightedTmp.ref();
@@ -238,44 +241,21 @@ Foam::WENOCoeff<Type>::getWENOPol
 
     for (label cellI = 0; cellI < mesh_.nCells(); cellI++)
     {
-        coeffsWeighted[cellI].setSize(nDvt_,pTraits<Type>::zero);
+        const labelListList& stencilList = WENOBase_.stencilsID()[cellI];
+        
         
         // If no valid stencils are given return zero list of weighted 
         // coefficients
-        if (WENOBase_.stencilsID()[cellI][0][0] == int(WENOBase::Cell::empty))
+        if (stencilList[0][0] == int(WENOBase::Cell::empty))
             continue;
         
-        // Create coeffs list and exclude deleted stencils
-        label coeffSize = 0;
-        forAll(WENOBase_.stencilsID()[cellI],stencilI)
-        {
-            if (WENOBase_.stencilsID()[cellI][stencilI][0] != int(WENOBase::Cell::deleted))
-                coeffSize++;
-        }
-        
-        coeffsI.setSize(coeffSize);
-        
-        
-        // counter for coeff index
-        label coeffIndex = 0;
-        
-        
-        // Calculate degrees of freedom for each stencil of the cell
-        forAll(WENOBase_.stencilsID()[cellI],stencilI)
-        {
-            // Offset for deleted stencils
-            if (WENOBase_.stencilsID()[cellI][stencilI][0] != int(WENOBase::Cell::deleted))
-            {
-                calcCoeff
-                (
-                    cellI,
-                    vf,
-                    coeffsI[coeffIndex],
-                    stencilI
-                );
-                coeffIndex++;
-            }
-        }
+        calcCoeff
+        (
+            cellI,
+            vf,
+            stencilList,
+            coeffsI
+        );
         
         // Get weighted combination
         calcWeight
@@ -286,7 +266,6 @@ Foam::WENOCoeff<Type>::getWENOPol
             coeffsI
         );
     }
-
 
     return coeffsWeightedTmp;
 }

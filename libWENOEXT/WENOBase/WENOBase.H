@@ -352,6 +352,11 @@ public:
         {
             return dimList_;
         }
+        
+        inline label degreesOfFreedom() const
+        {
+            return nDvt_;
+        }
 };
 
 

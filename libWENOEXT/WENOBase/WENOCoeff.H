@@ -56,11 +56,8 @@ class WENOCoeff
 {
 protected:
 
-    // Private Data
-
-        //- Store reference to mesh 
-        const fvMesh& mesh_;
-
+    // Type definitions
+    
         //- Typedef for 3D scalar matrix
         using volIntegralType = List< List< List<scalar> > > ;
         
@@ -71,6 +68,12 @@ protected:
         //- Typedef for coefficient type with blaze object
         using coeffType = blaze::DynamicVector<Type>;
 
+
+    // Private Data
+
+        //- Store reference to mesh 
+        const fvMesh& mesh_;
+        
         //- Static variable to print WENODict just once during runtime
         static bool printWENODict_;
 
@@ -79,20 +82,24 @@ protected:
         //- Order of polynomials
         const unsigned int polOrder_;
         
-        //- Number of derivates
-        label nDvt_;
-        
-        //- Lists of field values of halo cells
-        //  Has to be mutable so getWENOPol is const 
-        mutable List<List<Type> > haloData_;
-        
         //- Reference to WENOBase class
         const WENOBase&  WENOBase_;
+
+        //- Number of derivates
+        const label nDvt_;
 
         //- WENO weighting factors
         scalar p_;
         scalar dm_;
 
+    // Allocate storage for dynamic variables
+
+        //- Lists of field values of halo cells
+        //  Has to be mutable so getWENOPol is const 
+        mutable List<List<Type> > haloData_;
+
+        //- Storage for bJ vector needed in calcCoeff
+        mutable blaze::DynamicVector<Type> bJ_;
 
     // Private Member Functions
 
@@ -112,9 +119,9 @@ protected:
         void calcCoeff
         (
             const label cellI,
-            const GeometricField<Type, fvPatchField, volMesh>& dataField,
-            coeffType& coeff,
-            const label stencilI
+            const GeometricField<Type, fvPatchField, volMesh>& vf,
+            const labelListList& stencilList,
+            DynamicList<coeffType>& coeffsList
         ) const;
 
 
@@ -134,7 +141,7 @@ protected:
         inline scalar intPow(const scalar base, const unsigned int exponent) const
         {
             scalar temp = 1.0;
-            for (unsigned int i =0; i<exponent;i++)
+            for (unsigned int i =0; i<exponent;++i)
             {
                 temp *= base;
             }
