@@ -455,17 +455,18 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                 refPoint_[localCellI]
             );
 
-        volIntegralType transVolMom =
-            Foam::geometryWENO::transformIntegral
-            (
-                globalMesh,
-                stencilsGlobalID_[localCellI][stencilI][cellJ],
-                transCenterJ,
-                polOrder_,
-                JInv_[localCellI],
-                refPoint_[localCellI],
-                refDet_[localCellI]
-            );
+        volIntegralType transVolMom;
+        Foam::geometryWENO::transformIntegral
+        (
+            globalMesh,
+            stencilsGlobalID_[localCellI][stencilI][cellJ],
+            transCenterJ,
+            polOrder_,
+            JInv_[localCellI],
+            refPoint_[localCellI],
+            refDet_[localCellI],
+            transVolMom
+        );
 
         for (label n = 0; n <= dimList_[localCellI][0]; n++)
         {

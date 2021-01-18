@@ -91,7 +91,7 @@ namespace geometryWENO
 
         //- Calculate the volume integrals of stencil cells in reference space
         //- of owner cell
-        volIntegralType transformIntegral
+        void transformIntegral
         (
             const fvMesh& mesh,
             const label cellJ,
@@ -99,7 +99,8 @@ namespace geometryWENO
             const label polOrder,
             const scalarSquareMatrix& JInvI,
             const point refPointI,
-            const scalar refDetI
+            const scalar refDetI,
+            volIntegralType& transVolMom
         );
 
         //- Calculate inverse of Jacobian matrix
@@ -118,13 +119,14 @@ namespace geometryWENO
 
 
         //- Calculate the volume integrals for the smoothness indicator matrix
-        volIntegralType smoothIndIntegrals
+        void smoothIndIntegrals
         (
             const fvMesh& mesh,
             const label cellI,
             const label polOrder,
             const scalarSquareMatrix& JacobianI,
-            const point refPointI
+            const point refPointI,
+            volIntegralType& smoothVolIntegral
         );
 
         //- Calculate the smoothness indicator matrices

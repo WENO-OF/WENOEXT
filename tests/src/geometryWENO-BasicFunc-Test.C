@@ -199,37 +199,249 @@ TEST_CASE("geometryWENO: Quadrature","[baseTest]")
 }
 
 
-//TEST_CASE("geometryWENO: Integration")
-//{
-    //// Replace setRootCase.H for Catch2   
-    //int argc = 1;
-    //char **argv = static_cast<char**>(malloc(sizeof(char*)));
-    //char executable[] = {'m','a','i','n'};
-    //argv[0] = executable;
-    //Foam::argList args(argc, argv,false,false,false);
+
+
+TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
+{
+    // ------------------------------------------------------------------------
+    //          Regression Test of geometryWENO::initIntegrals()
+    // 
+    // Use calcualted values from an implementation that is known to be correct
+    
+    
+    
+    // Replace setRootCase.H for Catch2   
+    int argc = 1;
+    char **argv = static_cast<char**>(malloc(sizeof(char*)));
+    char executable[] = {'m','a','i','n'};
+    argv[0] = executable;
+    Foam::argList args(argc, argv,false,false,false);
         
-    //// create the mesh from case file
-    //#include "createTime.H"
-    //#include "createMesh.H"
-    //#include "createControl.H"
-    
-    //geometryWENO geo;
-    
-    //using scalarMatrix = List< List< List<scalar> > > ;
-    //using scalarSquareMatrix = SquareMatrix<scalar>;
-    
-    ////const fvMesh& mesh,
-    //const label cellI = 33;
-    //const label polOrder = 2;
-    //scalarMatrix Integral;
-    //scalarSquareMatrix JInvI;
-    //point refPointI;
-    //scalar refDetI;
-    
-    //geo.initIntegrals(mesh,cellI,polOrder,Integral,JInvI,refPointI,refDetI);
+    // create the mesh from case file
+    #include "createTime.H"
+    #include "createMesh.H"
+    #include "createControl.H"
     
     
+    using volIntegralType = List< List< List<scalar> > > ;
+    using scalarSquareMatrix = SquareMatrix<scalar>;
     
-//}
+    const label cellI = 33;
+
+    scalarSquareMatrix JInvI;
+    point refPointI;
+    scalar refDetI;
+    
+    SECTION("Pol Order 2")
+    {
+        const label polOrder = 2;
+        volIntegralType volIntegrals;
+        volIntegrals.resize((polOrder+ 1));
+
+        for (label i = 0; i < (polOrder+1); i++)
+        {
+            volIntegrals[i].resize((polOrder+ 1)-i);
+
+            for (label j = 0; j < ((polOrder+1)-i); j++)
+            {
+                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
+            }
+        }
+        
+        geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
+        
+        
+        const point transCenterJ =
+        Foam::geometryWENO::transformPoint
+        (
+            JInvI,
+            mesh.cellCentres()[cellI],
+            refPointI
+        );
+        
+        // Check transformIntegral gives the same result for refPointI and refDetI
+        volIntegralType transVolMom;
+        geometryWENO::transformIntegral
+        (
+            mesh, cellI,transCenterJ,polOrder,JInvI,refPointI,refDetI,transVolMom
+        );
+                
+        
+        
+        // Quick Check of volIntegrals by using the sum over all elements:
+        double sumI = 0;
+        forAll(volIntegrals,l)
+        {
+            forAll(volIntegrals[l],m)
+            {
+                forAll(volIntegrals[l][m],o)
+                {
+                    sumI += volIntegrals[l][m][o];
+                    REQUIRE(Approx(volIntegrals[l][m][o]) == transVolMom[l][m][o]);
+                }
+            }
+        }
+        
+        REQUIRE(Approx(sumI) == 1.25);
+        
+        double sumJInv = 0;
+        for (int i=0; i < 3; i++)
+        {
+            for (int j=0; j < 3; j++)
+            {
+                sumJInv += JInvI[i][j];
+            }
+        }
+        
+        REQUIRE(Approx(sumJInv) == 10.0);
+        
+        REQUIRE(Approx(refPointI[0]) == 9.5504574);
+        REQUIRE(Approx(refPointI[1]) == 3.14159);
+        REQUIRE(Approx(refPointI[2]) == 0);
+        
+        REQUIRE(Approx(refDetI) == -281.4461);
+    }
+    
+    
+    SECTION("Pol Order 3")
+    {
+        const label polOrder = 3;
+        volIntegralType volIntegrals;
+        volIntegrals.resize((polOrder+ 1));
+
+        for (label i = 0; i < (polOrder+1); i++)
+        {
+            volIntegrals[i].resize((polOrder+ 1)-i);
+
+            for (label j = 0; j < ((polOrder+1)-i); j++)
+            {
+                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
+            }
+        }
+        
+        geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
+        
+        const point transCenterJ =
+        Foam::geometryWENO::transformPoint
+        (
+            JInvI,
+            mesh.cellCentres()[cellI],
+            refPointI
+        );
+        
+        // Check transformIntegral gives the same result for refPointI and refDetI
+        volIntegralType transVolMom;
+        geometryWENO::transformIntegral
+        (
+            mesh, cellI,transCenterJ,polOrder,JInvI,refPointI,refDetI,transVolMom
+        );
+                
+        
+        
+        // Quick Check of volIntegrals by using the sum over all elements:
+        double sumI = 0;
+        forAll(volIntegrals,l)
+        {
+            forAll(volIntegrals[l],m)
+            {
+                forAll(volIntegrals[l][m],o)
+                {
+                    sumI += volIntegrals[l][m][o];
+                    REQUIRE(Approx(volIntegrals[l][m][o]) == transVolMom[l][m][o]);
+                }
+            }
+        }
+        
+        REQUIRE(Approx(sumI) == 1.25);
+        
+        double sumJInv = 0;
+        for (int i=0; i < 3; i++)
+        {
+            for (int j=0; j < 3; j++)
+            {
+                sumJInv += JInvI[i][j];
+            }
+        }
+        
+        REQUIRE(Approx(sumJInv) == 10.0);
+        
+        REQUIRE(Approx(refPointI[0]) == 9.5504574);
+        REQUIRE(Approx(refPointI[1]) == 3.14159);
+        REQUIRE(Approx(refPointI[2]) == 0);
+        
+        REQUIRE(Approx(refDetI) == -281.4461);
+    }
+    
+    
+    SECTION("Pol Order 4")
+    {
+        const label polOrder = 4;
+        volIntegralType volIntegrals;
+        volIntegrals.resize((polOrder+ 1));
+
+        for (label i = 0; i < (polOrder+1); i++)
+        {
+            volIntegrals[i].resize((polOrder+ 1)-i);
+
+            for (label j = 0; j < ((polOrder+1)-i); j++)
+            {
+                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
+            }
+        }
+        
+        geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
+        
+        const point transCenterJ =
+        Foam::geometryWENO::transformPoint
+        (
+            JInvI,
+            mesh.cellCentres()[cellI],
+            refPointI
+        );
+        
+        // Check transformIntegral gives the same result for refPointI and refDetI
+        volIntegralType transVolMom;
+        geometryWENO::transformIntegral
+        (
+            mesh, cellI,transCenterJ,polOrder,JInvI,refPointI,refDetI,transVolMom
+        );
+                
+        
+        
+        // Quick Check of volIntegrals by using the sum over all elements:
+        double sumI = 0;
+        forAll(volIntegrals,l)
+        {
+            forAll(volIntegrals[l],m)
+            {
+                forAll(volIntegrals[l][m],o)
+                {
+                    sumI += volIntegrals[l][m][o];
+                    REQUIRE(Approx(volIntegrals[l][m][o]) == transVolMom[l][m][o]);
+                }
+            }
+        }
+        
+        REQUIRE(Approx(sumI) == 1.308333);
+        
+        double sumJInv = 0;
+        for (int i=0; i < 3; i++)
+        {
+            for (int j=0; j < 3; j++)
+            {
+                sumJInv += JInvI[i][j];
+            }
+        }
+        
+        REQUIRE(Approx(sumJInv) == 10.0);
+        
+        REQUIRE(Approx(refPointI[0]) == 9.5504574);
+        REQUIRE(Approx(refPointI[1]) == 3.14159);
+        REQUIRE(Approx(refPointI[2]) == 0);
+        
+        REQUIRE(Approx(refDetI) == -281.4461);
+    }
+    
+}
 
 
