@@ -309,7 +309,11 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
          dictionary headerDict(is);
  
          is.version(headerDict.lookup("version"));
-         is.format(headerDict.lookup("format"));
+         #if (OPENFOAM_COM >= 1912)
+            is.format(headerDict.get<word>("format"));
+         #else
+            is.format(headerDict.lookup("format"));
+        #endif
          word headerClassName = word(headerDict.lookup("class"));
  
         //if (headerClassName == "faceCompactList")
