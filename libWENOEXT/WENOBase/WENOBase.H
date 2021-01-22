@@ -226,12 +226,6 @@ class WENOBase
             const volIntegralType& integralsj,
             const volIntegralType& integralsi
         );
-
-        //- Check for existing lists in constant folder and read them
-        bool readList(const fvMesh& mesh);
-
-        //- Write lists to constant folder
-        void writeList(const fvMesh& mesh);
         
         //- Add the coefficients to the matrix A for each row
         void addCoeffs
@@ -357,6 +351,12 @@ public:
         {
             return nDvt_;
         }
+        
+        //- Check for existing lists in constant folder and read them
+        bool readList(const fvMesh& mesh);
+
+        //- Write lists to constant folder
+        void writeList(const fvMesh& mesh);
 };
 
 

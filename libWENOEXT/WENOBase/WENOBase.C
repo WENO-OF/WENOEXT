@@ -1186,7 +1186,7 @@ bool Foam::WENOBase::readList
 
         IFstream isSID(Dir_/"StencilIDs",IFstream::streamFormat::BINARY);
         stencilsID_.setSize(mesh.nCells());
-        scalar nEntries;
+        label nEntries;
 
         for (label cellI = 0; cellI < mesh.nCells(); cellI++)
         {
@@ -1299,8 +1299,7 @@ bool Foam::WENOBase::readList
 
         intBasTrans_.setSize(mesh.nFaces());
 
-        refFacAr_.setSize(mesh.nFaces());
-
+        refFacAr_.clear();
         for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
         {
             intBasTrans_[faceI][0] = volIntegrals;

@@ -4,5 +4,7 @@ matrixDB-Test.C
 WENOUpwindFit-Test.C
 WENOUpwindFit-AdvectionTest.C 
 WENOPerformance-Test.C
+WENOBaseIO-Test.C
+
 
 EXE = tests.exe 
