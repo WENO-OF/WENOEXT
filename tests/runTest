@@ -112,6 +112,7 @@ function runSimple {
 # ---------------------------------------------------------------------------
 cd ../ && ./Allwmake
 
+. versionRules/libraryRules
 
 cd ${currDir}/src && wmake
 

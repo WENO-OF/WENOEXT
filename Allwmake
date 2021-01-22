@@ -46,5 +46,6 @@ echo
 echo "Please include the output above when reporting a problem in the compilation. It helps diagnosing the problem    "
 echo                                                                            
 
+. versionRules/libraryRules
 
 wmake libso libWENOEXT

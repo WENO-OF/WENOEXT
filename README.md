@@ -24,6 +24,11 @@ Different versions of the code are structured through tags:
              Uses improved parallising and C++11 features 
  * [0.1] Version for OpenFOAM 2.3.x to OpenFOAM 5.x 
 
+### Supported OpenFOAM Versions:
+
+ * OpenFOAM (ORG) v5.x - 7
+ * OpenFOAM (ESI) v1912
+
 ## Authors
 
  * Tobias Martin <tobimartin2@googlemail.com>

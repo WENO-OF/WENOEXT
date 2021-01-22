@@ -687,6 +687,8 @@ void Foam::geometryWENO::surfIntTrans
     const pointField& pts = mesh.points();
     const labelUList& N = mesh.neighbour();
 
+    refFacAr.resize(mesh.nFaces(),0);
+
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
         point refPointTrans =
