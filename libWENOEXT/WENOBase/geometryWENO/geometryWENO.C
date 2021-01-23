@@ -138,6 +138,10 @@ void Foam::geometryWENO::initIntegrals
     }
 
     // Evaluate volume integral using surface integrals over triangulated faces
+    // Initialize size of integral list
+    volIntegrals.resize((polOrder + 1),(polOrder + 1),(polOrder + 1));
+    // Set value to zero
+    volIntegrals.setZero();
 
     forAll(triFaces, i)
     {
@@ -160,19 +164,6 @@ void Foam::geometryWENO::initIntegrals
             vn /= mag(vn);
         }
 
-        // Initialize size of integral list
-        volIntegrals.resize((polOrder + 1));
-
-        for (label i = 0; i < (polOrder+1); i++)
-        {
-            volIntegrals[i].resize((polOrder+ 1)-i);
-
-            for (label j = 0; j < ((polOrder+1)-i); j++)
-            {
-                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
-            }
-        }
-
         // Evaluate integral using Gaussian quadratures
         for (label n = 0; n <= polOrder; n++)
         {
@@ -182,19 +173,19 @@ void Foam::geometryWENO::initIntegrals
                 {
                     if ((n + m + l) <= polOrder && n > 0)
                     {
-                        volIntegrals[n][m][l] +=
+                        volIntegrals(n,m,l) +=
                             1.0/(n + 1)*area*vn.x()
                             *gaussQuad(n + 1, m, l, refPointTrans, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder && m > 0)
                     {
-                        volIntegrals[n][m][l] +=
+                        volIntegrals(n,m,l) +=
                             1.0/(m + 1)*area*vn.y()
                             *gaussQuad(n, m + 1, l, refPointTrans, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder)
                     {
-                        volIntegrals[n][m][l] +=
+                        volIntegrals(n,m,l) += 
                             1.0/(l + 1)*area*vn.z()
                             *gaussQuad(n, m, l + 1, refPointTrans, v0, v1, v2);
                     }
@@ -211,7 +202,7 @@ void Foam::geometryWENO::initIntegrals
             {
                 if ((n + m + l) <= polOrder)
                 {
-                    volIntegrals[n][m][l] *=
+                    volIntegrals(n,m,l) *=
                         1.0/(mag(refDetI)*mesh.cellVolumes()[cellI]);
                 }
             }
@@ -234,15 +225,11 @@ void Foam::geometryWENO::transformIntegral
 {
     const pointField& pts = mesh.points();
 
-    transVolMom.resize((polOrder + 1));
-    for (label i = 0; i <= polOrder; i++)
-    {
-        transVolMom[i].resize((polOrder + 1));
-        for (label j = 0; j <= polOrder; j++)
-        {
-            transVolMom[i][j].resize((polOrder + 1), 0.0);
-        }
-    }
+
+    transVolMom.resize((polOrder + 1),(polOrder + 1),(polOrder + 1));
+
+    // Initialize with zero
+    transVolMom.setZero();
 
     // Triangulate the faces of the cell
     List<tetIndices> cellTets =
@@ -287,19 +274,19 @@ void Foam::geometryWENO::transformIntegral
                 {
                     if ((n + m + l) <= polOrder && n > 0)
                     {
-                        transVolMom[n][m][l] +=
+                        transVolMom(n,m,l) +=
                             1.0/(n + 1)*area*vn.x()
                            *gaussQuad(n + 1, m, l, transCenterJ, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder && m > 0)
                     {
-                        transVolMom[n][m][l] +=
+                        transVolMom(n,m,l) +=
                             1.0/(m + 1)*area*vn.y()
                            *gaussQuad(n, m + 1, l, transCenterJ, v0, v1, v2);
                     }
                     else if ((n + m + l) <= polOrder)
                     {
-                        transVolMom[n][m][l] +=
+                        transVolMom(n,m,l) +=
                             1.0/(l + 1)*area*vn.z()
                             * gaussQuad(n, m, l + 1, transCenterJ, v0, v1, v2);
                     }
@@ -316,7 +303,7 @@ void Foam::geometryWENO::transformIntegral
             {
                 if ((n + m + l) <= polOrder)
                 {
-                    transVolMom[n][m][l] *=
+                    transVolMom(n,m,l) *=
                         1.0/(mag(refDetI)*mesh.cellVolumes()[cellJ]);
                 }
             }
@@ -438,17 +425,9 @@ void Foam::geometryWENO::smoothIndIntegrals
     const pointField& pts = mesh.points();
     const label maxOrder = 2*polOrder - 2;
 
-    smoothVolIntegral.setSize((maxOrder + 1));
+    smoothVolIntegral.resize((maxOrder + 1),(maxOrder + 1),(maxOrder + 1));
+    smoothVolIntegral.setZero();
 
-    for (label i = 0; i < (maxOrder + 1); i++)
-    {
-        smoothVolIntegral[i].setSize((maxOrder + 1));
-
-        for (label j = 0; j < (maxOrder + 1); j++)
-        {
-            smoothVolIntegral[i][j].setSize((maxOrder + 1), 0.0);
-        }
-    }
 
     List<tetIndices> cellTets =
         polyMeshTetDecomposition::cellTetIndices(mesh, cellI);
@@ -497,7 +476,8 @@ void Foam::geometryWENO::smoothIndIntegrals
                 {
                     if ((potXi + potEta + potZeta) <= maxOrder && potXi > 0)
                     {
-                        smoothVolIntegral[potXi][potEta][potZeta] +=
+                        smoothVolIntegral(potXi,potEta,potZeta) +=
+
                             1.0/(potXi + 1)*area*vn.x()
                            *gaussQuad
                             (
@@ -516,7 +496,7 @@ void Foam::geometryWENO::smoothIndIntegrals
                      && potEta > 0
                     )
                     {
-                        smoothVolIntegral[potXi][potEta][potZeta] +=
+                        smoothVolIntegral(potXi,potEta,potZeta) +=
                             1.0/(potEta + 1)*area*vn.y()
                            *gaussQuad
                             (
@@ -531,7 +511,7 @@ void Foam::geometryWENO::smoothIndIntegrals
                     }
                     else if ((potXi + potEta + potZeta) <= maxOrder)
                     {
-                        smoothVolIntegral[potXi][potEta][potZeta] +=
+                        smoothVolIntegral(potXi,potEta,potZeta) +=
                             1.0/(potZeta + 1)*area*vn.z()
                            *gaussQuad
                             (
@@ -648,9 +628,12 @@ Foam::geometryWENO::DynamicMatrix Foam::geometryWENO::getB
                                                 if (K != 0)
                                                 {
                                                     B(p,q) +=
-                                                       K*intB[n1 + n2 - 2*alpha]
-                                                       [m1 + m2 - 2*beta]
-                                                       [l1 + l2 - 2*gamma];
+                                                       K*intB
+                                                       (
+                                                        n1 + n2 - 2*alpha,
+                                                        m1 + m2 - 2*beta,
+                                                        l1 + l2 - 2*gamma
+                                                       );
                                                 }
                                             }
                                         }
@@ -686,6 +669,15 @@ void Foam::geometryWENO::surfIntTrans
 {
     const pointField& pts = mesh.points();
     const labelUList& N = mesh.neighbour();
+
+    // Initialize fields
+    forAll(intBasTrans,cellI)
+    {
+        intBasTrans[cellI][0].resize(polOrder+1,polOrder+1,polOrder+1);
+        intBasTrans[cellI][0].setZero();
+        intBasTrans[cellI][1].resize(polOrder+1,polOrder+1,polOrder+1);
+        intBasTrans[cellI][1].setZero();
+    }
 
     refFacAr.resize(mesh.nFaces(),0);
 
@@ -786,7 +778,7 @@ void Foam::geometryWENO::surfIntTrans
                         {
                             if ((n + m + l) <= polOrder)
                             {
-                                intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] +=
+                                intBasTrans[faces[faceI]][OwnNeighIndex](n,m,l) +=
                                     area
                                    *geometryWENO::gaussQuad
                                     (
@@ -813,9 +805,9 @@ void Foam::geometryWENO::surfIntTrans
                     {
                         if ((n + m + l) <= polOrder)
                         {
-                            intBasTrans[faces[faceI]][OwnNeighIndex][n][m][l] -=
+                            intBasTrans[faces[faceI]][OwnNeighIndex](n,m,l) -=
                             (
-                                area*volIntegralsList[cellI][n][m][l]
+                                area*volIntegralsList[cellI](n,m,l)
                             );
                         }
                     }
@@ -849,9 +841,9 @@ Foam::vector Foam::geometryWENO::compCheck
 {
     vector result(0.0,0.0,0.0);
 
-    if (n > 0) result[0] = n*intBasisfI[n - 1][m][l];
-    if (m > 0) result[1] = m*intBasisfI[n][m - 1][l];
-    if (l > 0) result[2] = l*intBasisfI[n][m][l - 1];
+    if (n > 0) result[0] = n*intBasisfI(n - 1,m,l);
+    if (m > 0) result[1] = m*intBasisfI(n,m - 1,l);
+    if (l > 0) result[2] = l*intBasisfI(n,m,l - 1);
 
     return result;
 }

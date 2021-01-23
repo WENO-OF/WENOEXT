@@ -44,6 +44,7 @@ Author
 #include "fvMesh.H"
 #include "fvCFD.H"
 #include "blaze/Math.h"
+#include "List3D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -58,7 +59,7 @@ namespace geometryWENO
 {
 
     //- Typedef for 3D scalar matrix
-    using volIntegralType = List< List< List<scalar> > > ;
+    using volIntegralType = List3D<scalar>;
     using scalarSquareMatrix = SquareMatrix<scalar>;
     using DynamicMatrix = blaze::DynamicMatrix<scalar>;
     

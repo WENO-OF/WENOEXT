@@ -476,7 +476,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                 {
                     if ((n + m + l) <= polOrder_ && (n + m + l) > 0)
                     {
-                        volIntegralsIJ[n][m][l] =
+                        volIntegralsIJ(n,m,l) =
                             calcGeom
                             (
                                 transCenterJ - transCenterI,
@@ -599,12 +599,12 @@ Foam::scalar Foam::WENOBase::calcGeom
                    *factorial(m)/(factorial(l)*factorial((m - l)))
                    *factorial(o)/(factorial(j)*factorial((o - j)))
                    *intPow(x_ij.x(), k)*intPow(x_ij.y(), l)*intPow(x_ij.z(), j)
-                   *volMomJ[n - k][m - l][o - j];
+                   *volMomJ(n - k,m - l,o - j);
             }
         }
     }
 
-    return (geom - volMomI[n][m][o]);
+    return (geom - volMomI(n,m,o));
 }
 
 
@@ -626,7 +626,7 @@ void Foam::WENOBase::addCoeffs
             {
                 if( (n+m+l) <= polOrder_ && (n+m+l) > 0 )
                 {
-                    A[cellj-1][currIdx++] = volIntegralsIJ[n][m][l];
+                    A[cellj-1][currIdx++] = volIntegralsIJ(n,m,l);
                 }
             }
         }
@@ -799,12 +799,6 @@ Foam::WENOBase::WENOBase
         
         refFacAr_.setSize(localMesh.nFaces());
 
-        for (label faceI = 0; faceI < localMesh.nFaces(); faceI++)
-        {
-            intBasTrans_[faceI][0] = volIntegrals;
-            intBasTrans_[faceI][1] = volIntegrals;
-        }
-
         Foam::geometryWENO::surfIntTrans
         (
             localMesh,
@@ -895,6 +889,7 @@ Foam::WENOBase::WENOBase
     refDet_.clear();
 
     refPoint_.clear();
+    Info << "\tAll done."<<endl;
 }
 
 
@@ -1126,18 +1121,8 @@ void Foam::WENOBase::initVolIntegrals
     const fvMesh& localMesh = globalfvMesh.localMesh();
     const fvMesh& globalMesh = globalfvMesh();
 
-    volIntegrals.resize((polOrder_ + 1));
-
-    for (label i = 0; i < (polOrder_+1); i++)
-    {
-        volIntegrals[i].resize((polOrder_+ 1)-i);
-
-        for (label j = 0; j < ((polOrder_+1)-i); j++)
-        {
-            volIntegrals[i][j].resize((polOrder_ + 1)-i, 0.0);
-        }
-    }
-
+    volIntegrals.resize((polOrder_ + 1),(polOrder_ + 1),(polOrder_ + 1));
+    
     volIntegralsList_.setSize(localMesh.nCells(), volIntegrals);
 
     JInv_.setSize(localMesh.nCells());
@@ -1262,21 +1247,8 @@ bool Foam::WENOBase::readList
         // faster than writting and reading
 
 
-        volIntegralType volIntegrals;
 
-        volIntegrals.resize((polOrder_+1));
-
-        for (label i = 0; i < (polOrder_+1); i++)
-        {
-            volIntegrals[i].resize((polOrder_+ 1)-i);
-
-            for (label j = 0; j < ((polOrder_+1)-i); j++)
-            {
-                volIntegrals[i][j].resize((polOrder_ + 1)-i, 0.0);
-            }
-        }
-
-        volIntegralsList_.setSize(mesh.nCells(),volIntegrals);
+        volIntegralsList_.setSize(mesh.nCells());
         JInv_.setSize(mesh.nCells());
         refPoint_.setSize(mesh.nCells());
         refDet_.setSize(mesh.nCells());
@@ -1300,11 +1272,6 @@ bool Foam::WENOBase::readList
         intBasTrans_.setSize(mesh.nFaces());
 
         refFacAr_.clear();
-        for (label faceI = 0; faceI < mesh.nFaces(); faceI++)
-        {
-            intBasTrans_[faceI][0] = volIntegrals;
-            intBasTrans_[faceI][1] = volIntegrals;
-        }
 
         Foam::geometryWENO::surfIntTrans
         (

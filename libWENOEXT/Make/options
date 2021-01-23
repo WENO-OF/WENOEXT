@@ -8,6 +8,7 @@ EXE_INC = \
  -I$(LIB_SRC)/fileFormats/lnInclude \
  -DGIT_BUILD=\"$(GIT_BUILD)\" \
  -std=c++14 \
+ -I./WENOBase/geometryWENO \
  -I../versionRules \
  -I../blaze-3.8
 

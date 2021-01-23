@@ -5,6 +5,6 @@ WENOUpwindFit-Test.C
 WENOUpwindFit-AdvectionTest.C 
 WENOPerformance-Test.C
 WENOBaseIO-Test.C
-
+List3D-Test.C
 
 EXE = tests.exe 

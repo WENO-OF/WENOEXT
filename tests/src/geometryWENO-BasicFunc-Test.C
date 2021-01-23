@@ -37,7 +37,9 @@ Author
 #include "fvCFD.H"
 #include "geometryWENO.H"
 #include <cmath>
-
+#include <cstdlib>
+#include <ctime>
+#include "List3D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -199,8 +201,6 @@ TEST_CASE("geometryWENO: Quadrature","[baseTest]")
 }
 
 
-
-
 TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
 {
     // ------------------------------------------------------------------------
@@ -223,7 +223,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     #include "createControl.H"
     
     
-    using volIntegralType = List< List< List<scalar> > > ;
+    using volIntegralType = List3D<scalar>;
     using scalarSquareMatrix = SquareMatrix<scalar>;
     
     const label cellI = 33;
@@ -236,18 +236,8 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     {
         const label polOrder = 2;
         volIntegralType volIntegrals;
-        volIntegrals.resize((polOrder+ 1));
+        volIntegrals.resize((polOrder+ 1),(polOrder+ 1),(polOrder+ 1));
 
-        for (label i = 0; i < (polOrder+1); i++)
-        {
-            volIntegrals[i].resize((polOrder+ 1)-i);
-
-            for (label j = 0; j < ((polOrder+1)-i); j++)
-            {
-                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
-            }
-        }
-        
         geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
         
         
@@ -270,14 +260,14 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         // Quick Check of volIntegrals by using the sum over all elements:
         double sumI = 0;
-        forAll(volIntegrals,l)
+        for (int l = 0; l < volIntegrals.sizeX(); ++l)
         {
-            forAll(volIntegrals[l],m)
+            for (int m = 0; m < volIntegrals.sizeY(); ++m)
             {
-                forAll(volIntegrals[l][m],o)
+                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
                 {
-                    sumI += volIntegrals[l][m][o];
-                    REQUIRE(Approx(volIntegrals[l][m][o]) == transVolMom[l][m][o]);
+                    sumI += volIntegrals(l,m,n);
+                    REQUIRE(Approx(volIntegrals(l,m,n)) == transVolMom(l,m,n));
                 }
             }
         }
@@ -307,17 +297,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     {
         const label polOrder = 3;
         volIntegralType volIntegrals;
-        volIntegrals.resize((polOrder+ 1));
-
-        for (label i = 0; i < (polOrder+1); i++)
-        {
-            volIntegrals[i].resize((polOrder+ 1)-i);
-
-            for (label j = 0; j < ((polOrder+1)-i); j++)
-            {
-                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
-            }
-        }
+        volIntegrals.resize((polOrder+ 1),(polOrder+ 1),(polOrder+ 1));
         
         geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
         
@@ -340,14 +320,14 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         // Quick Check of volIntegrals by using the sum over all elements:
         double sumI = 0;
-        forAll(volIntegrals,l)
+        for (int l = 0; l < volIntegrals.sizeX(); ++l)
         {
-            forAll(volIntegrals[l],m)
+            for (int m = 0; m < volIntegrals.sizeY(); ++m)
             {
-                forAll(volIntegrals[l][m],o)
+                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
                 {
-                    sumI += volIntegrals[l][m][o];
-                    REQUIRE(Approx(volIntegrals[l][m][o]) == transVolMom[l][m][o]);
+                    sumI += volIntegrals(l,m,n);
+                    REQUIRE(Approx(volIntegrals(l,m,n)) == transVolMom(l,m,n));
                 }
             }
         }
@@ -377,17 +357,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     {
         const label polOrder = 4;
         volIntegralType volIntegrals;
-        volIntegrals.resize((polOrder+ 1));
-
-        for (label i = 0; i < (polOrder+1); i++)
-        {
-            volIntegrals[i].resize((polOrder+ 1)-i);
-
-            for (label j = 0; j < ((polOrder+1)-i); j++)
-            {
-                volIntegrals[i][j].resize((polOrder + 1)-i, 0.0);
-            }
-        }
+        volIntegrals.resize((polOrder+ 1),(polOrder+ 1),(polOrder+ 1));
         
         geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
         
@@ -410,18 +380,17 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         // Quick Check of volIntegrals by using the sum over all elements:
         double sumI = 0;
-        forAll(volIntegrals,l)
+        for (int l = 0; l < volIntegrals.sizeX(); ++l)
         {
-            forAll(volIntegrals[l],m)
+            for (int m = 0; m < volIntegrals.sizeY(); ++m)
             {
-                forAll(volIntegrals[l][m],o)
+                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
                 {
-                    sumI += volIntegrals[l][m][o];
-                    REQUIRE(Approx(volIntegrals[l][m][o]) == transVolMom[l][m][o]);
+                    sumI += volIntegrals(l,m,n);
+                    REQUIRE(Approx(volIntegrals(l,m,n)) == transVolMom(l,m,n));
                 }
             }
         }
-        
         REQUIRE(Approx(sumI) == 1.308333);
         
         double sumJInv = 0;
@@ -443,5 +412,3 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     }
     
 }
-
-

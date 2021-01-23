@@ -82,13 +82,13 @@ void checkList(const geometryWENO::DynamicMatrix& M1, const geometryWENO::Dynami
 
 void checkVolIntegral(const geometryWENO::volIntegralType& L1, const geometryWENO::volIntegralType& L2)
 {
-    forAll(L1,l)
+    for (int l = 0; l < L1.sizeX(); ++l)
     {
-        forAll(L1[l],m)
+        for (int m = 0; m < L1.sizeY(); ++m)
         {
-            forAll(L1[l][m],n)
+            for (int n = 0; n < L1.sizeZ(); ++n)
             {
-                REQUIRE(L1[l][m][n] == L2[l][m][n]);
+                REQUIRE(Approx(L1(l,m,n)) == L2(l,m,n));
             }
         }
     }

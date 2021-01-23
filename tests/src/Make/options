@@ -12,7 +12,7 @@ EXE_INC = \
     -I$(LIB_SRC)/fileFormats/lnInclude \
     -I../../versionRules \
     -I../../blaze-3.8 \
-    -std=c++14 -g
+    -std=c++14
 
 
 EXE_LIBS = \

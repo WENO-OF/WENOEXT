@@ -600,7 +600,7 @@ Type Foam::WENOUpwindFit<Type>::sumFlux
                 if ((n+m+l) <= polOrder_ && (n+m+l) > 0)
                 {
                     flux +=
-                        coeffcI[nCoeff]*intBasiscIfI[n][m][l];
+                        coeffcI[nCoeff]*intBasiscIfI(n,m,l);
 
                     nCoeff++;
                 }

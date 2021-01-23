@@ -75,7 +75,7 @@ class WENOHybrid
     // Private Data
 
         //- Typedef for 3D scalar matrix
-        using volIntegralType = List< List< List<scalar> > > ;
+        using volIntegralType = List3D<scalar> ;
         
         //- C++11 typedef for squareMatrix
         //  This is used for Jacobian matrix
