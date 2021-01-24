@@ -34,15 +34,13 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
-#include "catch.hpp"
-#include "WENOBase.H"
 #include "fvCFD.H"
 #include <chrono>
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("WENOUpwindFit Performance Test","[Performance]")
+int main()
 {
     // ------------------------------------------------------------------------
     //                          OpenFOAM Start-Up 
@@ -68,7 +66,7 @@ TEST_CASE("WENOUpwindFit Performance Test","[Performance]")
     // Mesh has two patches, outlet with fixed value and empty direction
     wordList patchTypes(2);
     patchTypes[mesh.boundary()["outlet"].index()] = "fixedValue"; 
-    patchTypes[mesh.boundary()["empty"].index()] = "empty";
+    patchTypes[mesh.boundary()["topBottom"].index()] = "fixedValue";
     
 
     auto psiFunc = [](const double x, const double y) -> double
@@ -153,7 +151,7 @@ TEST_CASE("WENOUpwindFit Performance Test","[Performance]")
     volScalarField divWENO("divWENO",fvc::div(phi,psi,"div(WENO)"));
     auto t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
-    Info << "Duration Build-Up: "<<duration<<" microseconds --> "<<duration/1E+6<<" seconds"<<endl;
+    Info << "Duration Build-Up: "<<duration/1E+6<<" seconds"<<endl;
     
     
     t1 = std::chrono::high_resolution_clock::now();
@@ -163,7 +161,7 @@ TEST_CASE("WENOUpwindFit Performance Test","[Performance]")
     }
     t2 = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
-    Info << "Duration Run-Time: "<<duration<<" microseconds --> "<<duration/1E+6<<" seconds"<< endl;
+    Info << "Duration Run-Time: "<<duration/1E+6<<" seconds"<< endl;
     
     
     t1 = std::chrono::high_resolution_clock::now();
@@ -173,8 +171,9 @@ TEST_CASE("WENOUpwindFit Performance Test","[Performance]")
     }
     t2 = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
-    Info << "Duration Run-Time: "<<duration<<" microseconds (linear) --> "<<duration/1E+6<<" seconds"<<endl;
+    Info << "Duration Run-Time Linear: "<<duration/1E+6<<" seconds"<<endl;
 
+    return 0;
 }
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

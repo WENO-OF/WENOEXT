@@ -1,0 +1,29 @@
+#!/bin/bash
+
+
+set terminal postscript eps enhanced color font ", 22" 
+
+set style line 1 lt 1 lc rgb "black"   lw 5  ps 2 pt 1 
+set style line 2 lt 1 lc rgb "red"     lw 5  ps 2 pt 2
+set style line 3 lt 1 lc rgb "blue"    lw 5  ps 2 pt 3
+set style line 5 lt 2 lc rgb "black"   lw 5  dt 2 ps 2 
+set style line 6 lt 2 lc rgb "red"     lw 5  dt 2 ps 2
+set style line 7 lt 4 lc rgb "black"   lw 5  dt 2 ps 2
+set style line 8 lt 2 lc rgb "blue"    lw 5  dt 2 ps 2
+
+
+set xtics font ", 22"
+set ytics font ", 22"
+
+# set grid
+
+# -------------------------------------------------------------------
+#                           Plots
+# -------------------------------------------------------------------
+
+set ylabel "RunTime in seconds";
+set xlabel "Run #"
+set output "performance.eps"
+
+plot "../Case/plotPerformance.dat" using 0:1 with linespoints ls 2 title 'build-up',\
+     "../Case/plotPerformance.dat" using 0:2 with linespoints ls 3 title 'runTime'

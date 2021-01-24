@@ -15,6 +15,8 @@ A quick overview of the WENO scheme is provided in this presentation:
 
  * [Presentation: WENOExt](./documentation/WENO-Presentation.pdf)
 
+Please also check out the ***Discussion*** board of GitHub for more information about features or if you want to post a new idea.
+
 **Versions:**
 
 Different versions of the code are structured through tags:

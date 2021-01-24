@@ -1,0 +1,55 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application             test.exe;
+
+startFrom               startTime;
+
+startTime               0;
+
+stopAt                  endTime;
+
+endTime                 2;
+
+deltaT                  1;
+
+writeControl            timeStep;
+
+writeInterval           1;
+
+writeFormat             binary;
+
+writePrecision          6;
+
+writeCompression        uncompressed;
+
+timeFormat              general;
+
+runTimeModifiable       yes;
+
+adjustTimeStep          on;
+
+maxCo                   0.25;
+
+maxDeltaT               5e-7;
+
+
+libs
+(
+    "libWENOEXT.so"
+);
+
+// ************************************************************************* //3

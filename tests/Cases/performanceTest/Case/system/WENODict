@@ -1,0 +1,40 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.3.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      WENODict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// This dict contains expert parameters, which modify the standard WENO scheme.
+
+	//- Stencil extension ratio:
+	//	- < 2.5	:	decreased computational effort. May also decrease stability 
+	//				and accuracy 
+	//	- > 2.5 :   higher stability. May influence the accuracy of the SVD
+	extendRatio		2.0; // default 2.5
+	
+	//- WENO stencil weighting parameters:
+	p				4.0;
+	dm				1000.0;
+    epsilon         1E-40;
+
+    //- Calculate best conditioned matrix
+    //  This can save memory especially for high order WENO scheme 
+    //  Increases the calculation time! Default is off
+    bestConditioned false;
+
+    writeData       false;
+
+    maxCondition    1E-05;
+
+// ************************************************************************* //

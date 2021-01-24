@@ -54,9 +54,19 @@ lnInclude/
 *.exe
 
 # Ignore the polyMesh files
-tests/Case/constant/polyMesh
-tests/Case/0
-tests/Case/constant/matrixDataBankTest
+tests/Case/baseCase/constant/polyMesh
+tests/Case/baseCase/0
+tests/Case/baseCase/constant/matrixDataBankTest
+tests/Case/baseCase/constant/matrixDataBankTest
+tests/Case/performanceTest/Case/constant/polyMesh
+tests/Cases/advectionCase/0/
+tests/Cases/advectionCase/1/
+tests/Cases/advectionCase/constant/
+tests/Cases/performanceTest/Case/0/
+tests/Cases/performanceTest/Case/constant/
+tests/Cases/performanceTest/Case/performanceRun.log
+tests/Cases/performanceTest/Case/plotPerformance.dat
+
 
 # ignore WENO directories
 tests/**/WENOBase*
