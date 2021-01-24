@@ -109,6 +109,7 @@ class List3D
                 {
                     data_[i] = other.data_[i];
                 }
+                return *this;
             }
             
 
@@ -136,26 +137,14 @@ class List3D
                     
                 this->data_ = other.data_;
                 other.data_ = nullptr;
+                return *this;
             }
 
         // Access
-        const Type& operator()(const int i, const int j, const int k) const
-        {
-            #ifdef FULLDEBUG
-            if ((i*(sizeY_*sizeZ_) + j*(sizeZ_) + k) >= (sizeX_*sizeY_*sizeZ_))
-                std::cerr <<"********ERROR******** out of bounds"<<std::endl;
-            #endif
-            return data_[i*(sizeY_*sizeZ_) + j*(sizeZ_) + k];
-        }
+        inline const Type& operator()(const int i, const int j, const int k) const;
         
-        Type& operator()(const int i, const int j, const int k)
-        {
-            #ifdef FULLDEBUG
-            if ((i*(sizeY_*sizeZ_) + j*(sizeZ_) + k) >= (sizeX_*sizeY_*sizeZ_))
-                std::cerr <<"********ERROR******** out of bounds"<<std::endl;
-            #endif
-            return data_[i*(sizeY_*sizeZ_) + j*(sizeZ_) + k];
-        }
+        inline Type& operator()(const int i, const int j, const int k);
+
         
         void resize(const int sizeX, const int sizeY, const int sizeZ)
         {
@@ -191,6 +180,41 @@ class List3D
         int sizeY() const {return sizeY_;}
         int sizeZ() const {return sizeZ_;}
 };
+
+
+template<class Type>
+inline Type& Foam::List3D<Type>::operator()(const int i, const int j, const int k)
+{
+    #ifdef FULLDEBUG
+        if ((i*(sizeY_*sizeZ_) + j*(sizeZ_) + k) > (sizeX_*sizeY_*sizeZ_))
+        {
+            std::cerr << "List3D: Access element out of bounds: "
+                      << (i*(sizeY_*sizeZ_) + j*(sizeZ_) + k) <<  " of "
+                      << (sizeX_*sizeY_*sizeZ_)<<std::endl;
+            std::abort();
+        }
+    #endif
+    
+    return data_[i*(sizeY_*sizeZ_) + j*(sizeZ_) + k];
+}
+
+
+template<class Type>
+inline const Type& Foam::List3D<Type>::operator()(const int i, const int j, const int k) const
+{
+    #ifdef FULLDEBUG
+        if ((i*(sizeY_*sizeZ_) + j*(sizeZ_) + k) > (sizeX_*sizeY_*sizeZ_))
+        {
+            std::cerr << "List3D: Access element out of bounds: "
+                      << (i*(sizeY_*sizeZ_) + j*(sizeZ_) + k) <<  " of "
+                      << (sizeX_*sizeY_*sizeZ_)<<std::endl;
+            std::abort();
+        }
+    #endif
+    
+    return data_[i*(sizeY_*sizeZ_) + j*(sizeZ_) + k];
+}
+
 
 
 

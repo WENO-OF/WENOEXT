@@ -124,7 +124,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
                 WENOBase_.stencilsID()[cellI][stencilI];
             const blaze::DynamicMatrix<double>& A =
                 WENOBase_.LSmatrix()[cellI][stencilI]();
-           const List<label>& cellToProcMapI =
+            const List<label>& cellToProcMapI =
                 WENOBase_.cellToProcMap()[cellI][stencilI];
 
             bJ_.resize(A.columns());

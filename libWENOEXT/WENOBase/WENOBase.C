@@ -442,8 +442,11 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         refPoint_[localCellI]
     );
 
-    volIntegralType volIntegralsIJ = volIntegralsList_[localCellI];
+    
 
+    // Dummy variables for volume intergals
+    volIntegralType transVolMom((polOrder_ + 1),(polOrder_ + 1),(polOrder_ + 1));
+    volIntegralType volIntegralsIJ(polOrder_+1,polOrder_+1,polOrder_+1);
     // Add one line per cell
     for (label cellJ = 1; cellJ <= nCells; cellJ++)
     {
@@ -455,7 +458,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                 refPoint_[localCellI]
             );
 
-        volIntegralType transVolMom;
+        
         Foam::geometryWENO::transformIntegral
         (
             globalMesh,
@@ -709,8 +712,7 @@ Foam::WENOBase::WENOBase
         // ------------------ Start Processing ---------------------------------
         
         // Initialize the volume integrals 
-        volIntegralType volIntegrals;   // Dummy variable for volumeIntegral of one cell
-        initVolIntegrals(globalfvMesh,volIntegrals);
+        initVolIntegrals(globalfvMesh);
 
         Info << "\t1) Create local stencils..." << endl;
         createStencilID(globalMesh,globalfvMesh.localToGlobalCellID(),nStencils,extendRatio);
@@ -1113,17 +1115,14 @@ void Foam::WENOBase::setDegreeOfFreedom(const fvMesh& localMesh)
 
 void Foam::WENOBase::initVolIntegrals
 (
-    const WENO::globalfvMesh& globalfvMesh,
-    volIntegralType& volIntegrals
+    const WENO::globalfvMesh& globalfvMesh
 )
 {
     // local mesh
     const fvMesh& localMesh = globalfvMesh.localMesh();
     const fvMesh& globalMesh = globalfvMesh();
-
-    volIntegrals.resize((polOrder_ + 1),(polOrder_ + 1),(polOrder_ + 1));
     
-    volIntegralsList_.setSize(localMesh.nCells(), volIntegrals);
+    volIntegralsList_.setSize(localMesh.nCells());
 
     JInv_.setSize(localMesh.nCells());
     refPoint_.setSize(localMesh.nCells());

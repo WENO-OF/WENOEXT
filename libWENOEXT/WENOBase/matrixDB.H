@@ -179,9 +179,11 @@ public:
         void resizeSubList(const label cellI, const label size);
         
         //- Access an element
-        const List<MatrixPtr>& operator[](const label celli) const;
+        inline const List<MatrixPtr>& operator[](const label celli) const 
+        {return LSmatrix_[celli];}
         
-        List<MatrixPtr>& operator[](const label celli);
+        inline List<MatrixPtr>& operator[](const label celli) 
+        {return LSmatrix_[celli];}
         
     // Access
         

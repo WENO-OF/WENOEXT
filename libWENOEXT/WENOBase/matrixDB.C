@@ -220,18 +220,18 @@ Foam::matrixDB::keyType Foam::matrixDB::hashMatrix
 }
 
 
-const Foam::List<Foam::matrixDB::MatrixPtr>& 
-Foam::matrixDB::operator[](const label celli) const
-{
-    return LSmatrix_[celli];
-}
+//const Foam::List<Foam::matrixDB::MatrixPtr>& 
+//Foam::matrixDB::operator[](const label celli) const
+//{
+    //return LSmatrix_[celli];
+//}
 
 
-Foam::List<Foam::matrixDB::MatrixPtr>& 
-Foam::matrixDB::operator[](const label celli)
-{
-    return LSmatrix_[celli];
-}
+//Foam::List<Foam::matrixDB::MatrixPtr>& 
+//Foam::matrixDB::operator[](const label celli)
+//{
+    //return LSmatrix_[celli];
+//}
 
 
 void Foam::matrixDB::resizeSubList(const label cellI, const label size)

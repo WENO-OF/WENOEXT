@@ -678,7 +678,9 @@ void Foam::geometryWENO::surfIntTrans
         intBasTrans[cellI][1].resize(polOrder+1,polOrder+1,polOrder+1);
         intBasTrans[cellI][1].setZero();
     }
-
+    
+    // Clear and initialize with zero
+    refFacAr.clear();
     refFacAr.resize(mesh.nFaces(),0);
 
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)

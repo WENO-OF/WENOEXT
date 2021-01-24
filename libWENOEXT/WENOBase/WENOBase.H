@@ -262,8 +262,7 @@ class WENOBase
         //- Initialize the volume integrals 
         void initVolIntegrals
         (
-            const WENO::globalfvMesh& globalfvMesh,
-            volIntegralType& volIntegrals
+            const WENO::globalfvMesh& globalfvMesh
         );
         
         //- Delete stencil from list
