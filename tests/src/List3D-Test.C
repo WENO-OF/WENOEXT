@@ -38,7 +38,8 @@ Author
 #include <cstdlib>
 #include <ctime>
 #include "List3D.H"
-
+#include "OFstream.H"
+#include "IFstream.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
@@ -73,6 +74,32 @@ TEST_CASE("List3D Test","[baseTest]")
                 int randomNumber = std::rand();
                 matrix(i,j,k) = randomNumber;
                 vecMatrix[i][j][k] = randomNumber;
+            }
+        }
+    }
+    
+    SECTION("I/O Constructor")
+    {
+        INFO("I/O Constructor");
+        Foam::OFstream osIntBasTrans("List3D.dat",Foam::OFstream::streamFormat::BINARY);
+        matrix.write(osIntBasTrans);
+        
+        Foam::IFstream isIntBasTrans("List3D.dat",Foam::IFstream::streamFormat::BINARY);
+        Foam::List3D<Foam::label> copyMatrix(isIntBasTrans);
+        
+        REQUIRE(copyMatrix.size() == matrix.size());
+        REQUIRE(copyMatrix.sizeX() == matrix.sizeX());
+        REQUIRE(copyMatrix.sizeY() == matrix.sizeY());
+        REQUIRE(copyMatrix.sizeZ() == matrix.sizeZ());
+        
+        for (int i = 0; i < 10; ++i)
+        {
+            for (int j=0; j < 9; ++j)
+            {
+                for (int k = 0; k < 8; k++)
+                {
+                    REQUIRE(matrix(i,j,k) == copyMatrix(i,j,k));
+                }
             }
         }
     }
@@ -184,6 +211,61 @@ TEST_CASE("List3D Test","[baseTest]")
         REQUIRE(copyMatrix(1,1,1) == (temp+1));
         
     }
+
+
+    SECTION("I/O Operator ASCII")
+    {
+        Foam::OFstream osIntBasTrans("List3D-ascii.dat",Foam::OFstream::streamFormat::ASCII);
+        matrix.write(osIntBasTrans);
+        
+        Foam::IFstream isIntBasTrans("List3D-ascii.dat",Foam::IFstream::streamFormat::ASCII);
+        Foam::List3D<int> copyMatrix;
+        copyMatrix.read(isIntBasTrans);
+        
+        REQUIRE(copyMatrix.size() == matrix.size());
+        REQUIRE(copyMatrix.sizeX() == matrix.sizeX());
+        REQUIRE(copyMatrix.sizeY() == matrix.sizeY());
+        REQUIRE(copyMatrix.sizeZ() == matrix.sizeZ());
+        
+        for (int i = 0; i < 10; ++i)
+        {
+            for (int j=0; j < 9; ++j)
+            {
+                for (int k = 0; k < 8; k++)
+                {
+                    REQUIRE(matrix(i,j,k) == copyMatrix(i,j,k));
+                }
+            }
+        }
+    }
+
+    SECTION("I/O Operator Binary")
+    {
+        INFO("Binary Read/Write");
+        Foam::OFstream osIntBasTrans("List3D.dat",Foam::OFstream::streamFormat::BINARY);
+        matrix.write(osIntBasTrans);
+        
+        Foam::IFstream isIntBasTrans("List3D.dat",Foam::IFstream::streamFormat::BINARY);
+        Foam::List3D<Foam::label> copyMatrix;
+        copyMatrix.read(isIntBasTrans);
+        
+        REQUIRE(copyMatrix.size() == matrix.size());
+        REQUIRE(copyMatrix.sizeX() == matrix.sizeX());
+        REQUIRE(copyMatrix.sizeY() == matrix.sizeY());
+        REQUIRE(copyMatrix.sizeZ() == matrix.sizeZ());
+        
+        for (int i = 0; i < 10; ++i)
+        {
+            for (int j=0; j < 9; ++j)
+            {
+                for (int k = 0; k < 8; k++)
+                {
+                    REQUIRE(matrix(i,j,k) == copyMatrix(i,j,k));
+                }
+            }
+        }
+    }
+    
 
 }
     

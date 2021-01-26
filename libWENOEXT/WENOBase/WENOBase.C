@@ -1160,129 +1160,52 @@ bool Foam::WENOBase::readList
     {
         Info<< "\nRead existing lists from constant folder \n" << endl;
 
+        sendProcList_.clear();
+        IFstream isPToPSend(Dir_/"sendProcList",IFstream::streamFormat::BINARY);
+        isPToPSend >> sendProcList_;
+
+        receiveProcList_.clear();
+        IFstream isPToPReceive(Dir_/"receiveProcList",IFstream::streamFormat::BINARY);
+        isPToPReceive >> receiveProcList_;
+
+        dimList_.clear();
         IFstream isDL(Dir_/"DimLists",IFstream::streamFormat::BINARY);
-        dimList_.setSize(mesh.nCells());
-
-        forAll(dimList_, cellI)
-        {
-            isDL >> dimList_[cellI];
-        }
-
+        isDL >> dimList_;
+        
+        stencilsID_.clear();
         IFstream isSID(Dir_/"StencilIDs",IFstream::streamFormat::BINARY);
-        stencilsID_.setSize(mesh.nCells());
-        label nEntries;
+        isSID >> stencilsID_;
 
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-        {
-            isSID >> nEntries;
-
-            stencilsID_[cellI].setSize(nEntries);
-
-            for (label stencilI = 0; stencilI < nEntries; stencilI++)
-            {
-                isSID >> stencilsID_[cellI][stencilI];
-            }
-        }
-
+        cellToProcMap_.clear();
         IFstream isCToP(Dir_/"CellToProcMap",IFstream::streamFormat::BINARY);
-        cellToProcMap_.setSize(mesh.nCells());
-
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-        {
-            isCToP >> nEntries;
-
-            cellToProcMap_[cellI].setSize(nEntries);
-
-            for (label stencilI = 0; stencilI < nEntries; stencilI++)
-            {
-                isCToP >> cellToProcMap_[cellI][stencilI];
-            }
-        }
+        isCToP >> cellToProcMap_;
 
         IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
         isLS >> LSmatrix_;
 
-        IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
-        B_.setSize(mesh.nCells());
-
-        forAll(B_, cellI)
-        {
-            isB >> B_[cellI];
-        }
-
-
-        sendProcList_.setSize(Pstream::nProcs());
-        IFstream isPToPSend(Dir_/"sendProcList",IFstream::streamFormat::BINARY);
-
-        forAll(sendProcList_, procI)
-        {
-            isPToPSend >> sendProcList_[procI];
-        }
-
-        receiveProcList_.setSize(Pstream::nProcs());
-        IFstream isPToPReceive(Dir_/"receiveProcList",IFstream::streamFormat::BINARY);
-
-        forAll(receiveProcList_, procI)
-        {
-            isPToPReceive >> receiveProcList_[procI];
-        }
-
-        ownHalos_.setSize(Pstream::nProcs());
+        ownHalos_.clear();
         IFstream isOH(Dir_/"OwnHalos",IFstream::streamFormat::BINARY);
+        isOH >> ownHalos_;
 
-        forAll(ownHalos_, procI)
+        B_.clear();
+        IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
+        isB >> B_;
+
+        intBasTrans_.clear();
+        IFstream isIntBasTrans(Dir_/"intBasTrans",IFstream::streamFormat::BINARY);
+        label nEntries;
+        isIntBasTrans >> nEntries;
+        intBasTrans_.resize(nEntries);
+        forAll(intBasTrans_,cellI)
         {
-            isOH >> nEntries;
-
-            ownHalos_[procI].setSize(nEntries);
-
-            forAll(ownHalos_[procI], cellI)
-            {
-                isOH >> ownHalos_[procI][cellI];
-            }
+            isIntBasTrans >> intBasTrans_[cellI][0];
+            isIntBasTrans >> intBasTrans_[cellI][1];
         }
-
-        // Calculating volume integrals in transformed coordinates,
-        // faster than writting and reading
-
-
-
-        volIntegralsList_.setSize(mesh.nCells());
-        JInv_.setSize(mesh.nCells());
-        refPoint_.setSize(mesh.nCells());
-        refDet_.setSize(mesh.nCells());
-
-        for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-        {
-            Foam::geometryWENO::initIntegrals
-            (
-                mesh,
-                cellI,
-                polOrder_,
-                volIntegralsList_[cellI],
-                JInv_[cellI],
-                refPoint_[cellI],
-                refDet_[cellI]
-            );
-        }
-
-        // Get surface integrals in transformed coordinates
-
-        intBasTrans_.setSize(mesh.nFaces());
-
+        
         refFacAr_.clear();
-
-        Foam::geometryWENO::surfIntTrans
-        (
-            mesh,
-            polOrder_,
-            volIntegralsList_,
-            JInv_,
-            refPoint_,
-            intBasTrans_,
-            refFacAr_
-        );
-
+        IFstream isRefFacAr(Dir_/"refFacAr",IFstream::streamFormat::BINARY);
+        isRefFacAr >> refFacAr_;
+        
         return true;
     }
     else
@@ -1303,70 +1226,40 @@ void Foam::WENOBase::writeList
     mkDir(Dir_);
 
     OFstream osPToPSend(Dir_/"sendProcList",OFstream::streamFormat::BINARY);
-
-    forAll(sendProcList_, i)
-    {
-        osPToPSend << sendProcList_[i] << endl;
-    }
+    osPToPSend << sendProcList_;
 
     OFstream osPToPReceive(Dir_/"receiveProcList",OFstream::streamFormat::BINARY);
-
-    forAll(receiveProcList_, i)
-    {
-        osPToPReceive << receiveProcList_[i] << endl;
-    }
+    osPToPReceive << receiveProcList_;
 
     OFstream osDL(Dir_/"DimLists",OFstream::streamFormat::BINARY);
-
-    forAll(dimList_, cellI)
-    {
-        osDL<< dimList_[cellI] << endl;
-    }
-
+    osDL << dimList_;
+    
     OFstream osSID(Dir_/"StencilIDs",OFstream::streamFormat::BINARY);
-
-    for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-    {
-        osSID<< stencilsID_[cellI].size() << endl;
-
-        forAll(stencilsID_[cellI], stenciI)
-        {
-            osSID<< stencilsID_[cellI][stenciI] << endl;
-        }
-    }
+    osSID << stencilsID_;
 
     OFstream osCToP(Dir_/"CellToProcMap",OFstream::streamFormat::BINARY);
-
-    for (label cellI = 0; cellI < mesh.nCells(); cellI++)
-    {
-        osCToP<< cellToProcMap_[cellI].size() << endl;
-
-        forAll(cellToProcMap_[cellI], cellJ)
-        {
-            osCToP<< cellToProcMap_[cellI][cellJ] << endl;
-        }
-    }
+    osCToP << cellToProcMap_;
 
     OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
     osLS << LSmatrix_;
 
     OFstream osOH(Dir_/"OwnHalos",OFstream::streamFormat::BINARY);
-    
-    forAll(ownHalos_, procI)
-    {
-        osOH<< ownHalos_[procI].size() << endl;
-
-        forAll(ownHalos_[procI], cellI)
-        {
-            osOH<< ownHalos_[procI][cellI] << endl;
-        }
-    }
+    osOH << ownHalos_;
 
     OFstream osB(Dir_/"B",OFstream::streamFormat::BINARY);
-    forAll(B_, cellI)
+    osB << B_;
+    
+    // Write the intBasTransList
+    OFstream osIntBasTrans(Dir_/"intBasTrans",OFstream::streamFormat::BINARY);
+    osIntBasTrans << intBasTrans_.size() <<endl;
+    forAll(intBasTrans_,cellI)
     {
-        osB<< B_[cellI] << endl;
+        osIntBasTrans << intBasTrans_[cellI][0];
+        osIntBasTrans << intBasTrans_[cellI][1];
     }
+    
+    OFstream osRefFacAr(Dir_/"refFacAr",OFstream::streamFormat::BINARY);
+    osRefFacAr << refFacAr_;
 }
 
 

@@ -188,7 +188,7 @@ public:
     // Access
         
         // get size of LSmatrix list
-        label size() {return LSmatrix_.size();}
+        label size() const {return LSmatrix_.size();}
         
         //- Print information to screen 
         void info();

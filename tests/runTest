@@ -37,14 +37,26 @@ function runAll {
     cd ${currDir}/Cases/baseCase
     blockMesh > /dev/null
     ../../src/tests.exe [baseTest]
+    
+    [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
+    ../../src/tests.exe [IOTest]
 
     # Clean up 
     [[ -e "PLOT/results.dat" ]] && rm PLOT/results.dat
+    [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
 
     # run with WENO 3 0
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/writeData.*/writeData     true;/" system/WENODict
     sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
+    # run with WENO 3 0 read in data
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/writeData.*/writeData     false;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+    [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
 
     # run with WENO 4 0
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 4 0;/" system/fvSchemes
@@ -88,7 +100,11 @@ function runSimple {
 
     cd ${currDir}/Cases/baseCase
     blockMesh > /dev/null
+    # Clean up 
     ../../src/tests.exe [baseTest]
+    
+    [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
+    ../../src/tests.exe [IOTest]
 
     # Clean up 
     [[ -e "PLOT/results.dat" ]] && rm PLOT/results.dat

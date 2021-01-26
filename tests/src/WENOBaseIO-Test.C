@@ -80,6 +80,7 @@ void checkList(const geometryWENO::DynamicMatrix& M1, const geometryWENO::Dynami
     }
 }
 
+
 void checkVolIntegral(const geometryWENO::volIntegralType& L1, const geometryWENO::volIntegralType& L2)
 {
     for (int l = 0; l < L1.sizeX(); ++l)
@@ -105,7 +106,7 @@ void checkList(const Pair<geometryWENO::volIntegralType>& L1, const Pair<geometr
 
 
 
-TEST_CASE("WENOBase IO Test","[2D]")
+TEST_CASE("WENOBase IO Test","[IOTest]")
 {
     // ------------------------------------------------------------------------
     //                          OpenFOAM Start-Up 
@@ -136,6 +137,17 @@ TEST_CASE("WENOBase IO Test","[2D]")
     List<scalar> refFacAr =WENO.refFacAr();
     labelListList dimList = WENO.dimList();
     label degreesOfFreedom = WENO.degreesOfFreedom();
+    List<List<blaze::DynamicMatrix<double>>> LSMatrix;
+    LSMatrix.resize(WENO.LSmatrix().size());
+    forAll(LSMatrix,cellI)
+    {
+        LSMatrix[cellI].resize(WENO.LSmatrix()[cellI].size());
+        forAll(LSMatrix[cellI],stencilI)
+        {
+            if (WENO.LSmatrix()[cellI][stencilI].valid())
+                LSMatrix[cellI][stencilI] = WENO.LSmatrix()[cellI][stencilI]();
+        }
+    }
     
     
     // Read the data
@@ -161,7 +173,15 @@ TEST_CASE("WENOBase IO Test","[2D]")
     checkList(refFacAr,WENO.refFacAr());
     INFO("Check dimList ...")
     checkList(dimList,WENO.dimList());
-    
+    INFO("Check LSMatrix ...")
+    forAll(LSMatrix,cellI)
+    {
+        forAll(LSMatrix[cellI],stencilI)
+        {
+            if (WENO.LSmatrix()[cellI][stencilI].valid())
+                checkList(LSMatrix[cellI][stencilI],WENO.LSmatrix()[cellI][stencilI]());
+        }
+    }
     REQUIRE(degreesOfFreedom == WENO.degreesOfFreedom());
     
 }

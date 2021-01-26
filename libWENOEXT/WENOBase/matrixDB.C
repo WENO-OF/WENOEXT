@@ -220,20 +220,6 @@ Foam::matrixDB::keyType Foam::matrixDB::hashMatrix
 }
 
 
-//const Foam::List<Foam::matrixDB::MatrixPtr>& 
-//Foam::matrixDB::operator[](const label celli) const
-//{
-    //return LSmatrix_[celli];
-//}
-
-
-//Foam::List<Foam::matrixDB::MatrixPtr>& 
-//Foam::matrixDB::operator[](const label celli)
-//{
-    //return LSmatrix_[celli];
-//}
-
-
 void Foam::matrixDB::resizeSubList(const label cellI, const label size)
 {
     LSmatrix_[cellI].resize(size,MatrixPtr(this));
@@ -468,7 +454,6 @@ Foam::Istream& Foam::operator >>(Istream& is, blaze::DynamicMatrix<double>& M)
         is.read(reinterpret_cast<char*>(M.data()),rows*spacing*sizeof(double));
     }
     
-    
     return is;
 }
 
@@ -496,6 +481,7 @@ Foam::Ostream& Foam::operator <<(Ostream& os,const blaze::DynamicMatrix<double>&
         // the spacing
         os << M.spacing()<<endl;
         os.write(reinterpret_cast<const char*>(M.data()),(M.spacing()*M.rows()* sizeof(double)));
+        os.flush();
     }
     
     return os;
