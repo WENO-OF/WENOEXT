@@ -38,23 +38,20 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
 (
     const fvMesh& mesh,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
-    GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP,
-    const GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN
+    GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP
 )    const
 {
     const Field<Type>& vfI = vf.internalField();
 
     const labelUList& P = mesh.owner();
-    const labelUList& N = mesh.neighbour();
 
-    const label nComp = vfI[0].size();
+    const label nComp = pTraits<Type>::nComponents;
 
     // Evaluate the limiters
-
     Field<Type> theta(mesh.nCells(),pTraits<Type>::zero);
 
-    const Type maxPhi = max(vfI);
-    const Type minPhi = min(vfI);
+    const Type maxVfI = max(vfI);
+    const Type minVfI = min(vfI);
 
     Type maxP = pTraits<Type>::zero;
     Type minP = pTraits<Type>::zero;
@@ -71,58 +68,45 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
 
         for (label cI = 0; cI < nComp; cI++)
         {
+            // Buffer components:
+            auto maxPci = component(maxP,cI);
+            auto minPci = component(minP,cI);
+            
             forAll(faces, fI)
             {
                 if (faces[fI] < mesh.nInternalFaces())
                 {
-                    if (cellI == P[faces[fI]])
-                    {
-                        if (tsfP[faces[fI]][cI] > maxP[cI])
-                        {
-                            maxP[cI] = tsfP[faces[fI]][cI];
-                        }
-                        else if (tsfP[faces[fI]][cI] < minP[cI])
-                        {
-                            minP[cI] = tsfP[faces[fI]][cI];
-                        }
-                    }
-                    else
-                    {
-                        if (tsfN[faces[fI]][cI] > maxP[cI])
-                        {
-                            maxP[cI] = tsfN[faces[fI]][cI];
-                        }
-                        else if (tsfN[faces[fI]][cI] < minP[cI])
-                        {
-                            minP[cI] = tsfN[faces[fI]][cI];
-                        }
-                    }
+                    const auto& tsfPci = component(tsfP[faces[fI]],cI);
+                    
+                    if (tsfPci > maxPci)
+                        maxPci = tsfPci;
+                    else if (tsfPci < minPci)
+                        minPci = tsfPci;
                 }
             }
 
-            if (mag(maxP[cI] - vfI[cellI][cI]) < 1e-10)
+            if (mag(maxPci - component(vfI[cellI],cI)) < 1e-10)
             {
                 argMax = 1.0;
             }
             else
             {
                 argMax =
-                    mag((maxPhi[cI] - vfI[cellI][cI])
-                   /(maxP[cI] - vfI[cellI][cI]));
+                    mag((component(maxVfI,cI) - component(vfI[cellI],cI))
+                   /(maxPci - component(vfI[cellI],cI)));
             }
 
-            if (mag(minP[cI] - vfI[cellI][cI]) < 1e-10)
+            if (mag(minPci - component(vfI[cellI],cI)) < 1e-10)
             {
                 argMin = 1.0;
             }
             else
             {
                 argMin =
-                    mag((minPhi[cI] - vfI[cellI][cI])
-                   /(minP[cI] - vfI[cellI][cI]));
+                    mag((component(minVfI,cI)- component(vfI[cellI],cI))
+                   /(minPci - component(vfI[cellI],cI)));
             }
-
-            theta[cellI][cI] = min(min(argMax, argMin), 1.0);
+            setComponent(theta[cellI],cI) = (min(argMax, argMin), 1.0);
         }
     }
 
@@ -130,267 +114,58 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
 
     forAll(P, faceI)
     {
-        if (faceFlux_[faceI] > 0)
+        for (label cI = 0; cI < nComp; cI++)
         {
-            for (label cI = 0; cI < nComp; cI++)
-            {
-                tsfP[faceI][cI] =
-                    limFac_*(theta[P[faceI]][cI]
-                   *(tsfP[faceI][cI] - vfI[P[faceI]][cI])
-                  + vfI[P[faceI]][cI])
-                  + (1.0 - limFac_)*tsfP[faceI][cI];
-
-                tsfP[faceI][cI] -= vfI[P[faceI]][cI];
-            }
-        }
-        else if (faceFlux_[faceI] < 0)
-        {
-            for (label cI = 0; cI < nComp; cI++)
-            {
-                tsfP[faceI][cI] =
-                    limFac_*(theta[N[faceI]][cI]
-                   *(tsfN[faceI][cI] - vfI[N[faceI]][cI])
-                  + vfI[N[faceI]][cI])
-                  + (1.0 - limFac_)*tsfN[faceI][cI];
-
-                tsfP[faceI][cI] -= vfI[N[faceI]][cI];
-            }
-        }
-        else
-        {
-            tsfP[faceI] = pTraits<Type>::zero;
+            setComponent(tsfP[faceI],cI) =
+                limFac_
+                *(
+                    component(theta[P[faceI]],cI)
+                  * component(tsfP[faceI],cI)
+                )
+                + (1.0 - limFac_)
+                *(
+                    component(tsfP[faceI],cI)
+                );
         }
     }
 
     forAll(tsfP.boundaryField(), patchI)
     {
+        const fvPatchList& patches = mesh.boundary();
+
         fvsPatchField<Type>& pbtsfP =
         #ifdef FOAM_NEW_GEOMFIELD_RULES
             tsfP.boundaryFieldRef()[patchI];
         #else 
             tsfP.boundaryField()[patchI];
         #endif
-        const fvsPatchField<Type>& pbtsfN =
-            tsfN.boundaryField()[patchI];
-
-        if (pbtsfP.coupled())
+        
+        if (isA<processorFvPatch>(patches[patchI]))
         {
             const labelUList& pOwner =
                 mesh.boundary()[patchI].faceCells();
 
-            const scalarField& pFaceFlux =
-                faceFlux_.boundaryField()[patchI];
-
-            const List<Type>& vfN =
-                vf.boundaryField()[patchI].patchNeighbourField();
-
             forAll(pOwner, faceI)
             {
                 label own = pOwner[faceI];
 
-                if (pFaceFlux[faceI] > 0)
+                for (label cI = 0; cI < nComp; cI++)
                 {
-                    for (label cI = 0; cI < nComp; cI++)
-                    {
-                        pbtsfP[faceI][cI] =
-                            limFac_*(theta[own][cI]
-                           *(pbtsfP[faceI][cI] - vfI[own][cI])
-                          + vfI[own][cI]) + (1.0 - limFac_)
-                           *pbtsfP[faceI][cI];
-
-                        pbtsfP[faceI][cI] -= vfI[own][cI];
-                    }
-                }
-                else if (pFaceFlux[faceI] < 0)
-                {
-                    for (label cI = 0; cI < nComp; cI++)
-                    {
-                        pbtsfP[faceI][cI] =                             // unlimited
-                            limFac_*(1.0*(pbtsfN[faceI][cI]
-                          - vfN[faceI][cI])
-                          + vfN[faceI][cI]) + (1.0 - limFac_)
-                           *pbtsfN[faceI][cI];
-
-                        pbtsfP[faceI][cI] -= vfN[faceI][cI];
-                    }
-                }
-                else
-                {
-                    pbtsfP[faceI] = pTraits<Type>::zero;
+                    setComponent(pbtsfP[faceI],cI) =
+                        limFac_
+                        *(
+                            component(theta[own],cI)
+                          * component(tsfP[faceI],cI)
+                        )
+                        + (1.0 - limFac_)
+                        *(
+                            component(tsfP[faceI],cI)
+                        );
                 }
             }
         }
     }
 }
-
-
-
-//- Calculating the limiters for scalar fields
-template<>
-void Foam::WENOUpwindFit<Foam::scalar>::calcLimiter
-(
-    const fvMesh& mesh,
-    const volScalarField& vf,
-    surfaceScalarField& tsfP,
-    const surfaceScalarField& tsfN
-)    const
-{
-    const labelUList& P = mesh.owner();
-    const labelUList& N = mesh.neighbour();
-
-    const scalarField& vfI = vf.internalField();
-
-    scalarField theta(mesh.nCells(),0.0);
-
-    scalar maxP = 0.0;
-    scalar minP = 0.0;
-    const scalar maxPhi = max(vfI);
-    const scalar minPhi = min(vfI);
-    scalar argMax = 0.0;
-    scalar argMin = 0.0;
-
-    // Evaluate the internal limiters
-
-    for (label cellI = 0; cellI< mesh.nCells(); cellI++)
-    {
-        const cell& faces = mesh.cells()[cellI];
-
-        maxP = vfI[cellI];
-        minP = vfI[cellI];
-
-        forAll(faces, fI)
-        {
-            if (faces[fI] < mesh.nInternalFaces())
-            {
-                if (cellI == P[faces[fI]])
-                {
-                    if (tsfP[faces[fI]] > maxP)
-                    {
-                        maxP = tsfP[faces[fI]];
-                    }
-                    else if (tsfP[faces[fI]] < minP)
-                    {
-                        minP = tsfP[faces[fI]];
-                    }
-                }
-                else
-                {
-                    if (tsfN[faces[fI]] > maxP)
-                    {
-                        maxP = tsfN[faces[fI]];
-                    }
-                    else if (tsfN[faces[fI]] < minP)
-                    {
-                        minP = tsfN[faces[fI]];
-                    }
-                }
-            }
-        }
-
-        if (mag(maxP - vfI[cellI]) < 1e-10)
-        {
-            argMax = 1.0;
-        }
-        else
-        {
-            argMax = mag((maxPhi - vfI[cellI])/(maxP - vfI[cellI]));
-        }
-
-        if (mag(minP - vfI[cellI]) < 1e-10)
-        {
-            argMin = 1.0;
-        }
-        else
-        {
-            argMin = mag((minPhi - vfI[cellI])/(minP - vfI[cellI]));
-        }
-
-        theta[cellI] = min(min(argMax, argMin), 1.0);
-    }
-
-    // Evaluate the limited fluxes
-
-    forAll(P, faceI)
-    {
-        if (faceFlux_[faceI] > 0)
-        {
-            tsfP[faceI] =
-                limFac_*(theta[P[faceI]]*(tsfP[faceI] - vfI[P[faceI]])
-              + vfI[P[faceI]]) + (1.0 - limFac_)*tsfP[faceI];
-
-            tsfP[faceI] -= vfI[P[faceI]];
-        }
-        else if (faceFlux_[faceI] < 0)
-        {
-            tsfP[faceI] =
-                limFac_*(theta[N[faceI]]*(tsfN[faceI] -    vfI[N[faceI]])
-              + vfI[N[faceI]]) + (1.0 - limFac_)*tsfN[faceI];
-
-            tsfP[faceI] -= vfI[N[faceI]];
-        }
-        else
-        {
-            tsfP[faceI] =  0.0;
-        }
-    }
-
-    forAll(tsfP.boundaryField(), patchI)
-    {
-        fvsPatchField<scalar>& pbtsfP =
-        #ifdef FOAM_NEW_GEOMFIELD_RULES
-            tsfP.boundaryFieldRef()[patchI];
-        #else 
-            tsfP.boundaryField()[patchI];
-        #endif
-        const fvsPatchField<scalar>& pbtsfN = tsfN.boundaryField()[patchI];
-
-        if (tsfP.boundaryField()[patchI].coupled())
-        {
-            const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
-
-            const scalarField& pFaceFlux =
-                faceFlux_.boundaryField()[patchI];
-
-            const scalarList& vfN =
-                vf.boundaryField()[patchI].patchNeighbourField();
-
-            forAll(pOwner, faceI)
-            {
-                label own = pOwner[faceI];
-
-                if (pFaceFlux[faceI] > 0)
-                {
-                    pbtsfP[faceI] =
-                        limFac_*(theta[own]*(pbtsfP[faceI] - vfI[own])
-                      + vfI[own]) + (1.0 - limFac_)*pbtsfP[faceI];
-
-                    pbtsfP[faceI] -= vfI[own];
-                }
-                else if (pFaceFlux[faceI] < 0)
-                {
-                    pbtsfP[faceI] =
-                        limFac_*(1.0*(pbtsfN[faceI] - vfN[faceI])                 // unlimited
-                      + vfN[faceI]) + (1.0 - limFac_)*pbtsfN[faceI];
-
-                    pbtsfP[faceI] -= vfN[faceI];
-                }
-                else
-                {
-                    pbtsfP[faceI] = 0.0;
-                }
-            }
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
 
 
 template<class Type>
@@ -436,144 +211,39 @@ Foam::WENOUpwindFit<Type>::correction
     #endif
 
 
-    // Unlimited polynomial
-    if (limFac_ == 0)
+    // Exact Riemann solver at each internal and coupled face
+    forAll(P, faceI)
     {
-        // Exact Riemann solver at each internal and coupled face
-        forAll(P, faceI)
-        {
-            if (faceFlux_[faceI] > 0)
-            {
-                tsfP[faceI] =
-                    sumFlux
-                    (
-                        WENOBase_.dimList()[P[faceI]],
-                        coeffsWeighted[P[faceI]],
-                        WENOBase_.intBasTrans()[faceI][0]
-                    ) / WENOBase_.refFacAr()[faceI];
-            }
-            else if (faceFlux_[faceI] < 0)
-            {
-                tsfP[faceI] =
-                    sumFlux
-                    (
-                        WENOBase_.dimList()[N[faceI]],
-                        coeffsWeighted[N[faceI]],
-                        WENOBase_.intBasTrans()[faceI][1]
-                    )  /WENOBase_.refFacAr()[faceI];
-            }
-            else
-            {
-                tsfP[faceI] = pTraits<Type>::zero;
-            }
-        }
-
-        coupledRiemannSolver(mesh, tsfP, vf, coeffsWeighted);
-    }
-    // Limited polynomials
-    else
-    {
-        const fvPatchList& patches = mesh.boundary();
-
-        tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > tsfCorrN
-            (
-                new GeometricField<Type, fvsPatchField, surfaceMesh>
-                (
-                    IOobject
-                    (
-                        "tsfCorrN",
-                        mesh.time().timeName(),
-                        mesh,
-                        IOobject::NO_READ,
-                        IOobject::NO_WRITE,
-                        false
-                    ),
-                    mesh,
-                    dimensioned<Type>
-                        (vf.name(), vf.dimensions(), pTraits<Type>::zero)
-                )
-            );
-        GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN =
-        #ifdef FOAM_NEW_TMP_RULES
-            tsfCorrN.ref();
-        #else 
-            tsfCorrN();
-        #endif
-
-        typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-        #ifdef FOAM_NEW_GEOMFIELD_RULES
-            Boundary& btsfN =
-        #else 
-            GeometricBoundaryField& btsfN =
-        #endif
-        #ifdef FOAM_NEW_GEOMFIELD_RULES
-            tsfN.boundaryFieldRef();
-        #else 
-            tsfN.boundaryField();
-        #endif
-
-        typename GeometricField<Type, fvsPatchField, surfaceMesh>::
-        #ifdef FOAM_NEW_GEOMFIELD_RULES
-            Boundary& btsfP = tsfP.boundaryFieldRef();
-        #else 
-            GeometricBoundaryField& btsfP = tsfP.boundaryField();
-        #endif
-
-        // Calculating face fluxes from both sides
-
-        forAll(P, faceI)
+        if (faceFlux_[faceI] > 0)
         {
             tsfP[faceI] =
-                vf[P[faceI]] + sumFlux
+                sumFlux
                 (
                     WENOBase_.dimList()[P[faceI]],
                     coeffsWeighted[P[faceI]],
                     WENOBase_.intBasTrans()[faceI][0]
-                )  /WENOBase_.refFacAr()[faceI];
-
-            tsfN[faceI] =
-                vf[N[faceI]] + sumFlux
+                ) / WENOBase_.refFacAr()[faceI];
+        }
+        else if (faceFlux_[faceI] < 0)
+        {
+            tsfP[faceI] =
+                sumFlux
                 (
                     WENOBase_.dimList()[N[faceI]],
                     coeffsWeighted[N[faceI]],
                     WENOBase_.intBasTrans()[faceI][1]
                 )  /WENOBase_.refFacAr()[faceI];
         }
-
-        forAll(btsfN, patchI)
+        else
         {
-            fvsPatchField<Type>& pbtsfP = btsfP[patchI];
-            fvsPatchField<Type>& pbtsfN = btsfN[patchI];
-
-            if (isA<processorFvPatch>(patches[patchI]))
-            {
-                const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
-
-                label startFace = patches[patchI].start();
-
-                forAll(pOwner, faceI)
-                {
-                    label own = pOwner[faceI];
-
-                    pbtsfN[faceI] =
-                        vf[own] + sumFlux
-                        (
-                            WENOBase_.dimList()[own],
-                            coeffsWeighted[own],
-                            WENOBase_.intBasTrans()[faceI + startFace][0]
-                        )  /WENOBase_.refFacAr()[faceI + startFace];
-
-                    pbtsfP[faceI] = pbtsfN[faceI];
-                }
-            }
+            tsfP[faceI] = pTraits<Type>::zero;
         }
-
-        swapData(mesh, btsfN);
-
-        // Limiting the polynomials and evaluating the upwind fluxes
-
-        calcLimiter(mesh, vf, tsfP, tsfN);
     }
+    
+    coupledRiemannSolver(mesh, tsfP, vf, coeffsWeighted);
+    
+    if (limFac_ > 0)
+        calcLimiter(mesh,vf,tsfP);
 
     return tsfCorrP;
 }
@@ -779,7 +449,6 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
             }
         }
     }
-
 }
 
 

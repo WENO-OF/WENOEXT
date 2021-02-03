@@ -122,8 +122,7 @@ class WENOUpwindFit
         (
             const fvMesh& mesh,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP,
-            const GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN
+            GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP
         ) const;
 
 
