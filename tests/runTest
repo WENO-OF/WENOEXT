@@ -63,6 +63,17 @@ function runAll {
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
     sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
 
+    # run with WENO 3 1 
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/writeData.*/writeData     false;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
+    # run with WENO 4 1
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 4 0;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+
     # run with WENO 3 0 bestConditioned
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned true;/" system/WENODict
@@ -79,6 +90,7 @@ function runAll {
     cd ${currDir}/Cases/advectionCase
     blockMesh > /dev/null 
     ../../src/tests.exe [2D-Advection]
+    mkdir -p Figures
     checkParaView
 
     # ---------------------------------------------------------------------------
@@ -114,6 +126,10 @@ function runSimple {
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
     sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
 
+    # run with WENO 3 1
+    sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 1;/" system/fvSchemes
+    sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
     # ---------------------------------------------------------------------------
     #                      Run Test Cases - MPI Processor
     # ---------------------------------------------------------------------------
