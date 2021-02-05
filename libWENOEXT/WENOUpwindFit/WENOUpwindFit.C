@@ -76,7 +76,10 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
             {
                 if (faces[fI] < mesh.nInternalFaces())
                 {
-                    const auto& tsfPci = component(tsfP[faces[fI]],cI);
+                    // See Eq. (3.47) of master thesis                     
+                    const auto& tsfPci = 
+                            component(tsfP[faces[fI]],cI)
+                          + component(vfI[cellI],cI);
                     
                     if (tsfPci > maxPci)
                         maxPci = tsfPci;
