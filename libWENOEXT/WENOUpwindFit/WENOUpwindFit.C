@@ -38,12 +38,14 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
 (
     const fvMesh& mesh,
     const GeometricField<Type, fvPatchField, volMesh>& vf,
+    const Field<Field<Type> >& coeffsWeighted,
     GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP
 )    const
 {
     const Field<Type>& vfI = vf.internalField();
 
     const labelUList& P = mesh.owner();
+    const labelUList& N = mesh.neighbour();
 
     const label nComp = pTraits<Type>::nComponents;
 
@@ -76,10 +78,56 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
             {
                 if (faces[fI] < mesh.nInternalFaces())
                 {
-                    // See Eq. (3.47) of master thesis                     
-                    const auto& tsfPci = 
-                            component(tsfP[faces[fI]],cI)
-                          + component(vfI[cellI],cI);
+                    // Coefficient to compare:
+                    // Set to dummy value so it has the correct type
+                    auto tsfPci = maxPci;
+                    if (cellI == P[faces[fI]])
+                    {
+                        if (faceFlux_[faces[fI]] > 0)
+                        {
+                            // See Eq. (3.47) of master thesis                     
+                            tsfPci = 
+                                    component(tsfP[faces[fI]],cI)
+                                  + component(vfI[P[faces[fI]]],cI);
+                        }
+                        else
+                        {
+                            tsfPci = component
+                            (   vfI[P[faces[fI]]] + 
+                                sumFlux
+                                (
+                                    WENOBase_.dimList()[P[faces[fI]]],
+                                    coeffsWeighted[P[faces[fI]]],
+                                    WENOBase_.intBasTrans()[faces[fI]][0]
+                                )  /WENOBase_.refFacAr()[faces[fI]]
+                            ,cI
+                            );
+                        }
+                    }
+                    else if (cellI == N[faces[fI]])
+                    {
+                        if (faceFlux_[faces[fI]] < 0)
+                        {
+                            // See Eq. (3.47) of master thesis                     
+                            tsfPci = 
+                                    component(tsfP[faces[fI]],cI)
+                                  + component(vfI[cellI],cI);
+                        }
+                        else
+                        {
+                            tsfPci = component
+                            (   vfI[cellI] + 
+                                sumFlux
+                                (
+                                    WENOBase_.dimList()[cellI],
+                                    coeffsWeighted[cellI],
+                                    WENOBase_.intBasTrans()[cellI][1]
+                                )  /WENOBase_.refFacAr()[faces[fI]]
+                            ,cI
+                            );
+                        }
+                    }
+                    
                     
                     if (tsfPci > maxPci)
                         maxPci = tsfPci;
@@ -88,7 +136,7 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
                 }
             }
 
-            if (mag(maxPci - component(vfI[cellI],cI)) < 1e-10)
+            if (mag((maxPci - component(vfI[cellI],cI))/component(vfI[cellI],cI)) < 1E-9)
             {
                 argMax = 1.0;
             }
@@ -99,7 +147,7 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
                    /(maxPci - component(vfI[cellI],cI)));
             }
 
-            if (mag(minPci - component(vfI[cellI],cI)) < 1e-10)
+            if (mag((minPci - component(vfI[cellI],cI))/component(vfI[cellI],cI)) < 1E-9)
             {
                 argMin = 1.0;
             }
@@ -109,7 +157,7 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
                     mag((component(minVfI,cI)- component(vfI[cellI],cI))
                    /(minPci - component(vfI[cellI],cI)));
             }
-            setComponent(theta[cellI],cI) = (min(argMax, argMin), 1.0);
+            setComponent(theta[cellI],cI) = min(min(argMax, argMin), 1.0);
         }
     }
 
@@ -119,16 +167,28 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
     {
         for (label cI = 0; cI < nComp; cI++)
         {
-            setComponent(tsfP[faceI],cI) =
-                limFac_
-                *(
-                    component(theta[P[faceI]],cI)
-                  * component(tsfP[faceI],cI)
-                )
-                + (1.0 - limFac_)
-                *(
-                    component(tsfP[faceI],cI)
-                );
+            if (faceFlux_[faceI] > 0)
+                setComponent(tsfP[faceI],cI) =
+                    limFac_
+                    *(
+                        component(theta[P[faceI]],cI)
+                      * (component(tsfP[faceI],cI))
+                    )
+                    + (1.0 - limFac_)
+                    *(
+                        component(tsfP[faceI],cI)
+                    );
+             else
+                setComponent(tsfP[faceI],cI) =
+                    limFac_
+                    *(
+                        component(theta[N[faceI]],cI)
+                      * (component(tsfP[faceI],cI))
+                    )
+                    + (1.0 - limFac_)
+                    *(
+                        component(tsfP[faceI],cI)
+                    );
         }
     }
 
@@ -246,7 +306,7 @@ Foam::WENOUpwindFit<Type>::correction
     coupledRiemannSolver(mesh, tsfP, vf, coeffsWeighted);
     
     if (limFac_ > 0)
-        calcLimiter(mesh,vf,tsfP);
+        calcLimiter(mesh,vf,coeffsWeighted,tsfP);
 
     return tsfCorrP;
 }

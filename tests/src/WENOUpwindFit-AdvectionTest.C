@@ -39,11 +39,11 @@ Author
 #include "catch.hpp"
 #include "WENOBase.H"
 #include "fvCFD.H"
-
-
+#include "EulerDdtScheme.H"
+#include "backwardDdtScheme.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("WENOUpwindFit 2D Advection Test","[2D-Advection]")
+TEST_CASE("WENOUpwindFit 2D Advection Test","[Advection]")
 {
     // Replace setRootCase.H for Catch2   
     int argc = 1;
@@ -75,7 +75,7 @@ TEST_CASE("WENOUpwindFit 2D Advection Test","[2D-Advection]")
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         ),
         mesh,
         dimensionedScalar("0", dimless, 0.0),
@@ -107,7 +107,7 @@ TEST_CASE("WENOUpwindFit 2D Advection Test","[2D-Advection]")
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         ),
         psiWENO
     );
@@ -188,43 +188,68 @@ TEST_CASE("WENOUpwindFit 2D Advection Test","[2D-Advection]")
     //                      Run Advection Test 
     // ---------------------------------------------------------------------
     
-    // Set time to zero
-    runTime.setTime(0,0);
-    // Set end time 
-    runTime.setEndTime(1.0);
-    runTime.setDeltaT(2.5e-04);       // Co < 0.3 for 300 cells
-    
-    while (runTime.run())
+    SECTION("Euler Time Discretization")
     {
-        runTime++;
-        Info<< "Time = " << runTime.timeName()<<endl;
-        solve(fvm::ddt(psiWENO) + fvm::div(phi,psiWENO,"div(WENO)"));
-        solve(fvm::ddt(psiLimitedLinear) + fvm::div(phi,psiLimitedLinear,"div(LimitedLinear)"));
-    }
-    psiWENO.write();
-    psiLimitedLinear.write();
-    psi.write();
     
-    // Calculated mean and maximum error
-    scalar meanErrorWENO          = 0;
-    scalar maxErrorWENO           = -GREAT;
-    scalar meanErrorLimitedLinear = 0;
-    scalar maxErrorLimitedLinear  = -GREAT;
-    forAll(mesh.C(),celli)
-    {
-        meanErrorWENO += fabs(psi[celli] - psiWENO[celli]);
-        meanErrorLimitedLinear += fabs(psi[celli] - psiWENO[celli]);
+        // Set time to zero
+        runTime.setTime(0,0);
+        // Set end time 
+        runTime.setEndTime(1.0);
+        runTime.setDeltaT(2.0e-04);       // Co < 0.3 for 300 cells
         
-        if (fabs(psi[celli] - psiWENO[celli]) > maxErrorWENO)
-            maxErrorWENO = fabs(psi[celli] - psiWENO[celli]);
-        if (fabs(psi[celli] - psiLimitedLinear[celli]) > maxErrorLimitedLinear)
-            maxErrorLimitedLinear = fabs(psi[celli] - psiLimitedLinear[celli]);
+        while (runTime.run())
+        {
+            runTime++;
+            Info<< "Time = " << runTime.timeName()<<endl;
+            solve(fv::EulerDdtScheme<scalar>(mesh).fvmDdt(psiWENO) + fvm::div(phi,psiWENO,"div(WENO)"));
+            solve(fv::EulerDdtScheme<scalar>(mesh).fvmDdt(psiLimitedLinear) + fvm::div(phi,psiLimitedLinear,"div(LimitedLinear)"));
+        }
+        psiWENO.write();
+        psiLimitedLinear.write();
+        psi.write();
+        
+        // accepted tolerance
+        const double tol = 1e-3;
+        
+        // Check that WENO scheme is in bounds
+        INFO("Check with Euler scheme and tolerance "<<tol<<" failed");
+        forAll(mesh.C(),celli)
+        {
+            REQUIRE(psiWENO[celli] < (1.0+tol));
+            REQUIRE(psiWENO[celli] > (0.0-tol));
+        }
     }
-    meanErrorWENO /= mesh.C().size();
-    meanErrorLimitedLinear /= mesh.C().size();
+    SECTION("Backward Time Discretization")
+    {
     
-    //CHECK(meanErrorLimitedLinear > meanErrorWENO);
-    //CHECK(maxErrorLimitedLinear > maxErrorWENO);
+        // Set time to zero
+        runTime.setTime(0,0);
+        // Set end time 
+        runTime.setEndTime(1.0);
+        runTime.setDeltaT(2.0e-04);       // Co < 0.3 for 300 cells
+        
+        while (runTime.run())
+        {
+            runTime++;
+            Info<< "Time = " << runTime.timeName()<<endl;
+            solve(fv::backwardDdtScheme<scalar>(mesh).fvmDdt(psiWENO) + fvm::div(phi,psiWENO,"div(WENO)"));
+            solve(fv::backwardDdtScheme<scalar>(mesh).fvmDdt(psiLimitedLinear) + fvm::div(phi,psiLimitedLinear,"div(LimitedLinear)"));
+        }
+        psiWENO.write();
+        psiLimitedLinear.write();
+        psi.write();
+        
+        // accepted tolerance
+        const double tol = 1e-1;
+        
+        INFO("Check with backward scheme and tolerance "<<tol<<" failed");
+        // Check that WENO scheme is in bounds
+        forAll(mesh.C(),celli)
+        {
+            REQUIRE(psiWENO[celli] < (1.0+tol));
+            REQUIRE(psiWENO[celli] > (0.0-tol));
+        }
+    }
 }
 
 
