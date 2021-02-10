@@ -136,7 +136,7 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
                 }
             }
 
-            if (mag((maxPci - component(vfI[cellI],cI))/component(vfI[cellI],cI)) < 1E-9)
+            if (mag((maxPci - component(vfI[cellI],cI))/(component(vfI[cellI],cI)+SMALL)) < 1E-9)
             {
                 argMax = 1.0;
             }
@@ -147,7 +147,7 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
                    /(maxPci - component(vfI[cellI],cI)));
             }
 
-            if (mag((minPci - component(vfI[cellI],cI))/component(vfI[cellI],cI)) < 1E-9)
+            if (mag((minPci - component(vfI[cellI],cI))/(component(vfI[cellI],cI)+SMALL)) < 1E-9)
             {
                 argMin = 1.0;
             }
@@ -218,11 +218,11 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
                         limFac_
                         *(
                             component(theta[own],cI)
-                          * component(tsfP[faceI],cI)
+                          * component(pbtsfP[faceI],cI)
                         )
                         + (1.0 - limFac_)
                         *(
-                            component(tsfP[faceI],cI)
+                            component(pbtsfP[faceI],cI)
                         );
                 }
             }
