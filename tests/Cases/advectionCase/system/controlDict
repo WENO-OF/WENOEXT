@@ -26,9 +26,9 @@ endTime                 2;
 
 deltaT                  1;
 
-writeControl            timeStep;
+writeControl            adjustableRunTime;
 
-writeInterval           1;
+writeInterval           0.25;
 
 writeFormat             binary;
 
