@@ -45,6 +45,15 @@ Author
 template<class Type>
 bool Foam::WENOCoeff<Type>::printWENODict_=false;
 
+template<class Type>
+scalar Foam::WENOCoeff<Type>::dm_=1000;
+
+template<class Type>
+scalar Foam::WENOCoeff<Type>::epsilon_=1E-40;
+
+template<class Type>
+scalar Foam::WENOCoeff<Type>::p_=4;
+
 // * * * * * * * * * * * * * * * * * Constructor * * * * * * * * * * * * * * //
 
 template<class Type>
@@ -68,28 +77,29 @@ Foam::WENOCoeff<Type>::WENOCoeff
 {
     bJ_.reserve(100);
     
-    // Read expert factors
-    IOdictionary WENODict
-    (
-        IOobject
-        (
-            "WENODict",
-            mesh.time().caseSystem(),
-            mesh,
-            IOobject::READ_IF_PRESENT,
-            IOobject::NO_WRITE
-        )
-    );
-
-
-    p_ = WENODict.lookupOrAddDefault<scalar>("p", 4.0);
-    dm_ = WENODict.lookupOrAddDefault<scalar>("dm", 1000.0);
-    epsilon_ = WENODict.lookupOrAddDefault<scalar>("epsilon",1E-40);
-    
-    // Add pol order for printing 
-    WENODict.add<label>("polOrder",polOrder_);
     if (!printWENODict_)
     {
+        // Read expert factors
+        IOdictionary WENODict
+        (
+            IOobject
+            (
+                "WENODict",
+                mesh.time().caseSystem(),
+                mesh,
+                IOobject::READ_IF_PRESENT,
+                IOobject::NO_WRITE
+            )
+        );
+
+
+        p_ = WENODict.lookupOrAddDefault<scalar>("p", 4.0);
+        dm_ = WENODict.lookupOrAddDefault<scalar>("dm", 1000.0);
+        epsilon_ = WENODict.lookupOrAddDefault<scalar>("epsilon",1E-40);
+        
+        // Add pol order for printing 
+        WENODict.add<label>("polOrder",polOrder_);
+
         Info << "WENO Version: "<< word(GIT_BUILD) << nl
              << "WENODict:"
              << WENODict << endl;

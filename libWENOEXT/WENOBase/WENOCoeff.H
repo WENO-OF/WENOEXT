@@ -76,8 +76,6 @@ protected:
         
         //- Static variable to print WENODict just once during runtime
         static bool printWENODict_;
-
-        scalar epsilon_;
         
         //- Order of polynomials
         const unsigned int polOrder_;
@@ -89,8 +87,9 @@ protected:
         const label nDvt_;
 
         //- WENO weighting factors
-        scalar p_;
-        scalar dm_;
+        static scalar p_;
+        static scalar dm_;
+        static scalar epsilon_;
 
     // Allocate storage for dynamic variables
 
