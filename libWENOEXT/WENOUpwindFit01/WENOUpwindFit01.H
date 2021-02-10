@@ -22,41 +22,26 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::WENOHybrid
+    Foam::WENOUpwindFit01
 
 Description
-    Hybrid WENO scheme using linear as default and using WENO at 
-    discontinuities. Detection of the discontinuity is based on WENO weights.
+    Specialized WENO interpolation scheme for bounded transport between 0 
+    and 1.
     
-    The work is based on Guo-Yan 2020 [1]
-    
-    References:
-    \verbatim
-       [1] Guo-Yan Zhao, Ming-Bo Sun, Sergio Pirozzoli,
-           "On shock sensors for hybrid compact/WENO schemes",
-           Computers & Fluids,Volume 199,2020,104439,ISSN 0045-7930,
-           https://doi.org/10.1016/j.compfluid.2020.104439.
-    
-    \endverbatim
-     
-
 SourceFiles
-    WENOHybrid.C
-    
-See also
-    WENOSensor.H
+    WENOUpwindFit01.C
 
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef WENOHybrid_H
-#define WENOHybrid_H
+#ifndef WENOUpwindFit01_H
+#define WENOUpwindFit01_H
 
+#include "codeRules.H"
 #include "surfaceInterpolationScheme.H"
-#include "WENOSensor.H"
-#include "fvCFD.H"
+#include "WENOCoeff.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -64,18 +49,18 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                         Class WENOHybrid Declaration
+                         Class WENOUpwindFit01 Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class Type>
-class WENOHybrid
+class WENOUpwindFit01
 :
     public surfaceInterpolationScheme<Type>
 {
     // Private Data
 
         //- Typedef for 3D scalar matrix
-        using volIntegralType = List3D<scalar> ;
+        using volIntegralType = List3D<scalar>;
         
         //- C++11 typedef for squareMatrix
         //  This is used for Jacobian matrix
@@ -88,39 +73,25 @@ class WENOHybrid
         //  User defined parameter
         const scalar polOrder_;
 
-        //- Limiting factor
-        //  User defined:
-        //  -  0: not limited
-        //  - +1: limited
-        const scalar limFac_;
-
-        //- Limiting factor default is one 
-        const scalar limiter_;
-
-        //- Reference to WENOSensor class
-        WENOSensor<Type> WENOSensor_;
+        //- Reference to WENOCoeff class
+        WENOCoeff<Type> WENOCoeff_;
 
         //- Reference to WENOBase
         const WENOBase& WENOBase_;
 
-        // Store the correction field 
-        mutable autoPtr<GeometricField<Type, fvsPatchField, surfaceMesh> > correctionPtr_;
-
 
     // Private Member Functions
-
-        //- Disallow default bitwise copy construct
-        WENOHybrid(const WENOHybrid&);
-
-        //- Disallow default bitwise assignment
-        void operator=(const WENOHybrid&);
 
         //- Distribute data through coupled patches and solve Riemann problem
         void swapData
         (
             const fvMesh& mesh,
             typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+            #ifdef FOAM_NEW_GEOMFIELD_RULES
                 Boundary& btsf
+            #else 
+                GeometricBoundaryField& btsf
+            #endif
         )   const;
 
         void coupledRiemannSolver
@@ -144,8 +115,8 @@ class WENOHybrid
         (
             const fvMesh& mesh,
             const GeometricField<Type, fvPatchField, volMesh>& vf,
-            GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP,
-            const GeometricField<Type, fvsPatchField, surfaceMesh>& tsfN
+            const Field<Field<Type> >& coeffsWeighted,
+            GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP
         ) const;
 
 
@@ -169,26 +140,18 @@ class WENOHybrid
             );
             return zeroFlux;
         }
-        
-        // calculate correction flux
-        void calcCorrectionFlux
-        (
-            const GeometricField<Type, fvPatchField, volMesh>& vf
-        ) const;
-        
-        
-        tmp<GeometricField<Type, fvsPatchField, surfaceMesh> > calcShockSensor() const;
+
 
 public:
 
     //- Runtime type information
-    TypeName("WENOHybrid");
+    TypeName("WENOUpwindFit01");
 
 
     // Constructors
 
         //- Construct from mesh (not used)
-        WENOHybrid
+        WENOUpwindFit01
         (
             const fvMesh& mesh,
             const label polOrder
@@ -197,14 +160,12 @@ public:
             surfaceInterpolationScheme<Type>(mesh),
             faceFlux_(zeroFlux()),
             polOrder_(polOrder),
-            limFac_(0),
-            limiter_(1),
-            WENOSensor_(mesh,polOrder_),
-            WENOBase_(WENOSensor_.WENOBaseRef())
+            WENOCoeff_(mesh,polOrder_),
+            WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
 
         //- Construct from mesh and Istream
-        WENOHybrid
+        WENOUpwindFit01
         (
             const fvMesh& mesh,
             Istream& is
@@ -219,14 +180,12 @@ public:
                 )
             ) ,
             polOrder_(readScalar(is)),
-            limFac_(readScalar(is)),
-            limiter_(readScalar(is)),
-            WENOSensor_(mesh,polOrder_),
-            WENOBase_(WENOSensor_.WENOBaseRef())
+            WENOCoeff_(mesh,polOrder_),
+            WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
 
         //- Construct from mesh, faceFlux and Istream
-        WENOHybrid
+        WENOUpwindFit01
         (
             const fvMesh& mesh,
             const surfaceScalarField& faceFlux,
@@ -236,22 +195,28 @@ public:
             surfaceInterpolationScheme<Type>(mesh),
             faceFlux_(faceFlux),
             polOrder_(readScalar(is)),
-            limFac_(readScalar(is)),
-            limiter_(readScalar(is)),
-            WENOSensor_(mesh,polOrder_),
-            WENOBase_(WENOSensor_.WENOBaseRef())
+            WENOCoeff_(mesh,polOrder_),
+            WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
 
 
+        //- Disallow default bitwise copy construct
+        WENOUpwindFit01(const WENOUpwindFit01&) = delete;
+
+        //- Disallow default bitwise assignment
+        void operator=(const WENOUpwindFit01&) = delete;
+
     // Member Functions
 
-        //- Return the interpolation weighting factors
+        //- Return the interpolation weighting factors for implicit part
         tmp<surfaceScalarField> weights
         (
             const GeometricField<Type, fvPatchField, volMesh>& vf
-        ) const override;
-        
-        
+        ) const
+        {
+            return pos(faceFlux_);
+        }
+
         //- Return true if this scheme uses an explicit correction
         virtual bool corrected() const
         {
@@ -272,7 +237,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-#   include "WENOHybrid.C"
+#   include "WENOUpwindFit01.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

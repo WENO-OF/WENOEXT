@@ -240,7 +240,7 @@ TEST_CASE("WENOUpwindFit 2D Advection Test","[Advection]")
         psi.write();
         
         // accepted tolerance
-        const double tol = 1e-1;
+        const double tol = 1e-2;
         
         INFO("Check with backward scheme and tolerance "<<tol<<" failed");
         // Check that WENO scheme is in bounds

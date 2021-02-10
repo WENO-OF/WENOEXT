@@ -5,10 +5,8 @@ WENOBase/matrixDB.C
 WENOBase/reconstructRegionalMesh.C
 
 WENOUpwindFit/makeWENOUpwindFit.C
+WENOUpwindFit01/makeWENOUpwindFit01.C
 
-WENOHybrid/makeWENOHybrid.C
-
-WENOCentredFit/makeWENOCentredFit.C
 
 
 

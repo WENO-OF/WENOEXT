@@ -23,18 +23,17 @@ License
 
 Author
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
-    Jan Wilhelm Gärtner, <jan.gaertner@outlook.de>
-    
+
 \*---------------------------------------------------------------------------*/
 
+#include "WENOUpwindFit01.H"
 #include "fvMesh.H"
-#include "WENOCentredFit.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-   makeSurfaceInterpolationScheme(WENOCentredFit);
+   makeSurfaceInterpolationScheme(WENOUpwindFit01);
 }
 
 // ************************************************************************* //

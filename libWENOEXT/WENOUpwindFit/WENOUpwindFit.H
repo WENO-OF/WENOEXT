@@ -78,7 +78,7 @@ class WENOUpwindFit
         //  User defined:
         //  -  0: not limited
         //  - +1: limited
-        const scalar limFac_;
+        const bool limFac_;
 
         //- Reference to WENOCoeff class
         WENOCoeff<Type> WENOCoeff_;
@@ -167,7 +167,7 @@ public:
             surfaceInterpolationScheme<Type>(mesh),
             faceFlux_(zeroFlux()),
             polOrder_(polOrder),
-            limFac_(0),
+            limFac_(false),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
@@ -188,7 +188,7 @@ public:
                 )
             ) ,
             polOrder_(readScalar(is)),
-            limFac_(readScalar(is)),
+            limFac_(readBool(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
@@ -204,7 +204,7 @@ public:
             surfaceInterpolationScheme<Type>(mesh),
             faceFlux_(faceFlux),
             polOrder_(readScalar(is)),
-            limFac_(readScalar(is)),
+            limFac_(readBool(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
