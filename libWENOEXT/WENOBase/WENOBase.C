@@ -548,10 +548,16 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
 
     scalarRectangularMatrix AInv  = svdCurrPtr->VSinvUt();
 
-    if (stencilI == 0 && svdCurrPtr->nZeros() != 0)
+    if (checkCondition_ && stencilI == 0 && svdCurrPtr->nZeros() != 0)
     {
         deleteStencil(localCellI,stencilI);
         stencilsID_[localCellI][stencilI][0] = int(Cell::empty);
+        return scalarRectangularMatrix
+        (
+            nDvt_,
+            nCells,
+            scalar(0.0)
+        );
     }
 
     if (AInv.n() != stencilSize-1)
@@ -697,6 +703,8 @@ Foam::WENOBase::WENOBase
 
         maxCondition_ = WENODict.lookupOrAddDefault<scalar>("maxCondition",1e-05);
         
+        checkCondition_ = WENODict.lookupOrAddDefault<Switch>("checkCondition",true);
+        
         // ------------- Initialize Lists --------------------------------------
 
         stencilsID_.setSize(localMesh.nCells());
@@ -773,7 +781,8 @@ Foam::WENOBase::WENOBase
 
         }
         
-        LSMatrixCheck();
+        if (checkCondition_)
+            LSMatrixCheck();
         
         
         Info << "\t5) Calcualte smoothness indicator B..."<<endl;

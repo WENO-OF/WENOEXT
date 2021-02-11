@@ -168,6 +168,11 @@ class WENOBase
         //- Lists of oscillation matrices for each stencil of each cell
         List<geometryWENO::DynamicMatrix> B_;
 
+        //- Switch to check the condition of the first stencil of the 
+        //  pseudo inverse matrices. 
+        //  If true it removes the matrix if the central stencil has at least
+        //  one zero entry. (Default is true)
+        Switch checkCondition_;
 
     //- Private member functions
 

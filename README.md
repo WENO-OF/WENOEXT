@@ -116,6 +116,9 @@ FoamFile
                           // inverse can have. Only change if you know what you
                           // are doing!
 
+    checkCondition  false;// Check the condition of the pseudo inverse matrix
+                          // If the central stencil has at least one zero entry
+                          // the matrix is removed for all stencils of this cell.
 // ************************************************************************* /
 ```
 
