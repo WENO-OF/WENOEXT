@@ -184,8 +184,11 @@ Foam::matrixDB::keyType Foam::matrixDB::hashMatrix
     };
 
     keyType key = 0;
-    
-    double mult = 1.0E+6/maxMag(A);
+
+    auto maxA = maxMag(A);
+    if(maxA == 0)
+        return key;
+    double mult = 1.0E+6/maxA;
     for (int i = 0; i < A.m(); i++)
     {
         for (int j = 0; j < A.n(); j++)
