@@ -136,7 +136,7 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
                 }
             }
 
-            if (mag((maxPci - component(vfI[cellI],cI))/component(vfI[cellI],cI)) < 1E-9)
+            if (mag((maxPci - component(vfI[cellI],cI))) < 1E-9)
             {
                 argMax = 1.0;
             }
@@ -147,7 +147,7 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
                    /(maxPci - component(vfI[cellI],cI)));
             }
 
-            if (mag((minPci - component(vfI[cellI],cI))/component(vfI[cellI],cI)) < 1E-9)
+            if (mag((minPci - component(vfI[cellI],cI))) < 1E-9)
             {
                 argMin = 1.0;
             }
