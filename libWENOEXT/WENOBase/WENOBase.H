@@ -55,8 +55,7 @@ namespace Foam
 
 class WENOBase
 {
-    private:
-
+    public:
         //- Enumerator for halo cells
         //  halo cells have positive IDs that correspond with their cellID
         enum class Cell
@@ -65,7 +64,8 @@ class WENOBase
             deleted  = -4,   // Was deleted in splitStencil
             empty    = -10   // No valid stencils in cell
         };
-
+    
+    private:
 
     //- Constructors
 
@@ -80,10 +80,6 @@ class WENOBase
 
        //- Disallow default bitwise assignment
        WENOBase& operator=(const WENOBase&);
-
-
-        //- Destructor
-        ~WENOBase(){};
 
 
     //- Private Data
@@ -297,6 +293,26 @@ public:
 
             return instance_;
         }
+        
+        // Get a non static instance
+        static autoPtr<WENOBase> nonStaticInstance
+        (
+            const fvMesh& mesh,
+            const label polOrder
+        )
+        {
+            autoPtr<WENOBase> instance_
+            (
+                new WENOBase
+                (
+                    mesh,
+                    polOrder
+                )
+            );
+
+            return instance_;
+        }
+        
 
     // Accessor functions for member variables as const reference
 
