@@ -1,7 +1,0 @@
-#! /bin/bash
-
-wclean libWENOEXT
-
-rm -f foamVersionThisIsCompiledFor
-rm -f versionRules/foamVersion4weno.H
-rm -f versionRules/foamVersion
