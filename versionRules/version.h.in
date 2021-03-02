@@ -1,0 +1,8 @@
+#ifndef WENO_VERSION_H
+#define WENO_VERSION_H
+
+#define GIT_BRANCH "@GIT_BRANCH@"
+#define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
+
+#endif
+

@@ -28,14 +28,11 @@ Author
 \*---------------------------------------------------------------------------*/
 
 #include "codeRules.H"
+#include "version.h"
 #include "WENOCoeff.H"
 #include "DynamicField.H"
 #include "processorFvPatch.H"
 
-
-#ifndef GIT_BUILD
-    #define GIT_BUILD "NaN"
-#endif
 
 // Generate macro for forAll expansion of unsigned integers
 #define forAllU(list,i) \
@@ -100,7 +97,7 @@ Foam::WENOCoeff<Type>::WENOCoeff
         // Add pol order for printing 
         WENODict.add<label>("polOrder",polOrder_);
 
-        Info << "WENO Version: "<< word(GIT_BUILD) << nl
+        Info << "WENO Version: "<< word(GIT_BRANCH)<<" "<<word(GIT_COMMIT_HASH) << nl
              << "WENODict:"
              << WENODict << endl;
         printWENODict_=true;

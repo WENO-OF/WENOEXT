@@ -78,7 +78,7 @@ Foam::matrixDB::similar
     const scalarRectangularMatrix&& A
 )
 {
-    int32_t key = hashMatrix(A);
+    keyType key = hashMatrix(A);
     
     if (DB_.size() == 0)
     {

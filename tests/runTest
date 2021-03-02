@@ -36,10 +36,10 @@ function runAll {
 
     cd ${currDir}/Cases/baseCase
     blockMesh > /dev/null
-    ../../src/tests.exe [baseTest]
+    ../../src/WENO_TEST [baseTest]
     
     [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
-    ../../src/tests.exe [IOTest]
+    ../../src/WENO_TEST [IOTest]
 
     # Clean up 
     [[ -e "PLOT/results.dat" ]] && rm PLOT/results.dat
@@ -49,36 +49,36 @@ function runAll {
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
     sed -i "s/writeData.*/writeData     true;/" system/WENODict
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [2D]
 
     # run with WENO 3 0 read in data
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
     sed -i "s/writeData.*/writeData     false;/" system/WENODict
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [2D]
     [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
 
     # run with WENO 4 0
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 4 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [2D]
 
     # run with WENO 3 0 bestConditioned
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned true;/" system/WENODict
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [2D]
 
     # run with WENO 4 0 bestConditioned
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 4 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned true;/" system/WENODict
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [2D]
 
     cd PLOT/ && gnuplot plotReport.gplt
     
 
     cd ${currDir}/Cases/advectionCase
     blockMesh > /dev/null 
-    ../../src/tests.exe [Advection]
+    ../../src/WENO_TEST [Advection]
     mkdir -p Figures
     checkParaView
 
@@ -102,10 +102,10 @@ function runSimple {
     cd ${currDir}/Cases/baseCase
     blockMesh > /dev/null
     # Clean up 
-    ../../src/tests.exe [baseTest]
+    ../../src/WENO_TEST [baseTest]
     
     [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
-    ../../src/tests.exe [IOTest]
+    ../../src/WENO_TEST [IOTest]
 
     # Clean up 
     [[ -e "PLOT/results.dat" ]] && rm PLOT/results.dat
@@ -113,7 +113,7 @@ function runSimple {
     # run with WENO 3 0
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/tests.exe [2D]
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [2D]
 
     # ---------------------------------------------------------------------------
     #                      Run Test Cases - MPI Processor
@@ -127,11 +127,7 @@ function runSimple {
 # ---------------------------------------------------------------------------
 #                           Compile Libray
 # ---------------------------------------------------------------------------
-cd ../ && ./Allwmake
 
-. versionRules/libraryRules
-
-cd ${currDir}/src && wmake
 
 if [[ $RUNALL == true ]]; then
     runAll
