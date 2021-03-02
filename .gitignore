@@ -27,6 +27,7 @@
 libWENOEXT/Make/linux*
 tests/**/linux*
 utilities/**/Make/
+build/
 # Exclude dynamic code
 **/dynamicCode/
 

@@ -13,35 +13,27 @@ variables:
 
 before_script:
     - set +e && . $foamDotFile && set -e
-    - ./.gitlab-copyLibs_and_distribute
 
 Source: 
     stage: Build
     script:
         - ./Allwmake
-        - ./.gitlab-copyLibs_and_distribute
     artifacts:
         paths:
             - build/
         expire_in: 7 days
 
-unitTests-simple:
-    stage: Tests
-    script:
-        - cd ./tests/
-        - ./runTest --runSimple 
-
 unitTests:
     stage: Tests
     script:
+        - cd build && cmake --build . --target install && cd ../
         - cd ./tests/
         - ./runTest --runAll
-    only:
-        - merge_request
 
 Cavity:
     stage: Tutorials
     script:
+        - cd build && cmake --build . --target install && cd ../
         - cd ./tutorials/cavity/
         - blockMesh > /dev/null
         - icoFoam
@@ -52,6 +44,7 @@ Cavity:
 Wedge:
     stage: Tutorials
     script:
+        - cd build && cmake --build . --target install && cd ../
         - cd ./tutorials/wedge/
         - blockMesh > /dev/null
         - icoFoam
