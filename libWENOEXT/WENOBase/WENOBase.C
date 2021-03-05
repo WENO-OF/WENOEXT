@@ -248,69 +248,74 @@ void Foam::WENOBase::sortStencil
     const label maxSize
 )
 {
+    // Get reference to stencil list to sort
+    labelList& stencilList = stencilsGlobalID_[cellI][0];
+    labelList& cellToProcMapList = cellToProcMap_[cellI][0];
+    
     
     point transCcellI =
         Foam::geometryWENO::transformPoint
         (
             JInv_[cellI],
-            mesh.C()[stencilsGlobalID_[cellI][0][0]],
+            mesh.C()[stencilList[0]],
             refPoint_[cellI]
         );
 
-    scalarField distField(stencilsGlobalID_[cellI][0].size(), 0.0);
-    scalarField numberField(stencilsGlobalID_[cellI][0].size(), cellI);
-    scalarField mapField(stencilsGlobalID_[cellI][0].size(), int(Cell::local));
+    // Cache results for sorting later
+    labelList stencilListCopy(stencilList);
+    labelList cellToProcMapListCopy(cellToProcMapList);
 
-    for (label i = 1; i < stencilsGlobalID_[cellI][0].size(); i++)
+    // Vector with indices to keep the same ordering;
+    std::vector<int> indices(stencilList.size());
+    std::iota(indices.begin(),indices.end(),0);
+
+    std::vector<double> distances(stencilList.size(),0);
+
+    for (label i = 0; i < stencilList.size(); i++)
     {
         point transCJ =
             Foam::geometryWENO::transformPoint
             (
                 JInv_[cellI],
-                mesh.C()[stencilsGlobalID_[cellI][0][i]],
+                mesh.C()[stencilList[i]],
                 refPoint_[cellI]
             );
 
-        distField[i] = mag(transCJ - transCcellI);
-            
-        numberField[i] = stencilsGlobalID_[cellI][0][i];
-        mapField[i] = cellToProcMap_[cellI][0][i];
+        distances[i] = mag(transCJ - transCcellI);
     }
 
-    // Bubblesort algorithm
-    for (label p = 0; p < distField.size(); p++)
-    {
-        bool swapped = false;
-        for (label j = 0; j < distField.size() - (p + 1); j++)
+    std::stable_sort
+    (
+        indices.begin(),
+        indices.end(),
+        [&distances,&mesh,&stencilList](size_t i1, size_t i2)
         {
-            if (distField[j] > distField[j + 1])
+            if (mag(distances[i1] - distances[i2]) < 1E-9)
             {
-                scalar tempDist = distField[j];
-                scalar tempID = numberField[j];
-                scalar tempMap = mapField[j];
-                distField[j] = distField[j + 1];
-                numberField[j] = numberField[j + 1];
-                mapField[j] = mapField[j + 1];
-                distField[j + 1] = tempDist;
-                numberField[j + 1] = tempID;
-                mapField[j + 1] = tempMap;
-
-                swapped = true;
+                auto p1 = mesh.C()[stencilList[i1]];
+                auto p2 = mesh.C()[stencilList[i2]];
+                if (mag(p1.x()-p2.x()) < 1E-9)
+                    return mag(p1.y() - p2.y()) < 1E-9 ?
+                        p1.z() < p2.z()
+                      : p1.y() < p2.y();
+                else
+                    return p1.x() < p2.x();
             }
+            return distances[i1] < distances[i2];
         }
-        if (!swapped) break;
-    }
+    );
 
-    // Cut stencil to necessary size
 
-    stencilsGlobalID_[cellI][0].resize(min(maxSize, numberField.size()));
-    cellToProcMap_[cellI][0].resize(stencilsGlobalID_[cellI][0].size());
-
-    for (label i = 0; i < stencilsGlobalID_[cellI].size(); i++)
+    
+    for (label i = 1; i < stencilList.size(); i++)
     {
-        stencilsGlobalID_[cellI][0][i] = numberField[i];
-        cellToProcMap_[cellI][0][i] = mapField[i];
-    }
+        stencilList[i] = stencilListCopy[indices[i]];
+        cellToProcMapList[i] = cellToProcMapListCopy[indices[i]];
+    }    
+    
+    // Cut stencil to necessary size
+    stencilList.resize(min(maxSize, stencilList.size()));
+    cellToProcMapList.resize(stencilList.size());
 }
 
 
@@ -683,6 +688,8 @@ Foam::WENOBase::WENOBase
         const fvMesh& localMesh = globalfvMesh.localMesh();
         const fvMesh& globalMesh = globalfvMesh();
         
+        
+        
         // Read expert factor
         IOdictionary WENODict
         (
@@ -728,12 +735,14 @@ Foam::WENOBase::WENOBase
         // Copy globalStencilID list to stencilID 
         stencilsID_ = stencilsGlobalID_;
         
+        
         // Correct stencilID list to local cellID values 
         if(Pstream::parRun())
         {
             Info << "\t2) Create haloCells ... " << endl;
             correctParallelRun(globalfvMesh,nStencils);
         }
+        
 
         Info << "\t3) Split stencil ... " << endl;
         // Split the stencil in several sectorial stencils
