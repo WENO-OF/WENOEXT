@@ -42,7 +42,7 @@ int main(int argc, char *argv[])   // start main loop
         (
             IOobject
                 (
-                    "stencil"+name(stencilI),
+                    "Cell-"+name(cellIndex)+"-stencil"+name(stencilI),
                     runTime.timeName(),
                     mesh,
                     IOobject::NO_READ,
@@ -55,9 +55,11 @@ int main(int argc, char *argv[])   // start main loop
         forAll(stencilID[stencilI],cellJ)
         {
             if (stencilID[stencilI][cellJ] != int(WENOBase::Cell::deleted)
-                || stencilID[stencilI][cellJ] != int(WENOBase::Cell::empty))
+                //|| stencilID[stencilI][cellJ] != int(WENOBase::Cell::empty)
+                )
             field[stencilID[stencilI][cellJ]] = stencilI;
         }
+        field[cellIndex] = 100;
         field.write();
     }
 
