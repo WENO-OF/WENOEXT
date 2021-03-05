@@ -3,6 +3,8 @@
 
 add_subdirectory(KDTree)
 
+add_subdirectory(vtkWriter)
+
 add_executable(WENO_TEST 
     main.C
     geometryWENO-BasicFunc-Test.C
@@ -11,6 +13,7 @@ add_executable(WENO_TEST
     WENOUpwindFit-AdvectionTest.C 
     WENOBaseIO-Test.C
     WENOBase-Parallel-Test.C
+    WENOUpwindFit-ProcessorBoundaryTest.C
     List3D-Test.C
 )
 
@@ -20,6 +23,7 @@ add_executable(WENO_TEST
 target_include_directories(WENO_TEST PUBLIC
     WENOEXT
     KDTree
+    vtkWriter
     ./Catch2SingleHeader
     $ENV{FOAM_SRC}/sampling/lnInclude
 )
@@ -27,6 +31,7 @@ target_include_directories(WENO_TEST PUBLIC
 target_link_libraries(WENO_TEST PUBLIC
  WENOEXT
  KDTree
+ vtkWriter
  -L$ENV{FOAM_LIBBIN}
  -lsampling
  -ldl

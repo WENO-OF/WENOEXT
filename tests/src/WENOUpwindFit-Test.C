@@ -39,7 +39,7 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("WENOUpwindFit 2D Test","[2D]")
+TEST_CASE("WENOUpwindFit 2D Test","[2DMesh][singleCore][upwindFitTest]")
 {
     // Replace setRootCase.H for Catch2   
     int argc = 1;

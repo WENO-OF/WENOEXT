@@ -33,7 +33,7 @@ FoamFile
     //  Increases the calculation time! Default is off
     bestConditioned true;
 
-    writeData       false;
+    writeData     true;
 
     maxCondition    1E-05;
 

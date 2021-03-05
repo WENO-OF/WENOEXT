@@ -39,7 +39,7 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("WENOUpwindFit Boundary Test","[bCyclic]")
+TEST_CASE("WENOUpwindFit Boundary Test","[cyclic][singleCore]")
 {
     // ------------------------------------------------------------------------
     //                          OpenFOAM Start-Up 
@@ -109,7 +109,7 @@ TEST_CASE("WENOUpwindFit Boundary Test","[bCyclic]")
 }
 
 
-TEST_CASE("WENOUpwindFit Boundary Test cyclicAMI","[bCyclicAMI]")
+TEST_CASE("WENOUpwindFit Boundary Test cyclicAMI","[cyclicAMI][singleCore]")
 {
     // ------------------------------------------------------------------------
     //                          OpenFOAM Start-Up 

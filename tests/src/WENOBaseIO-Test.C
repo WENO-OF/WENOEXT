@@ -106,7 +106,7 @@ void checkList(const Pair<geometryWENO::volIntegralType>& L1, const Pair<geometr
 
 
 
-TEST_CASE("WENOBase IO Test","[IOTest]")
+TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
 {
     // ------------------------------------------------------------------------
     //                          OpenFOAM Start-Up 

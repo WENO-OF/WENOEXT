@@ -43,7 +43,7 @@ Author
 #include "backwardDdtScheme.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("WENOUpwindFit Processor Boundary Test","[procBoundary]")
+TEST_CASE("WENOUpwindFit Processor Boundary Test","[processorBoundary][parallel]")
 {
     // Replace setRootCase.H for Catch2   
     int argc = 2;

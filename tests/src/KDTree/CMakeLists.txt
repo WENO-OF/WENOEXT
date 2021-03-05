@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 #project(KDTree)
 
-set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(.)
 add_library(KDTree STATIC "KDTree.cpp")
