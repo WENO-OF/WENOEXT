@@ -69,8 +69,7 @@ set(CMAKE_CXX_FLAGS "-m64 -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno
 
 set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
 
-# Get the label size
-#execute_process(COMMAND grep -rin "export WM_LABEL_SIZE" $ENV{WM_PROJECT_DIR}/etc COMMAND  sed  "s@.*export WM_LABEL_SIZE=@@" COMMAND  tr -d '\n' OUTPUT_VARIABLE LABEL_SIZE)
+
 add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE} -DNoRepository)
 
 

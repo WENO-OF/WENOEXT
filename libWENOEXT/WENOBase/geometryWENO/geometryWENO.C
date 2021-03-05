@@ -99,15 +99,16 @@ void Foam::geometryWENO::initIntegrals
             }
         }
 
-        refPointI = pts[modrefFrame[0]];
-
         k++;
 
 
         // For some meshs it is possible that a point connects only two edges 
         // and thus does not span a tetrahedar
         if (modrefFrame.size() > 3)
+        {
             referenceFrame = modrefFrame;
+            refPointI = pts[referenceFrame[0]];
+        }
     }
 
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
