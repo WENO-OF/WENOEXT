@@ -177,7 +177,7 @@ void Foam::WENOBase::splitStencil
 
     // Reject sectors without enough cells
     // and cut the stencils to the necessary size
-    const scalar necSize = extendRatio*nDvt_;
+    const label necSize = floor(extendRatio*nDvt_);
     
     forAll(stencilsID_[localCellI], stencilI)
     {
@@ -248,6 +248,14 @@ void Foam::WENOBase::sortStencil
     const label maxSize
 )
 {
+    /*************************** Note ***************************************\
+    The stencils are sorted according to the stencil based compact algorithm
+    of Tsoutsanis 2019 "Stencil selection algorithms for WENO schemes on 
+    unstructured meshes"
+    The idea is to only sort the cells after 1.2*K cells where K is the 
+    degree of freedom of the polynomial
+    \************************************************************************/
+    
     // Get reference to stencil list to sort
     labelList& stencilList = stencilsGlobalID_[cellI][0];
     labelList& cellToProcMapList = cellToProcMap_[cellI][0];
@@ -284,35 +292,27 @@ void Foam::WENOBase::sortStencil
         distances[i] = mag(transCJ - transCcellI);
     }
 
+    auto itStart = indices.begin();
+    std::advance(itStart,1.2*nDvt_);
+
+
     std::stable_sort
     (
-        indices.begin(),
+        itStart,
         indices.end(),
         [&distances,&mesh,&stencilList](size_t i1, size_t i2)
         {
-            if (mag(distances[i1] - distances[i2]) < 1E-9)
-            {
-                auto p1 = mesh.C()[stencilList[i1]];
-                auto p2 = mesh.C()[stencilList[i2]];
-                if (mag(p1.x()-p2.x()) < 1E-9)
-                    return mag(p1.y() - p2.y()) < 1E-9 ?
-                        p1.z() < p2.z()
-                      : p1.y() < p2.y();
-                else
-                    return p1.x() < p2.x();
-            }
             return distances[i1] < distances[i2];
         }
     );
 
 
-    
     for (label i = 1; i < stencilList.size(); i++)
     {
         stencilList[i] = stencilListCopy[indices[i]];
         cellToProcMapList[i] = cellToProcMapListCopy[indices[i]];
     }    
-    
+
     // Cut stencil to necessary size
     stencilList.resize(min(maxSize, stencilList.size()));
     cellToProcMapList.resize(stencilList.size());
