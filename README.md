@@ -8,7 +8,7 @@ Detailed information about the theoretical background and the implementation can
 be found in:
 
  * [J. W. Gärtner, A. Kronenburg, T. Martin, Efficient WENO library for OpenFOAM, SoftwareX, 2020](./documentation/Gaertner2020.pdf)
- * [Development of a Finite Volume Solver for Two-phase Incompressible Flows using a Level Set Method](./documentation/Martin_Development_of_a_Finite_Volume_Solver_for_Two-phase_Incompressible_Flows_using_a_Level_Set_Method.pdf)
+ * [T. Martin and I. Shevchuk, Implementation and Validation of Semi-Implicit WENO Schemes Using OpenFOAM, Computation, 2018](./documentation/Martin2018.pdf)
  * [Solving the Level Set Equation using High-order Non-oscillatory Reconstruction](./documentation/Martin_Solving_the_Level_Set_Equation_using_High-order_Non-oscillatory_Reconstruction.pdf)
 
 A quick overview of the WENO scheme is provided in this presentation:
@@ -33,11 +33,13 @@ Different versions of the code are structured through tags:
 
 ## Authors
 
- * Tobias Martin <tobimartin2@googlemail.com>
+ * Tobias Martin <tobias.martin@ntnu.no>
  * Jan Wilhelm Gärtner <jan.gaertner@outlook.de>
 
 When using this work please cite:
-> J. W. Gärtner, A. Kronenburg, and T. Martin, “SoftwareX Efficient WENO library for OpenFOAM,” SoftwareX, vol. 12, p. 100611, 2020, doi: 10.1016/j.softx.2020.100611.
+> J. W. Gärtner, A. Kronenburg, and T. Martin, “SoftwareX Efficient WENO library for OpenFOAM”, SoftwareX, vol. 12, p. 100611, 2020, doi: 10.1016/j.softx.2020.100611.
+
+> T. Martin, and I. Shevchuk, “SoftwareX Efficient WENO library for OpenFOAM,” Computation, vol. 6(6), 2018, doi: 10.3390/computation6010006.
 
 ## Installation
 
