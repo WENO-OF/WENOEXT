@@ -197,8 +197,7 @@ class WENOBase
         void sortStencil
         (
             const fvMesh& mesh,
-            const label cellI,
-            const label maxSize
+            const label cellI
         );
 
         //- Distribute data between processors

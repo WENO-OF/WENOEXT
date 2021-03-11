@@ -244,8 +244,7 @@ void Foam::WENOBase::extendStencils
 void Foam::WENOBase::sortStencil
 (
     const fvMesh& mesh,
-    const label cellI,
-    const label maxSize
+    const label cellI
 )
 {
     /*************************** Note ***************************************\
@@ -302,20 +301,33 @@ void Foam::WENOBase::sortStencil
         indices.end(),
         [&distances,&mesh,&stencilList](size_t i1, size_t i2)
         {
+            /********************* Note *******************************
+            * For structured grids several cells have the same distance 
+            * to the central cellI and the ordering is then happening by
+            * chance. Using a consistent ordering allows the stencils to be 
+            * consistent between cells and to reduce memory overhead with the 
+            * matrix data bank. **/
+            if (mag(distances[i1] - distances[i2]) < 1E-9)
+            {
+                const auto& p1 = mesh.C()[stencilList[i1]];
+                const auto& p2 = mesh.C()[stencilList[i2]];
+                if (mag(p1.x() - p2.x()) < 1E-9)
+                {
+                    return mag(p1.y() - p2.y()) < 1E-9 ? p1.z() < p2.z()
+                    : p1.y() < p2.y();
+                }
+                return p1.x() < p2.x();
+            }
             return distances[i1] < distances[i2];
         }
     );
 
 
-    for (label i = 1; i < stencilList.size(); i++)
+    for (label i = 1; i < stencilList.size(); i++) 
     {
         stencilList[i] = stencilListCopy[indices[i]];
         cellToProcMapList[i] = cellToProcMapListCopy[indices[i]];
-    }    
-
-    // Cut stencil to necessary size
-    stencilList.resize(min(maxSize, stencilList.size()));
-    cellToProcMapList.resize(stencilList.size());
+    }
 }
 
 
@@ -640,7 +652,8 @@ void Foam::WENOBase::addCoeffs
             {
                 if( (n+m+l) <= polOrder_ && (n+m+l) > 0 )
                 {
-                    A[cellj-1][currIdx++] = volIntegralsIJ(n,m,l);
+                    A[cellj-1][currIdx++] = 
+                        mag(volIntegralsIJ(n,m,l)) < 1E-9 ? 0 : volIntegralsIJ(n,m,l);
                 }
             }
         }
@@ -997,7 +1010,7 @@ void Foam::WENOBase::createStencilID
         labelList dummyLabels(stencilsGlobalID_[cellI][0].size(),static_cast<int>(Cell::local));
         cellToProcMap_[cellI][0] = dummyLabels;
 
-        sortStencil(globalMesh,cellI, extendRatio*nDvt_*nStencils[cellI]);
+        sortStencil(globalMesh,cellI);
     }
 }
 
