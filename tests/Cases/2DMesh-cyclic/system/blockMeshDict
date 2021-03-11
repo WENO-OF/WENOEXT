@@ -13,7 +13,6 @@ FoamFile
     object      blockMeshDict;
 }
 
-PI 3.14159265359;
 
 
 x0 #calc  "0";
@@ -50,37 +49,55 @@ vertices
  boundary               // keyword
     (
         // -------------------------------------------------------
-        //cyclicLeft          // patch name
-        //{
-        //    type cyclic;    // patch type for patch 0
-        //    neighbourPatch  cyclicRight;
-        //    faces
-        //    (
-        //        (0 4 7 3)  // block face in this patch
-        //    );
-        //}                  // end of 0th patch definition
-        //cyclicRight          // patch name
-        //{
-        //    type cyclic;    // patch type for patch 0
-        //    neighbourPatch  cyclicLeft;
-        //    faces
-        //    (
-        //        (0 1 5 4)
-        //    );
-        //}                  // end of 0th patch definition
-        // -------------------------------------------------------
-
-        outlet             // patch name
+        cyclicLeft          // patch name
         {
-            type patch;    // patch type for patch 1
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicRight;
+            faces
+            (
+                (0 4 7 3)  // block face in this patch
+            );
+        }                  // end of 0th patch definition
+        cyclicRight          // patch name
+        {
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicLeft;
             faces
             (
                 (1 2 6 5)
-                (0 4 7 3)  // block face in this patch
+            );
+        }                  // end of 0th patch definition
+        cyclicTop// patch name
+        {
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicBottom;
+            faces
+            (
                 (0 1 5 4)
+            );
+        }                  // end of 0th patch definition
+        cyclicBottom// patch name
+        {
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicTop;
+            faces
+            (
                 (3 7 6 2)
             );
-        }
+        }                  // end of 0th patch definition
+        // -------------------------------------------------------
+
+        //outlet             // patch name
+        //{
+        //    type patch;    // patch type for patch 1
+        //    faces
+        //    (
+        //        (1 2 6 5)
+        //        (0 4 7 3)  // block face in this patch
+        //        (0 1 5 4)
+        //        (3 7 6 2)
+        //    );
+        //}
         empty
         {
             type empty;

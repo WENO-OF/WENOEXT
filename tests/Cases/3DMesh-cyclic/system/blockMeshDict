@@ -1,0 +1,130 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.0.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+
+
+x0 #calc  "0";
+y0 #calc  "0";
+x  #calc  "1";
+y  #calc  "1";
+
+//x0 #calc  "0";
+//y0 #calc  "0";
+//x  #calc  "7";
+//y  #calc  "7";
+nCells 50;
+nCellsZ 25;
+
+vertices
+    (
+        ( $x0  $y0   0)    // vertex number 0
+        ( $x   $y0   0)    // vertex number 1
+        ( $x   $y    0)    // vertex number 2
+        ( $x0  $y    0)    // vertex number 3
+        ( $x0  $y0   1)    // vertex number 4
+        ( $x   $y0   1)    // vertex number 5
+        ( $x   $y    1)    // vertex number 6
+        ( $x0  $y    1)    // vertex number 7
+    );
+
+  blocks
+    (
+        hex (0 1 2 3 4 5 6 7)    // vertex numbers
+        ($nCells $nCells $nCellsZ)               // numbers of cells in each direction
+        simpleGrading (1 1 1)    // cell expansion ratios
+    );
+
+
+ boundary               // keyword
+    (
+        // -------------------------------------------------------
+        cyclicLeft          // patch name
+        {
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicRight;
+            faces
+            (
+                (0 4 7 3)  // block face in this patch
+            );
+        }                  // end of 0th patch definition
+        cyclicRight          // patch name
+        {
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicLeft;
+            faces
+            (
+                (1 2 6 5)
+            );
+        }                  // end of 0th patch definition
+        cyclicTop// patch name
+        {
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicBottom;
+            faces
+            (
+                (0 1 5 4)
+            );
+        }                  // end of 0th patch definition
+        cyclicBottom// patch name
+        {
+            type cyclic;    // patch type for patch 0
+            neighbourPatch  cyclicTop;
+            faces
+            (
+                (3 7 6 2)
+            );
+        }                  // end of 0th patch definition
+        cyclicFront 
+        {
+            type cyclic;
+            neighbourPatch cyclicBack;
+            faces
+            (
+                (0 3 2 1)
+            );
+        }
+        cyclicBack 
+        {
+            type cyclic;
+            neighbourPatch  cyclicFront;
+            faces
+            (
+                (4 5 6 7)
+            );
+        }
+        // -------------------------------------------------------
+
+        //outlet             // patch name
+        //{
+        //    type patch;    // patch type for patch 1
+        //    faces
+        //    (
+        //        (1 2 6 5)
+        //        (0 4 7 3)  // block face in this patch
+        //        (0 1 5 4)
+        //        (3 7 6 2)
+        //    );
+        //}
+        //empty
+        //{
+        //    type empty;
+        //    faces
+        //    (
+        //        (0 3 2 1)
+        //        (4 5 6 7)
+        //    );
+        //}
+    );
+// ************************************************************************* //

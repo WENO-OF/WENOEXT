@@ -10,33 +10,19 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    location    "system";
-    object      WENODict;
+    note        "mesh decomposition control dictionary";
+    object      decomposeParDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// This dict contains expert parameters, which modify the standard WENO scheme.
+numberOfSubdomains  4;
 
-	//- Stencil extension ratio:
-	//	- < 2.5	:	decreased computational effort. May also decrease stability 
-	//				and accuracy 
-	//	- > 2.5 :   higher stability. May influence the accuracy of the SVD
-	extendRatio		2.5; // default 2.5
-	
-	//- WENO stencil weighting parameters:
-	p				4.0;
-	dm				1.0;
-    epsilon         1E-40;
+method scotch;
 
-    //- Calculate best conditioned matrix
-    //  This can save memory especially for high order WENO scheme 
-    //  Increases the calculation time! Default is off
-    bestConditioned false;
-
-    writeData       false;
-
-    maxCondition    1E-05;
-
-    checkCondition  true; // (default value: true)
+simpleCoeffs
+{
+    n               (2 2 2);
+    delta           0.001;
+}
 
 // ************************************************************************* //

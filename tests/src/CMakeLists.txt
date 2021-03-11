@@ -10,10 +10,9 @@ add_executable(WENO_TEST
     geometryWENO-BasicFunc-Test.C
     matrixDB-Test.C
     WENOUpwindFit-Test.C
+    WENOUpwindFit-Test-parallel.C
     WENOUpwindFit-AdvectionTest.C 
     WENOBaseIO-Test.C
-    WENOBase-Parallel-Test.C
-    WENOUpwindFit-ProcessorBoundaryTest.C
     List3D-Test.C
 )
 

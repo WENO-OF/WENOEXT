@@ -75,6 +75,14 @@ function runAll {
 
     cd PLOT/ && gnuplot plotReport.gplt
     
+    cd ${currDir}/Cases/2DMesh-cyclic
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [upwindFitTest]
+    decomposePar -force 
+    ../../src/WENO_TEST [upwindFitTest-parallel]
+
+    cd ${currDir}/Cases/2DMesh-cyclicAMI
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [upwindFitTest]
+
 
     cd ${currDir}/Cases/advectionCase
     blockMesh > /dev/null 
@@ -101,20 +109,20 @@ function runSimple {
 
     cd ${currDir}/Cases/2DMesh
     blockMesh > /dev/null
-    # Clean up 
     ../../src/WENO_TEST [baseTest]
     
+    [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
+    ../../src/WENO_TEST [IOTest]
+
+    # Clean up 
+    [[ -e "PLOT/results.dat" ]] && rm PLOT/results.dat
+    [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
+
+    # run with WENO 3 0
     sed -i "s/WENOUpwindFit.*/WENOUpwindFit 3 0;/" system/fvSchemes
     sed -i "s/bestConditioned.*/bestConditioned false;/" system/WENODict
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null
-    [[ -d "constant/WENOBase3" ]] && rm -r constant/WENOBase3
-    ../../src/WENO_TEST [2DMesh]
-
-    cd ${currDir}/Cases/3DMesh
-    [[ -d "0" ]] && rm -r 0
-    blockMesh > /dev/null
-    decomposePar -force -cellDist > /dev/null
-    mpirun -np 4 ../../src/WENO_TEST [3DMesh]
+    sed -i "s/writeData.*/writeData     true;/" system/WENODict
+    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [upwindFitTest]
     
 
 

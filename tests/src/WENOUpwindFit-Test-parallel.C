@@ -40,13 +40,15 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("WENOUpwindFit Test","[upwindFitTest]")
+TEST_CASE("WENOUpwindFit Test Parallel","[upwindFitTest-parallel]")
 {
     // Replace setRootCase.H for Catch2   
-    int argc = 1;
-    char **argv = static_cast<char**>(malloc(sizeof(char*)));
+    int argc = 2;
+    char **argv = static_cast<char**>(malloc(argc*sizeof(char*)));
     char executable[] = {'m','a','i','n'};
+    char parallel[] = "parallel";
     argv[0] = executable;
+    argv[1] = parallel;
     Foam::argList args(argc, argv,false,false,false);
     #include "createTime.H"        // create the time object
     #include "createMesh.H"        // create the mesh object

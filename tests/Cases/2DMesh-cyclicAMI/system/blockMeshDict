@@ -1,0 +1,202 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.0.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+PI 3.14159265359;
+
+
+xLength 0.5;
+xLength2 1;
+yLength 1;
+zLength 0.1;
+
+nCellsA 100;
+nCellsB  80;
+
+a1x 0;
+a1y 0;
+a1z 0;
+
+a2x $xLength;
+a2y 0;
+a2z 0;
+
+a3x $xLength;
+a3y $yLength;
+a3z 0;
+
+a4x 0;
+a4y $yLength;
+a4z 0;
+
+a5x 0;
+a5y 0;
+a5z $zLength;
+
+a6x $xLength;
+a6y 0;
+a6z $zLength;
+
+a7x $xLength;
+a7y $yLength;
+a7z $zLength;
+
+a8x 0;
+a8y $yLength;
+a8z $zLength;
+
+
+b1x $xLength;
+b1y 0;
+b1z 0;
+
+b2x $xLength2;
+b2y 0;
+b2z 0;
+
+b3x $xLength2;
+b3y $yLength;
+b3z 0;
+
+b4x $xLength;
+b4y $yLength;
+b4z 0;
+
+b5x $xLength;
+b5y 0;
+b5z $zLength;
+
+b6x $xLength2;
+b6y 0;
+b6z $zLength;
+
+b7x $xLength2;
+b7y $yLength;
+b7z $zLength;
+
+b8x $xLength;
+b8y $yLength;
+b8z $zLength;
+
+
+vertices
+    (
+        name A01 ($a1x $a1y $a1z)
+        name A02 ($a2x $a2y $a2z)
+        name A03 ($a3x $a3y $a3z)
+        name A04 ($a4x $a4y $a4z)
+        name A05 ($a5x $a5y $a5z)
+        name A06 ($a6x $a6y $a6z)
+        name A07 ($a7x $a7y $a7z)
+        name A08 ($a8x $a8y $a8z)
+    
+        name B01 ($b1x $b1y $b1z)
+        name B02 ($b2x $b2y $b2z)
+        name B03 ($b3x $b3y $b3z)
+        name B04 ($b4x $b4y $b4z)
+        name B05 ($b5x $b5y $b5z)
+        name B06 ($b6x $b6y $b6z)
+        name B07 ($b7x $b7y $b7z)
+        name B08 ($b8x $b8y $b8z)
+    
+    );
+
+  blocks
+    (
+        hex (A01 A02 A03 A04 A05 A06 A07 A08)    // vertex numbers
+        ($nCellsA $nCellsA 1)               // numbers of cells in each direction
+        simpleGrading (1 1 1)    // cell expansion ratios
+        
+        hex (B01 B02 B03 B04 B05 B06 B07 B08)    // vertex numbers
+        ($nCellsB $nCellsB 1)               // numbers of cells in each direction
+        simpleGrading (1 1 1)    // cell expansion ratios
+    );
+
+P1x #calc "$xLength +0.18";
+P1y #calc "$yLength/2.0";
+
+edges
+(
+    arc A02 A03 ($P1x $P1y 0)
+    arc A06 A07 ($P1x $P1y $zLength)
+
+    arc B01 B04 ($P1x $P1y 0)
+    arc B05 B08 ($P1x $P1y $zLength)
+);
+
+
+
+ boundary               // keyword
+    (
+        cyclicLeft// patch name
+        {
+            type patch;    // patch type for patch 1
+            neighbourPatch cyclicRight; 
+            faces
+            (
+                (A01 A04 A05 A08)  // block face in this patch
+            );
+        }
+        cyclicRight// patch name
+        {
+            type patch;    // patch type for patch 1
+            neighbourPatch cyclicLeft; 
+            faces
+            (
+                (B02 B06 B07 B03)  // block face in this patch
+            );
+        }
+
+        rightAMI
+        {
+            type cyclicAMI;
+            neighbourPatch leftAMI;
+            faces
+            (
+                (A02 A06 A07 A03)
+            );
+        }
+        
+        leftAMI 
+        {
+            type cyclicAMI;
+            neighbourPatch rightAMI;
+            faces
+            (
+                (B01 B04 B05 B08)  // block face in this patch
+            );
+        }
+        
+        cyclicTop
+        {
+            type patch;
+            neighbourPatch  cyclicBottom;
+            faces
+            (
+                (A04 A03 A07 A08)
+                (B04 B03 B07 B08)
+            );
+        }
+        cyclicBottom
+        {
+            type patch;
+            neighbourPatch  cyclicTop;
+            faces
+            (
+                (B01 B05 B06 B02)
+                (A01 A05 A06 A02)
+            );
+        }
+    );
+// ************************************************************************* //
