@@ -107,7 +107,7 @@ function runSimple {
     #                      Run Test Cases - Single Processor
     # ---------------------------------------------------------------------------
 
-    cd ${currDir}/Cases/2DMesh
+    cd ${currDir}/Cases/2DMesh-cyclic
     blockMesh > /dev/null
     ../../src/WENO_TEST [baseTest]
     
