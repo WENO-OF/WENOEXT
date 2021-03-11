@@ -285,11 +285,6 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         REQUIRE(Approx(sumJInv) == 10.0);
         
-        REQUIRE(Approx(refPointI[0]) == 9.5504574);
-        REQUIRE(Approx(refPointI[1]) == 3.14159);
-        REQUIRE(Approx(refPointI[2]) == 0);
-        
-        REQUIRE(Approx(refDetI) == -281.4461);
     }
     
     
@@ -344,12 +339,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         }
         
         REQUIRE(Approx(sumJInv) == 10.0);
-        
-        REQUIRE(Approx(refPointI[0]) == 9.5504574);
-        REQUIRE(Approx(refPointI[1]) == 3.14159);
-        REQUIRE(Approx(refPointI[2]) == 0);
-        
-        REQUIRE(Approx(refDetI) == -281.4461);
+
     }
     
     
@@ -403,12 +393,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         }
         
         REQUIRE(Approx(sumJInv) == 10.0);
-        
-        REQUIRE(Approx(refPointI[0]) == 9.5504574);
-        REQUIRE(Approx(refPointI[1]) == 3.14159);
-        REQUIRE(Approx(refPointI[2]) == 0);
-        
-        REQUIRE(Approx(refDetI) == -281.4461);
+
     }
     
 }
