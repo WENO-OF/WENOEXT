@@ -26,14 +26,14 @@ Source:
 unitTests:
     stage: Tests
     script:
-        - mkdir -p build && cd build && cmake --build . --target install && cd ../
-        - cd ./tests/
+        - ./Allwmake
+        - cd /tests/
         - ./runTest
 
 Cavity:
     stage: Tutorials
     script:
-        - mkdir -p build && cd build && cmake --build . --target install && cd ../
+        - ./Allwmake
         - cd ./tutorials/cavity/
         - blockMesh > /dev/null
         - icoFoam
@@ -44,7 +44,7 @@ Cavity:
 Wedge:
     stage: Tutorials
     script:
-        - mkdir -p build && cd build && cmake --build . --target install && cd ../
+        - ./Allwmake
         - cd ./tutorials/wedge/
         - blockMesh > /dev/null
         - icoFoam

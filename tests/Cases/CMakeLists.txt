@@ -1,3 +1,3 @@
 add_subdirectory(performanceTest)
-
+add_subdirectory(globalFvMeshTestCase)
 

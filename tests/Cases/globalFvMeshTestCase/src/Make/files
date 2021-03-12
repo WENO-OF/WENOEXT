@@ -1,3 +1,0 @@
-globalFvMesh-Test.C
-
-EXE = globalFvMeshTest.exe 

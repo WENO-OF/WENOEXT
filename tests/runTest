@@ -93,9 +93,7 @@ function runAll {
     # ---------------------------------------------------------------------------
     #                      Run Test Cases - MPI Processor
     # ---------------------------------------------------------------------------
-    cd ${currDir}/Cases/globalFvMeshTestCase/src
-    wmake > /dev/null
-    cd ../case-3D
+    cd ${currDir}/Cases/globalFvMeshTestCase/case-3D
     blockMesh > /dev/null && decomposePar -force > /dev/null 
     mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
 }
@@ -129,9 +127,7 @@ function runSimple {
     # ---------------------------------------------------------------------------
     #                      Run Test Cases - MPI Processor
     # ---------------------------------------------------------------------------
-    cd ${currDir}/Cases/globalFvMeshTestCase/src
-    wmake > /dev/null
-    cd ../case-3D
+    cd ${currDir}/Cases/globalFvMeshTestCase/case-3D
     blockMesh > /dev/null && decomposePar -force > /dev/null 
     mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
 }
