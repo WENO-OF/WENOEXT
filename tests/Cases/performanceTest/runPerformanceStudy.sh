@@ -2,9 +2,6 @@
 
 set -e
 
-cd src/ && wmake && cd ..
-
-
 cd Case/ && blockMesh 
 
 LOGNAME="performanceRun.log"

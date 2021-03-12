@@ -76,7 +76,7 @@ add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LAB
 # Directory to build the library
 add_subdirectory(libWENOEXT)
 add_subdirectory(utilities)
-add_subdirectory(tests/src)
+add_subdirectory(tests)
 
 # Add here later for testing 
 
