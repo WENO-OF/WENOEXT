@@ -29,23 +29,31 @@ Currently these tests are available
 
 1. geometryWENO Class
 	A test function for the Jacobian and the gaussQuad function is provided. 
-	Requires a 3D mesh given in 'globalFvMeshTest/case-3D' 
-	Run with `tests.exe [3D]` in globalFvMeshTest/case-3D directory.
-
-2. WENOUpwindFit
+    Run with `WENO_TEST [baseTest]` in the 2DMesh case directory.
+2. WENOBase Class
+    Check IO functionality of reading and writing lists
+    Execute in 2DMesh case directory with `WENO_TEST [IOTest]`
+3. WENOUpwindFit
 	An integration test to compare the result of the WENO scheme to the linear scheme
 	for the calculation of the divergence of a scalar field. 
-Run with `tests.exe [2D]` in the Case directory.
-3. Advection test case
+    This can be executed for all the different mesh cases to check the effect of boundaries
+4. WENOUpwindFit Parallel
+    Same as WENOUpwindFitTest but executed in parallel with mpi. To use this test case 
+    go to a case directory e.g. Cases/2DMesh-cyclic and execute:
+    ```
+decomposePar -force
+mpirun -np <# of procs> ../../src/WENO_TEST [upwindFitTest-parallel]
+    ```
+4. Advection test case
 	Test the WENOUpwindFit scheme by using the test case, the rotation of a slotted disk, 
 	designed by Zalesak [1]
 >    [1] Zalesak, S.T. Fully Multidimensional Flux-Corrected 	Algorithms
         for Fluids. J. Comput. Phys. 1979, 31, 335–362.
 
-4. GlobalFvMesh test case
-Test if the mapping of global to local cellID and reverse is correct. As this test
-is done in parallel it is not included in the Catch2 environment but uses 
-FatalError statements to print out error messages
+5. GlobalFvMesh test case
+    Test if the mapping of global to local cellID and reverse is correct. As this test
+    is done in parallel it is not included in the Catch2 environment but uses 
+    FatalError statements to print out error messages
 
 ## Mesh Study
 

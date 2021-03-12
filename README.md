@@ -28,7 +28,7 @@ Different versions of the code are structured through tags:
 
 ### Supported OpenFOAM Versions:
 
- * OpenFOAM (ORG) v5.x - 7
+ * OpenFOAM (ORG) v5.x - 8
  * OpenFOAM (ESI) v1912
 
 ## Authors
