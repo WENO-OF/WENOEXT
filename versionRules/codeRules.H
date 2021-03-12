@@ -83,6 +83,17 @@ Contributors/Copyright:
 #define FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS
 #endif
 
+#if (OPENFOAM_COM >= 1706) \
+    || (defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>=VERSION_NR(5,0,0))
+#define FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS
+#endif
+
+#if ((defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>=VERSION_NR(8,0,0)))
+#define FOAM_NEW_COUPLED_PATCHES
+#endif
+
+
+
 #endif
 
 // ************************************************************************* //

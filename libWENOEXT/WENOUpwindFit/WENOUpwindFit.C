@@ -500,8 +500,15 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
 
             forAll(pOwner, faceI)
             {
+                #ifdef FOAM_NEW_COUPLED_PATCHES
+                const label neighbPatchID = refCast<const cyclicFvPatch>
+                        (patches[patchI]).nbrPatchID();
+                #else 
                 const label neighbPatchID = refCast<const cyclicFvPatch>
                         (patches[patchI]).neighbPatchID();
+                #endif
+                
+                
                 if (pFaceFlux[faceI] < 0)
                 {
                     pSfCorr[faceI] = btsfP[neighbPatchID][faceI];
@@ -511,7 +518,7 @@ void Foam::WENOUpwindFit<Type>::coupledRiemannSolver
         else if (isA<cyclicAMIFvPatch>(patches[patchI]))
         {
             /*************************** NOTE *******************************
-            * Currently not used as it is currently not quite clear how 
+            * Currently not used as it is not quite clear how 
             * the interpolation will affect the results 
             ****************************************************************/
             //// If coupled the value at the face of the neighbour patch can be 
