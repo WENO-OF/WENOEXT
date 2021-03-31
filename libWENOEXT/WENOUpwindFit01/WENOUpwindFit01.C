@@ -30,6 +30,7 @@ Author
 #include "codeRules.H"
 #include "WENOUpwindFit01.H"
 #include "processorFvPatch.H"
+#include "cyclicFvPatch.H"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -203,7 +204,7 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
                 {
                     setComponent(pbtsfP[faceI],cI) =
                             component(theta[own],cI)
-                          * component(tsfP[faceI],cI);
+                          * component(pbtsfP[faceI],cI);
                 }
             }
         }
@@ -440,7 +441,8 @@ void Foam::WENOUpwindFit01<Type>::coupledRiemannSolver
     {
         fvsPatchField<Type>& pSfCorr = btsfP[patchI];
 
-        if (isA<processorFvPatch>(patches[patchI]))
+        // for all coupled patches the first step is the same
+        if ((patches[patchI]).coupled())
         {
             const scalarField& pFaceFlux =
                 faceFlux_.boundaryField()[patchI];
@@ -489,6 +491,59 @@ void Foam::WENOUpwindFit01<Type>::coupledRiemannSolver
                     pSfCorr[faceI] = btsfUD[patchI][faceI];
                 }
             }
+        }
+        else if (isA<cyclicFvPatch>(patches[patchI]))
+        {
+            // If coupled the value at the face of the neighbour patch can be 
+            // used.
+            const scalarField& pFaceFlux =
+                faceFlux_.boundaryField()[patchI];
+
+            const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+
+            forAll(pOwner, faceI)
+            {
+                #ifdef FOAM_NEW_COUPLED_PATCHES
+                const label neighbPatchID = refCast<const cyclicFvPatch>
+                        (patches[patchI]).nbrPatchID();
+                #else 
+                const label neighbPatchID = refCast<const cyclicFvPatch>
+                        (patches[patchI]).neighbPatchID();
+                #endif
+                
+                
+                if (pFaceFlux[faceI] < 0)
+                {
+                    pSfCorr[faceI] = btsfP[neighbPatchID][faceI];
+                }
+            }
+        }
+        else if (isA<cyclicAMIFvPatch>(patches[patchI]))
+        {
+            /*************************** NOTE *******************************
+            * Currently not used as it is not quite clear how 
+            * the interpolation will affect the results 
+            ****************************************************************/
+            //// If coupled the value at the face of the neighbour patch can be 
+            //// used.
+            //const scalarField& pFaceFlux =
+                //faceFlux_.boundaryField()[patchI];
+
+            //const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+
+            //forAll(pOwner, faceI)
+            //{
+                //const label neighbPatchID = refCast<const cyclicAMIFvPatch>
+                        //(patches[patchI]).neighbPatchID();
+                //// inerpolate results to patch neighbour field
+                //tmp<Field<Type>> interpField = refCast<const cyclicAMIFvPatch>
+                        //(patches[patchI]).interpolate(btsfUD[neighbPatchID]);
+                
+                //if (pFaceFlux[faceI] < 0)
+                //{
+                    //pSfCorr[faceI] = btsfP[neighbPatchID][faceI];
+                //}
+            //}
         }
     }
 }
