@@ -71,7 +71,7 @@ Within your `system/fvSchemes` file,
 
     divSchemes
     {
-    	div(phi,U) 	Gauss WENOUpwindFit 2 1;
+        div(phi,U) 	Gauss WENOUpwindFit 2 1;
     }
 
 Here the first index '2' represents the order of the WENO scheme and the second index can be either
@@ -126,6 +126,16 @@ FoamFile
                           // the matrix is removed for all stencils of this cell.
 // ************************************************************************* /
 ```
+
+### Specialized Version for Scalar Transport
+
+The limited WENOUpwindFit scheme uses a cell limited approach known from other
+schemes such as linearUpwind. For scalar transport in the range 0 to 1 a 
+specialized scheme called *WENOUpwindFit01* is available. This schemes limits
+the value using the limiter of Zhang and Shu.
+
+
+
 
 ## Tutorials
 
