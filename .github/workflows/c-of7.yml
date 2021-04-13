@@ -2,7 +2,7 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ master, dev-v3.x]
+    branches: [ master,  dev-CI]
   pull_request:
     branches: [ master ]
 
@@ -13,9 +13,5 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: OpenFOAM5
-      run: make runTestsOF5
     - name: OpenFOAM7
       run: make runTestsOF7
-    - name: OpenFOAM8
-      run: make runTestsOF8

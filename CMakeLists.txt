@@ -46,7 +46,7 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 
 
 # Check the OpenFOAM version and set the correct include statements
-string(REGEX MATCH "([0-9]*)" _ $ENV{WM_PROJECT_VERSION})
+string(REGEX MATCH "([0-9]+)" _ $ENV{WM_PROJECT_VERSION})
 set(OF_VERSION_NUMBER ${CMAKE_MATCH_1})
 
 # If VERSION > 1812 then it is a OpenFOAM.com (ESI) version

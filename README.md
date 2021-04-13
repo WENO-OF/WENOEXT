@@ -1,5 +1,9 @@
 ![](documentation/WENOLogo.png)
 
+![OpenFOAM 5.x](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of5.yml/badge.svg) 
+![OpenFOAM 7](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of7.yml/badge.svg) 
+![OpenFOAM 8](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of8.yml/badge.svg)
+![OpenFOAM v1912](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-ofv1912.yml/badge.svg)
 
 # WENO framework
 
@@ -47,6 +51,7 @@ When using this work please cite:
     `git clone https://github.com/WENO-OF/WENOEXT.git`
 
 2. Execute `Allwmake` to build the library
+   The compilation of the library uses cmake instead of wmake files!
 
 
 ### Note to GNU compiler:
@@ -152,6 +157,8 @@ make runTestsOF5
 # For OpenFOAM 8
 make runTestsOF8
 ```
+
+This implementation allows to have the same testing on the local and remote branch.
 
 
 ## License 
