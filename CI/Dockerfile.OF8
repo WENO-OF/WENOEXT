@@ -1,0 +1,19 @@
+FROM jgaertner2/openfoam:8
+
+CMD [ "/bin/sh" ]
+
+# Add the library src to our build env
+# FROM env AS devel
+# Create lib directory
+RUN mkdir -p /home/gitlab/build/
+WORKDIR /home/gitlab/build
+
+
+# Bundle lib source
+COPY --chown=gitlab:gitlab . .
+
+# First compile the code
+RUN . $foamDotFile && ./Allwmake
+
+# Run all unit tests
+RUN . $foamDotFile && cd tests && ./runTest

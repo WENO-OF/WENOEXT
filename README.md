@@ -132,6 +132,27 @@ To run the tutorials execute `./Allrun` in the tutorial/ directory.
 Testing is performed with the CATCH2 framework. You can compile and execute the tests
 by executing `./runTest` in the test directory. Further instructions are found in [here](tests/TestInstructions.md) 
 
+## Contineous Integration
+
+To check the code for different OpenFOAM implementations, e.g. OpenFOAM 8,
+OpenFOAM v1912, etc. the code is copied into different docker containers
+created with the Dockerfiles in `CI/`. In the docker container the code is compiled
+and unit tests executed. 
+
+Executing the tests is controlled over the Makefile in the root directory. The
+different OpenFOAM versions can be tested with 
+
+```
+# Just executing make runs all tests
+make
+
+# For OpenFOAM v5.x
+make runTestsOF5
+
+# For OpenFOAM 8
+make runTestsOF8
+```
+
 
 ## License 
 
