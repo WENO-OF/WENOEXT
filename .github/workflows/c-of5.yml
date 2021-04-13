@@ -2,7 +2,7 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ master, dev-v3.x, dev-CI]
+    branches: [ master, dev-CI]
   pull_request:
     branches: [ master ]
 

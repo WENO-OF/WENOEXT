@@ -1,7 +1,9 @@
 ![](documentation/WENOLogo.png)
+
 ![OpenFOAM 5.x](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of5.yml/badge.svg) 
 ![OpenFOAM 7](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of7.yml/badge.svg) 
 ![OpenFOAM 8](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of8.yml/badge.svg)
+![OpenFOAM v1912](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-ofv1912.yml/badge.svg)
 
 # WENO framework
 
