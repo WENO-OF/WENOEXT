@@ -1,6 +1,6 @@
 DOCKER_TAG_OF_5=wenotest:5.x
 DOCKER_TAG_OF_7=wenotest:7
-DOCKER_TAG_OF_7=wenotest:8
+DOCKER_TAG_OF_8=wenotest:8
 DOCKER_TAG_OF_v1912=openfoam:v1912
 
 all: runTestsOF5 runTestsOF7 runTestsOF8
