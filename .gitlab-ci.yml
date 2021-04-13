@@ -27,7 +27,7 @@ unitTests:
     stage: Tests
     script:
         - ./Allwmake
-        - cd /tests/
+        - cd tests/
         - ./runTest
 
 Cavity:
