@@ -23,12 +23,7 @@ Please also check out the ***Discussion*** board of GitHub for more information 
 
 **Versions:**
 
-Different versions of the code are structured through tags:
-
- * [2.0] Improved speed by using Blaze matrix operations
- * [1.0] Version for OpenFOAM 5.x, 6 and 7.
-             Uses improved parallising and C++11 features 
- * [0.1] Version for OpenFOAM 2.3.x to OpenFOAM 5.x 
+Major development stages of the library are marked by tags and recently also have a release with a DOI. 
 
 ### Supported OpenFOAM Versions:
 

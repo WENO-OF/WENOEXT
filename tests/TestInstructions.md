@@ -14,7 +14,7 @@ For further information about command line arguments in Catch2 use
 
 ## Run All Tests
 
-With `runTest <Option>` teh test cases can be run together. 
+With `runTest <Option>` the test cases can be run together. 
 
 Use `runTest --runAll` to run all test cases and generate a small test report in 
 report/testReport.html
@@ -40,10 +40,10 @@ Currently these tests are available
 4. WENOUpwindFit Parallel
     Same as WENOUpwindFitTest but executed in parallel with mpi. To use this test case 
     go to a case directory e.g. Cases/2DMesh-cyclic and execute:
-    ```
-decomposePar -force
-mpirun -np <# of procs> ../../src/WENO_TEST [upwindFitTest-parallel]
-    ```
+    
+        decomposePar -force
+        mpirun -np <# of procs> ../../src/WENO_TEST [upwindFitTest-parallel]
+
 4. Advection test case
 	Test the WENOUpwindFit scheme by using the test case, the rotation of a slotted disk, 
 	designed by Zalesak [1]
