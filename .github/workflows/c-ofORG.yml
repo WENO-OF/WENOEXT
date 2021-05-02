@@ -1,0 +1,35 @@
+name: OpenFOAM Org
+
+on:
+  push:
+    branches: [ master, dev-v3.x]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  OpenFOAM-5.x:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: OpenFOAM5
+      run: make runTestsOF5
+  
+  OpenFOAM-7:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: OpenFOAM7
+      run: make runTestsOF7
+  
+  OpenFOAM-8:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: OpenFOAM8
+      run: make runTestsOF8
