@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  OpenFOAM-5.x:
+  OpenFOAM-5:
 
     runs-on: ubuntu-latest
 
