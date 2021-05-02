@@ -308,13 +308,22 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
      {
          dictionary headerDict(is);
  
-         is.version(headerDict.lookup("version"));
-         #if (OPENFOAM_COM >= 1912)
+         #if (OPENFOAM_COM >= 1912 && OPENFOAM_COM < 2006)
+            is.version(headerDict.lookup("version"));
             is.format(headerDict.get<word>("format"));
+            const word headerClassName = headerDict.get<word>("class");
+            const word headerObject(headerDict.get<word>("object"));
+         #elif (OPENFOAM_COM >= 2006 )
+            is.version(headerDict.get<token>("version"));
+            is.format(headerDict.get<word>("format"));
+            const word headerClassName = headerDict.get<word>("class");
+            const word headerObject(headerDict.get<word>("object"));
          #else
+            is.version(headerDict.lookup("version"));
             is.format(headerDict.lookup("format"));
-        #endif
-         word headerClassName = word(headerDict.lookup("class"));
+            const word headerClassName = word(headerDict.lookup("class"));
+            const word headerObject(headerDict.lookup("object"));
+         #endif
  
         //if (headerClassName == "faceCompactList")
             //FatalIOErrorInFunction(is)
@@ -323,7 +332,6 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
              //<< "\tFile is in binary format. Mesh has to be saved in ascii format"
              //<< exit(FatalIOError);
  
-         const word headerObject(headerDict.lookup("object"));
          
          #ifdef FULLDEBUG
              if (headerObject != headerClassName)

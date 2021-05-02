@@ -1,9 +1,9 @@
 ![](documentation/WENOLogo.png)
 
-![OpenFOAM 5.x](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of5.yml/badge.svg) 
-![OpenFOAM 7](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of7.yml/badge.svg) 
-![OpenFOAM 8](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-of8.yml/badge.svg)
-![OpenFOAM v1912](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-ofv1912.yml/badge.svg)
+![OpenFOAM Org](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-ofORG.yml/badge.svg) 
+![OpenFOAM ESI](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-ofESI.yml/badge.svg)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4704734.svg)](https://doi.org/10.5281/zenodo.4704734)
+
 
 # WENO framework
 
@@ -28,7 +28,7 @@ Major development stages of the library are marked by tags and recently also hav
 ### Supported OpenFOAM Versions:
 
  * OpenFOAM (ORG) v5.x - 8
- * OpenFOAM (ESI) v1912
+ * OpenFOAM (ESI) v1912-v2006
 
 ## Authors
 
