@@ -119,24 +119,50 @@ Foam::labelList Foam::WENO::globalfvMesh::neighborProcessorList(const fvMesh& me
         Pstream::scatterList(allNeighbours);
 
         // Get the neighbour and second neighbour list for your processor
-        labelList secondNeighborList;
-        forAll(myNeighbourProc,procI)
+        labelListList secondNeighbourList(myNeighbourProc.size()-1);
+        
+        // Jump first entry as it is its own processor
+        for (label procI = 1; procI < myNeighbourProc.size(); ++procI)
         {
             const label neighbourProcI = myNeighbourProc[procI];
-            secondNeighborList.append(allNeighbours[neighbourProcI]);
+            secondNeighbourList[procI-1] = allNeighbours[neighbourProcI];
         }
         
-        forAll(secondNeighborList,i)
+        forAll(secondNeighbourList,procI)
         {
-            if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
+            forAll(secondNeighbourList[procI],i)
             {
-                myNeighbourProc.append(secondNeighborList[i]);
-                addedProcessor.insert(secondNeighborList[i]);
+                if ( addedProcessor.find(secondNeighbourList[procI][i]) == addedProcessor.end())
+                {
+                    // Get processor list of this neighbour 
+                    const labelList& procsSecNeighbour = allNeighbours[secondNeighbourList[procI][i]];
+
+                    // Get list of direct neighbours of own processor
+                    const labelList& directNeighbour = allNeighbours[Pstream::myProcNo()];
+
+                    // count the number of common processor interfaces
+                    label commonProcessorInterfaces = 0;
+                    forAll(procsSecNeighbour,k)
+                    {
+                        forAll(directNeighbour,m)
+                        {
+                            if (procsSecNeighbour[k] == directNeighbour[m])
+                                commonProcessorInterfaces++;
+                        }
+                    }
+                    
+                    // Only add to list if it connects with at least 1 other direct neighbour 
+                    if (commonProcessorInterfaces > 1)
+                    {
+                        myNeighbourProc.append(secondNeighbourList[procI][i]);
+                        addedProcessor.insert(secondNeighbourList[procI][i]);
+                    }
+                }
             }
         }
         
         #ifdef FULLDEBUG
-            Pout << "Number of neighbour processor: "<<myNeighbourProc<<endl;
+            Pout << "Number of neighbour processor: "<<myNeighbourProc.size()<<endl;
         #endif
         return myNeighbourProc;
     }
