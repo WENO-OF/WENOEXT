@@ -37,13 +37,6 @@ Currently these tests are available
 	An integration test to compare the result of the WENO scheme to the linear scheme
 	for the calculation of the divergence of a scalar field. 
     This can be executed for all the different mesh cases to check the effect of boundaries
-4. WENOUpwindFit Parallel
-    Same as WENOUpwindFitTest but executed in parallel with mpi. To use this test case 
-    go to a case directory e.g. Cases/2DMesh-cyclic and execute:
-    
-        decomposePar -force
-        mpirun -np <# of procs> ../../src/WENO_TEST [upwindFitTest-parallel]
-
 4. Advection test case
 	Test the WENOUpwindFit scheme by using the test case, the rotation of a slotted disk, 
 	designed by Zalesak [1]

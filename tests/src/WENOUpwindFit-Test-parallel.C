@@ -40,6 +40,13 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+
+/******************************************************************************\
+ * NOTE: Currently not working because MPI cannot be initialized if it is 
+ * called with Catch2
+\******************************************************************************/
+
+
 TEST_CASE("WENOUpwindFit Test Parallel","[upwindFitTest-parallel]")
 {
     // Replace setRootCase.H for Catch2   
@@ -54,6 +61,9 @@ TEST_CASE("WENOUpwindFit Test Parallel","[upwindFitTest-parallel]")
     #include "createMesh.H"        // create the mesh object
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    if (!Pstream::parRun())
+        FatalError << "Should be executed in parallel but Pstream::parRun() failed"<<exit(FatalError);
 
     const vectorField& centre = mesh.C();
 
