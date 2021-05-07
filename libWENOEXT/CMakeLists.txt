@@ -29,6 +29,7 @@ target_include_directories(WENOEXT PUBLIC
 )
 
 target_link_libraries(WENOEXT PUBLIC
+ Blaze
  -L$ENV{FOAM_LIBBIN}
  -ldynamicMesh 
  -lfiniteVolume 
