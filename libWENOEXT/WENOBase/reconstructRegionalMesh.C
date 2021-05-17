@@ -308,12 +308,12 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
      {
          dictionary headerDict(is);
  
-         #if (OPENFOAM_COM >= 1912 && OPENFOAM_COM < 2006)
+         #if (OF_FORK_VERSION >= 1912 && OF_FORK_VERSION < 2006)
             is.version(headerDict.lookup("version"));
             is.format(headerDict.get<word>("format"));
             const word headerClassName = headerDict.get<word>("class");
             const word headerObject(headerDict.get<word>("object"));
-         #elif (OPENFOAM_COM >= 2006 )
+         #elif (OF_FORK_VERSION >= 2006 )
             is.version(headerDict.get<token>("version"));
             is.format(headerDict.get<word>("format"));
             const word headerClassName = headerDict.get<word>("class");

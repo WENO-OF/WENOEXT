@@ -1,19 +1,19 @@
 /*---------------------------------------------------------------------------* \
 License
-    This file is part of libWallModelledLES.
+    This file is part of WENO Ext library.
 
-    libWallModelledLES is free software: you can redistribute it and/or modify
+    WENO Ext library is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    libWallModelledLES is distributed in the hope that it will be useful, but
+    WENO Ext library is distributed in the hope that it will be useful, but
     WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
     or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with libWallModelledLES.
+    along with WENO Ext library.
     If not, see <http://www.gnu.org/licenses/>.
 
 Class
@@ -32,25 +32,17 @@ Contributors/Copyright:
     2015-2016 Bruno Santos <wyldckat@gmail.com>
     2016-2018 Mark Olesen <Mark.Olesen@esi-group.com>
     2019      Timofey Mukha
+    2021      Jan Gärtner <jan.gaertner@outlook.de>
 
 \*---------------------------------------------------------------------------*/
 
 #ifndef WenoMacroHeader_H
 #define WenoMacroHeader_H
 
-#include "foamVersion4weno.H"
 
-#define VERSION_NR(major,minor,patch) (     \
-    10000 * major + \
-    100   * minor + \
-    patch )
-
-#define VERSION_NR2(major,minor) (     \
-    10000 * major + \
-    100   * minor + \
-    99 )
-
-#define FOAM_VERSION4WENO VERSION_NR(FOAM_VERSION4WENO_MAJOR,FOAM_VERSION4WENO_MINOR,FOAM_VERSION4WENO_PATCH_NUM)
+#cmakedefine OF_FORK_ESI
+#cmakedefine OF_FORK_ORG
+#cmakedefine OF_FORK_VERSION @OF_FORK_VERSION@
 
 #if __cplusplus > 199711L
 #define FOAM_CXX_COMPILER_ALLOWS_NON_POD_IN_UNION
@@ -63,33 +55,28 @@ Contributors/Copyright:
 #endif
 #endif
 
-#if (OPENFOAM_COM >= 1606) \
-    || (defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>VERSION_NR2(3,0))
-#define FOAM_NEW_TMP_RULES
+#if   ((defined(OF_FORK_ESI) && OF_FORK_VERSION >= 1606) \
+    || (defined(OF_FORK_ORG) && OF_FORK_VERSION >= 3))
+    #define FOAM_NEW_TMP_RULES
 #endif
 
-#if (OPENFOAM_COM >= 1612) \
-    || (defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>VERSION_NR2(3,0))
-#define FOAM_NEW_GEOMFIELD_RULES
+#if   ((defined(OF_FORK_ESI) && OF_FORK_VERSION >= 1612) \
+    || (defined(OF_FORK_ORG) && OF_FORK_VERSION >= 3))
+    #define FOAM_NEW_GEOMFIELD_RULES
 #endif
 
-#if (OPENFOAM_COM >= 1912) \
-    || (defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>VERSION_NR2(6,0))
-#define FOAM_MOVE_CONSTRUCTOR
+#if   ((defined(OF_FORK_ESI) && OF_FORK_VERSION >= 1912) \
+    || (defined(OF_FORK_ORG) && OF_FORK_VERSION >= 6))
+    #define FOAM_MOVE_CONSTRUCTOR
 #endif
 
-#if (OPENFOAM_COM >= 1706) \
-    || (defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>=VERSION_NR(5,0,0))
-#define FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS
+#if   ((defined(OF_FORK_ESI) && OF_FORK_VERSION >= 1706) \
+    || (defined(OF_FORK_ORG) && OF_FORK_VERSION >= 5))
+    #define FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS
 #endif
 
-#if (OPENFOAM_COM >= 1706) \
-    || (defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>=VERSION_NR(5,0,0))
-#define FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS
-#endif
-
-#if ((defined(FOAM_VERSION4WENO_IS_ORG) && FOAM_VERSION4WENO>=VERSION_NR(8,0,0)))
-#define FOAM_NEW_COUPLED_PATCHES
+#if (defined(OF_FORK_ORG) && OF_FORK_VERSION >= 8)
+    #define FOAM_NEW_COUPLED_PATCHES
 #endif
 
 
