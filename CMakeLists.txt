@@ -17,12 +17,20 @@ project (WENOEXT)
 # C++ 14 is required for blaze
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+# Set minimum gnu compiler version
+set(GNU_MIN_VERSION 7.5.0)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if (NOT CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL ${GNU_MIN_VERSION})
+        message(WARNING "GNU compiler version ${CMAKE_CXX_COMPILER_VERSION} is below ${GNU_MIN_VERSION}")
+    endif()
+endif()
 
 
 
 # Check that OpenFOam environment variables are available
 if (NOT DEFINED ENV{FOAM_USER_LIBBIN} OR NOT DEFINED ENV{FOAM_SRC})
-    message(FATAL_ERROR "OpenFOAM envrionemt variables not available")
+    message(FATAL_ERROR "OpenFOAM environemt variables not available")
 endif()
 
 
@@ -58,14 +66,42 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 #===============================================================================
 
 
+message("\n-------------------------------------------------------------------") 
+message("\tGenerate WENO code rules for OpenFOAM version $ENV{WM_PROJECT_VERSION}")
+message("-------------------------------------------------------------------")
 
 # Check the OpenFOAM version and set the correct include statements
 string(REGEX MATCH "([0-9]+)" _ $ENV{WM_PROJECT_VERSION})
 set(OF_VERSION_NUMBER ${CMAKE_MATCH_1})
 
-# If VERSION > 1812 then it is a OpenFOAM.com (ESI) version
+# If VERSION > 1000 then it is a OpenFOAM.com (ESI) version
 # In OpenFOAM (ESI) the triSurface is moved into the surfaceMesh 
-if (${OF_VERSION_NUMBER} GREATER_EQUAL 1812)
+# Note: The if() statement evaluates a set variable to true if no
+# $-Sign is used. For the cmakedefine statement this means that all set 
+# variables are resolved as true
+if (${OF_VERSION_NUMBER} GREATER_EQUAL 1000)
+    SET(OF_FORK_ESI true BOOL "OpenFOAM Fork: ESI")
+    SET(OF_FORK_VERSION ${OF_VERSION_NUMBER})
+    message("OF_VERSION: ${OF_FORK_VERSION}")
+else()
+    SET(OF_FORK_ORG true BOOL "OpenFOAM Fork: Org")
+    SET(OF_FORK_VERSION ${OF_VERSION_NUMBER})
+    message("OF_VERSION: ${OF_FORK_VERSION}")
+endif()
+
+
+
+configure_file(
+  ${CMAKE_SOURCE_DIR}/versionRules/codeRules.H.in
+  ${CMAKE_BINARY_DIR}/generated/codeRules.H
+)
+
+
+
+
+# If VERSION > 1000 then it is a OpenFOAM.com (ESI) version
+# In OpenFOAM (ESI) the triSurface is moved into the surfaceMesh 
+if (${OF_VERSION_NUMBER} GREATER_EQUAL 1000)
     SET(TRISURFACE_INC)
     SET(TRISURFACE_LIB)
 else()
@@ -73,11 +109,7 @@ else()
     SET(TRISURFACE_LIB "-ltriSurface")
 endif()
 
-# Generate OpenFOAM Code rules 
-message("\n-------------------------------------------------------------------") 
-message("\tGenerate WENO code rules for OpenFOAM version $ENV{WM_PROJECT_VERSION}")
-message("\n-------------------------------------------------------------------")
-execute_process(COMMAND ${CMAKE_SOURCE_DIR}/versionRules/genCodeRules.sh ${CMAKE_SOURCE_DIR})
+
 
 
 # Set c++ flags
@@ -94,7 +126,7 @@ add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LAB
 
 message("\n-------------------------------------------------------------------") 
 message("\tSet blaze cache size")
-message("\n-------------------------------------------------------------------")
+message("-------------------------------------------------------------------")
 
 add_library(Blaze INTERFACE)
 target_include_directories(Blaze INTERFACE
@@ -148,7 +180,7 @@ endif()
         message("Using default Cache Size.")
     endif ()
 
-
+message("-------------------------------------------------------------------")
 
 
 #===============================================================================
