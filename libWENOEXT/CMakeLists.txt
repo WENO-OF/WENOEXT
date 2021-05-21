@@ -14,6 +14,7 @@ add_library(WENOEXT SHARED
 
 
 target_include_directories(WENOEXT PUBLIC 
+  Blaze
   $ENV{FOAM_SRC}/dynamicMesh/lnInclude
   $ENV{FOAM_SRC}/finiteVolume/lnInclude
   $ENV{FOAM_SRC}/meshTools/lnInclude
@@ -25,7 +26,6 @@ target_include_directories(WENOEXT PUBLIC
   ./WENOBase/geometryWENO
   ./WENOBase/
   ../versionRules
-  ../blaze-3.8 
 )
 
 target_link_libraries(WENOEXT PUBLIC
