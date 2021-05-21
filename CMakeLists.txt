@@ -120,80 +120,19 @@ set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-need
 
 add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE} -DNoRepository)
 
-#===============================================================================
-#   Set Cache of Blaze Automatic 
-#===============================================================================
-
-message("\n-------------------------------------------------------------------") 
-message("\tSet blaze cache size")
-message("-------------------------------------------------------------------")
-
-add_library(Blaze INTERFACE)
-target_include_directories(Blaze INTERFACE
-    $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include>
-    GLOBAL
-)
-
-if(NOT BLAZE_CACHE_SIZE)
-    set(BLAZE_CACHE_SIZE "auto")
-endif()
-
-
-    if ("${BLAZE_CACHE_SIZE}" STREQUAL "auto")
-        message("Automatic Cache Size Configuration")
-        set(flag 1)
-
-        execute_process(COMMAND cat /sys/devices/system/cpu/cpu0/cache/index3/size
-                   OUTPUT_VARIABLE tmp
-                   RESULT_VARIABLE flag
-                   ERROR_QUIET)
-        if (flag)
-            execute_process(COMMAND cat /sys/devices/system/cpu/cpu0/cache/index2/size
-                     OUTPUT_VARIABLE tmp
-                     RESULT_VARIABLE flag
-                     ERROR_QUIET)
-        endif (flag)
-        if (flag)
-            execute_process(COMMAND cat /sys/devices/system/cpu/cpu0/cache/index1/size
-                     OUTPUT_VARIABLE tmp
-                     RESULT_VARIABLE flag
-                     ERROR_QUIET)
-        endif (flag)
-
-         
-
-        if (flag)
-           message(WARNING "Cache size not found automatically. Using default value as cache size.")
-           set(tmp "3072")
-        endif (flag)
-
-        string(REGEX MATCH "([0-9][0-9]+)" tmp ${tmp}) # Get a number containing at least 2 digits in the string tmp
-        math(EXPR BLAZE_CACHE_SIZE ${tmp}*1024) # Convert to bytes (assuming that the value is given in kibibytes)
-        set(BLAZE_CACHE_SIZE "${BLAZE_CACHE_SIZE}UL")
-        target_compile_definitions( Blaze INTERFACE BLAZE_CACHE_SIZE=${BLAZE_CACHE_SIZE} )
-        message("Configuring Cache Size : ${BLAZE_CACHE_SIZE}")
-    elseif(${Blaze_Import_CACHE_SIZE})
-        target_compile_definitions( Blaze INTERFACE BLAZE_CACHE_SIZE=${Blaze_Import_CACHE_SIZE} )
-        message("Configuring Cache Size : ${Blaze_Import_CACHE_SIZE}")
-    else()
-        message("Using default Cache Size.")
-    endif ()
-
-message("-------------------------------------------------------------------")
-
 
 #===============================================================================
 #                           Add subdirectories
 #===============================================================================
 
 # Directory to build the library
+add_subdirectory(blaze-3.8)
 add_subdirectory(libWENOEXT)
 add_subdirectory(utilities)
 add_subdirectory(tests)
 
 
 
-unset(BLAZE_CACHE_SIZE)
+
 
 
