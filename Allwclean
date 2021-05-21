@@ -1,2 +1,6 @@
 #!/bin/bash
-[ -d "build"  ] && rm -r build 
+if [ -d "build"  ]; then
+     rm -r build
+fi
+
+

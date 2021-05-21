@@ -2,9 +2,9 @@ name: OpenFOAM ESI
 
 on:
   push:
-    branches: [ master, dev-v3.x]
+    branches: [ master, hotfix-* ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, development ]
 
 jobs:
   build-OF1912:
