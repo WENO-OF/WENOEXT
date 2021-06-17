@@ -280,14 +280,14 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
     {
                
         PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
-      
+
+        // Have to send tmpList because vectorField cannot use 
+        // overload of operator<<() for reading the list from buffer
+        List<vector> tmpList(localMesh_.C());
         // Distribute the cell centers of the local mesh
         forAll(sendToProcessor_, procI)
-        {
-            // Have to send tmpList because vectorField cannot use 
-            // overload of operator<<() for reading the list from buffer
+        {    
             UOPstream toBuffer(sendToProcessor_[procI], pBufs);
-            List<vector> tmpList(localMesh_.C());
             toBuffer << tmpList;
         }
         
@@ -338,7 +338,10 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                 }
                 else
                     FatalError << "Local point not found in global mesh" <<nl
-                               << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCentersI[cellI])
+                               << "For local cell "<<localCellCentersI[cellI]
+                               << " of processor "<<procI
+                               << " for global mesh of processor "
+                               <<Pstream::myProcNo()<<nl
                                << exit(FatalError);
             }
         }
