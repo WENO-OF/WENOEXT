@@ -230,8 +230,6 @@ Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
     if (Pstream::parRun())
     {
         const vectorField& localCellCenters  = localMesh_.C();
-        
-        const vectorField& globalCellCenters = globalMesh_.C();
 
         meshSearch mSearch(globalMesh_);
 
@@ -250,11 +248,9 @@ Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
             if (globalCellIndex >= 0)
                 localToGlobalCellID[cellI] = globalCellIndex;
             else
-                FatalError << "localToGlobalCellID: Local point not found in global mesh" <<nl
-                           << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCenters[cellI])<<nl
-                           << "For cell location: " << localCellCenters[cellI] << " at processor "<<Pstream::myProcNo() << nl 
-                           << "Found cell index " << globalCellIndex << " at cell location: " << globalCellCenters[globalCellIndex] <<nl 
-                           << exit(FatalError);
+                FatalErrorInFunction << "Could not find local cell in global mesh" <<nl
+                                     << "Local cellID: "<<cellI<<"  position: "<< localCellCenters[cellI] 
+                                     << exit(FatalError);
         }
     }
     // If it is running in serial
@@ -310,8 +306,6 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                 cellCentersList[procI] = localMesh_.C();
             }
         }
-
-        const vectorField& globalCellCenters = globalMesh_.C();
         
         meshSearch mSearch(globalMesh_);
         
@@ -337,7 +331,7 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                     procList_[globalCellIndex] = neighborProcessor_[procI];
                 }
                 else
-                    FatalError << "Local point not found in global mesh" <<nl
+                    FatalErrorInFunction << "Processor local point not found in global mesh" <<nl
                                << "For local cell "<<localCellCentersI[cellI]
                                << " of processor "<<procI
                                << " for global mesh of processor "
