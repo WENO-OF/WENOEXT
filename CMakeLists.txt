@@ -1,12 +1,39 @@
-#===============================================================================
-#                           Main WENOEXT CMake File
-#===============================================================================
+# ===========================================================================
+#       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+#       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+#       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+#       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+#       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+#        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+# ===========================================================================                                                                                                                                                        
+# License
+#    This file is part of WENO Ext.
+#
+#    WENO Ext is free software: you can redistribute it and/or modify it
+#    under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
+#    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#    for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+# Author
+#   Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
+#
+# ===========================================================================
 # CMake File for WENOEXT Project
 # CMake is used instead of OpenFOAM standard wmake as it allows 
 # for some more flexibility between the different OpenFOAM distributions
 # without writing extensive bash scripts to do this 
 # Further, it integrates directly with Catch2 and the Blaze library if
 # needed
+# ===========================================================================
 
 cmake_minimum_required (VERSION 3.10)
 
