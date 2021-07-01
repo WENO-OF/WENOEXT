@@ -331,16 +331,11 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                     procList_[globalCellIndex] = neighborProcessor_[procI];
                 }
                 else
-<<<<<<< HEAD
                     FatalErrorInFunction << "Processor local point not found in global mesh" <<nl
                                << "For local cell "<<localCellCentersI[cellI]
                                << " of processor "<<procI
                                << " for global mesh of processor "
                                <<Pstream::myProcNo()<<nl
-=======
-                    FatalError << "Local point not found in global mesh" <<nl
-                               << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCentersI[cellI])
->>>>>>> parent of 8eeeb91 ([BugFix] Move tmpList in globalFvMesh outside send loop)
                                << exit(FatalError);
             }
         }

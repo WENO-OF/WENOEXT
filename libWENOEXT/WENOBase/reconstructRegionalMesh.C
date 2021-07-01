@@ -37,8 +37,17 @@ Foam::fileName Foam::reconstructRegionalMesh::localPath
     const fileName file
 )
 {
-    // Get total path
-    return localMesh.time().path().path()/fileName("processor" + name(proci))/file;
+    // Fist check if a mesh is present in the time directory
+    fileName pathToTimeDir = localMesh.time().path().path()
+          / fileName("processor" + name(proci) + "/constant/" + localMesh.time().timeName() + "/" + polyMesh::meshSubDir)
+          / file;
+    
+    if (exists(pathToTimeDir))
+        return pathToTimeDir;
+    
+    return  localMesh.time().path().path()
+          / fileName("processor" + name(proci) + "/constant/" + polyMesh::meshSubDir)
+          / file;
 }
 
 
@@ -110,7 +119,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("points")
+                "points"
             )
         );
 
@@ -120,7 +129,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("faces")
+                "faces"
             )
         );
         
@@ -130,7 +139,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("owner")
+                "owner"
             )
         );
 
@@ -140,7 +149,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("neighbour")
+                "neighbour"
             )
         );
         
@@ -178,7 +187,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
          autoPtr<ISstream> isPtr = fileHandler().readStream
          (
             const_cast<polyBoundaryMesh&>(polyMeshRef),
-            localPath(localMesh,processorList[proci],fileName("constant/polyMesh/boundary")),
+            localPath(localMesh,processorList[proci],"boundary"),
             "polyBoundaryMesh"
         );
  
@@ -274,7 +283,7 @@ Foam::boundBox Foam::reconstructRegionalMesh::procBounds
         (
             readField<point>
             (
-                localPath(localMesh,processorList[proci],fileName("constant/"+polyMesh::meshSubDir+"/points"))
+                localPath(localMesh,processorList[proci],"points")
             )
         );
 
