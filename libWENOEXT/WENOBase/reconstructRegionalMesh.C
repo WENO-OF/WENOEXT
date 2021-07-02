@@ -36,15 +36,18 @@ Foam::fileName Foam::reconstructRegionalMesh::localPath
     const label proci,
     const fileName file
 )
-{
+{        
+    // Create start time value
+    const scalar startTimeValue = (localMesh.time().startTime()).value();
+
     // Fist check if a mesh is present in the time directory
     fileName pathToTimeDir = localMesh.time().path().path()
-          / fileName("processor" + name(proci) + "/constant/" + localMesh.time().timeName() + "/" + polyMesh::meshSubDir)
+          / fileName("processor" + name(proci) + "/" + localMesh.time().timeName(startTimeValue) + "/" + polyMesh::meshSubDir)
           / file;
-    
+
     if (exists(pathToTimeDir))
         return pathToTimeDir;
-    
+
     return  localMesh.time().path().path()
           / fileName("processor" + name(proci) + "/constant/" + polyMesh::meshSubDir)
           / file;
