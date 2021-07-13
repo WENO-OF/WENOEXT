@@ -3,6 +3,7 @@ DOCKER_TAG_OF_7=wenotest:7
 DOCKER_TAG_OF_8=wenotest:8
 DOCKER_TAG_OF_v1912=wenotest:v1912
 DOCKER_TAG_OF_v2006=openfoam:v2006weno
+DOCKER_TAG_OF_v2012=openfoam:v2012weno
 
 all: runTestsOF5 runTestsOF7 runTestsOF8 runTestsOFv1912 runTestsOFv2006
 
@@ -40,6 +41,12 @@ runTestsOFv2006:
 		--rm \
 		-t ${DOCKER_TAG_OF_v2006} \
 		-f CI/Dockerfile.OFv2006 \
+		.
+runTestsOFv2012:
+	docker build \
+		--rm \
+		-t ${DOCKER_TAG_OF_v2012} \
+		-f CI/Dockerfile.OFv2012 \
 		.
 
 removeStoppedContainer:
