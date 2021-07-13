@@ -535,17 +535,17 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
                     // is condition of new pointer better
                     if (svdCurrPtr->nZeros() < svdBestCondPtr->nZeros())
                     {
-                        svdBestCondPtr = svdCurrPtr;
+                        svdBestCondPtr = std::move(svdCurrPtr);
                     }
                     else if (svdCurrPtr->nZeros() == svdBestCondPtr->nZeros())
                     {
                         if (cond(svdCurrPtr->S()) < cond(svdBestCondPtr->S()))
-                            svdBestCondPtr = svdCurrPtr;
+                            svdBestCondPtr = std::move(svdCurrPtr);
                     }
                 }
                 else
                 {
-                    svdBestCondPtr = svdCurrPtr;
+                    svdBestCondPtr = std::move(svdCurrPtr);
                 }
             }
         
@@ -553,7 +553,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
     }
     if (svdBestCondPtr.valid())
     {
-        svdCurrPtr = svdBestCondPtr;
+        svdCurrPtr = std::move(svdBestCondPtr);
     }    
     else
     {

@@ -1,0 +1,74 @@
+# --------------------------------------------------------------------------- #
+# Docker Instructions for OpenFOAM v2012                                      #
+# --------------------------------------------------------------------------- #
+# Author: Jan Gartner                                                         #
+#                                                                             # 
+# Installs OpenFOAM v2012 in Ubuntu 18.04 LTS                                 #
+# --------------------------------------------------------------------------- #
+
+FROM ubuntu:18.04
+
+
+# Install all required packages 
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+ && apt-get update \
+ && apt-get install -y \
+        build-essential autoconf autotools-dev cmake gawk gnuplot \
+        flex libfl-dev libreadline-dev zlib1g-dev openmpi-bin libopenmpi-dev mpi-default-bin mpi-default-dev \
+        libgmp-dev libmpfr-dev libmpc-dev bison libncurses-dev libxt-dev \
+        libscotch-dev libptscotch-dev libfftw3-dev libboost-system-dev libboost-thread-dev libcgal-dev \
+        vim \
+        git \
+&& apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+
+
+# Adapt these settings for other ESI versions 
+ENV FOAM_INST_DIR=/home/gitlab/OpenFOAM
+ENV VERSION=v2012
+ENV foamDotFile="$FOAM_INST_DIR/OpenFOAM-${VERSION}/etc/bashrc"  
+ENV numLibs=/home/gitlab/NumericalLibraries
+
+
+# This has to be done as RUN executes /bin/sh and the 
+# source of the OpenFOAM bashrc requires /bin/bash 
+RUN rm -f /bin/sh && ln -sT /bin/bash /bin/sh 
+
+
+# Do not overwrite/use WM_PROJECT_USER_DIR as it is set by the .bashrc
+# of OpenFOAM
+ENV PROJECT_DIR=gitlab
+
+
+# Create a gitlab user and group
+# This is required for GitLab CI
+RUN groupadd -g 999 gitlab \
+ && useradd -m -d /home/gitlab -r -u 999 -g gitlab gitlab
+USER gitlab
+
+# ----------------------------
+# Install OpenFOAM  
+# ---------------------------
+
+RUN mkdir -p ${FOAM_INST_DIR}
+
+WORKDIR "${FOAM_INST_DIR}"
+RUN git clone https://develop.openfoam.com/Development/openfoam.git OpenFOAM-${VERSION}\
+    && git clone https://develop.openfoam.com/Development/ThirdParty-common.git ThirdParty-${VERSION}
+
+
+RUN . $foamDotFile \
+ && cd ${WM_PROJECT_DIR}\
+ && git checkout OpenFOAM-${VERSION} \
+ && . $foamDotFile \
+ && cd ${WM_THIRD_PARTY_DIR} \
+ && git checkout ${VERSION}
+
+WORKDIR "${FOAM_INST_DIR}/OpenFOAM-${VERSION}"
+
+
+RUN . $foamDotFile \
+	&& ./Allwmake -j -k -s -l \
+	&& ./Allwmake -l 
