@@ -68,6 +68,9 @@ class globalfvMesh
         //  e.g.: that have this processor as neighbour
         const labelList sendToProcessor_;
     
+        //- Pointer to the local mesh
+        autoPtr<fvMesh> localMeshPtr_;
+
         //- Pointer to the global mesh
         autoPtr<fvMesh> globalMeshPtr_;
         
@@ -91,6 +94,8 @@ class globalfvMesh
         labelList neighborProcessorList(const fvMesh& mesh);
         
         labelList sendToProcessorList(const fvMesh& mesh);
+
+        autoPtr<fvMesh> createLocalMesh(const fvMesh& mesh);
         
         autoPtr<fvMesh> createGlobalMesh(const fvMesh& mesh);
         

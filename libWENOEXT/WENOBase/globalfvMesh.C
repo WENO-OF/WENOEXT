@@ -37,11 +37,15 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     neighborProcessor_(neighborProcessorList(mesh)),
     sendToProcessor_(sendToProcessorList(mesh)),
     globalMeshPtr_(createGlobalMesh(mesh)),
+    localMeshPtr_(createLocalMesh(mesh)),
     globalMesh_
     (   
         globalMeshPtr_.valid() ? globalMeshPtr_() : mesh
     ),
-    localMesh_(mesh),
+    localMesh_
+    (   
+        localMeshPtr_.valid() ? localMeshPtr_() : mesh
+    ),
     procList_(),
     localToGlobalCellID_(localToGlobalCellIDList()),
     globalToLocalCellID_(globalToLocalCellIDList())
@@ -220,18 +224,37 @@ Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createGlobalMesh(const fvM
     }
     return autoPtr<fvMesh>(nullptr);
 }
+
+Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createLocalMesh(const fvMesh& mesh)
+{
+    if (mesh.topoChanging())
+        FatalErrorInFunction << "Mesh cannot change topology if used with WENO scheme"
+                             << exit(FatalError);
+    if (mesh.moving())
+    {
+        // If the mesh is moving it needs to be constructed from the same time field the 
+        // global mesh is constructed from. 
+        if (Pstream::parRun())
+        {
+            labelList list(1);
+            list[0] = Pstream::myProcNo();
+            return reconstructRegionalMesh::reconstruct(list,mesh);
+        }
+    }
+
+    return autoPtr<fvMesh>(nullptr);
+}
+
+
         
 Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
 {
-
     // Fill cellID list
     labelList localToGlobalCellID(localMesh_.nCells(),-1);
        
     if (Pstream::parRun())
     {
         const vectorField& localCellCenters  = localMesh_.C();
-        
-        const vectorField& globalCellCenters = globalMesh_.C();
 
         meshSearch mSearch(globalMesh_);
 
@@ -250,11 +273,14 @@ Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
             if (globalCellIndex >= 0)
                 localToGlobalCellID[cellI] = globalCellIndex;
             else
-                FatalError << "localToGlobalCellID: Local point not found in global mesh" <<nl
-                           << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCenters[cellI])<<nl
-                           << "For cell location: " << localCellCenters[cellI] << " at processor "<<Pstream::myProcNo() << nl 
-                           << "Found cell index " << globalCellIndex << " at cell location: " << globalCellCenters[globalCellIndex] <<nl 
-                           << exit(FatalError);
+            {
+                globalMesh_.write();
+                FatalErrorInFunction << "Could not find local cell in global mesh" <<nl
+                                     << "Local cellID: "<<cellI<<"  position: "<< localCellCenters[cellI] << nl
+                                     << "Global cell Index: "<<globalCellIndex<<nl
+                                     << "Writing out global mesh" 
+                                     << exit(FatalError);
+            }
         }
     }
     // If it is running in serial
@@ -310,8 +336,6 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                 cellCentersList[procI] = localMesh_.C();
             }
         }
-
-        const vectorField& globalCellCenters = globalMesh_.C();
         
         meshSearch mSearch(globalMesh_);
         
@@ -337,8 +361,11 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                     procList_[globalCellIndex] = neighborProcessor_[procI];
                 }
                 else
-                    FatalError << "Local point not found in global mesh" <<nl
-                               << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCentersI[cellI])
+                    FatalErrorInFunction << "Processor local point not found in global mesh" <<nl
+                               << "For local cell "<<localCellCentersI[cellI]
+                               << " of processor "<<procI
+                               << " for global mesh of processor "
+                               <<Pstream::myProcNo()<<nl
                                << exit(FatalError);
             }
         }
