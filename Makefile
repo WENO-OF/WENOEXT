@@ -5,7 +5,7 @@ DOCKER_TAG_OF_v1912=wenotest:v1912
 DOCKER_TAG_OF_v2006=openfoam:v2006weno
 DOCKER_TAG_OF_v2012=openfoam:v2012weno
 
-all: runTestsOF5 runTestsOF7 runTestsOF8 runTestsOFv1912 runTestsOFv2006
+all: runTestsOF5 runTestsOF7 runTestsOF8 runTestsOFv1912 runTestsOFv2006 runTestsOFv2012
 
 
 runTestsOF5:
@@ -53,4 +53,4 @@ removeStoppedContainer:
 	docker container prune -f
 
 clean: removeStoppedContainer
-	docker rmi ${DOCKER_TAG_OF_5} ${DOCKER_TAG_OF_7} $ ${DOCKER_TAG_OF_8}
+	docker rmi ${DOCKER_TAG_OF_5} ${DOCKER_TAG_OF_7} $ ${DOCKER_TAG_OF_8} ${DOCKER_TAG_OF_v1912} ${DOCKER_TAG_OF_v2006} ${DOCKER_TAG_OF_v2012}
