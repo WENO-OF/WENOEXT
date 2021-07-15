@@ -426,7 +426,11 @@ void Foam::reconstructRegionalMesh::fileHandlerControl::setUncollated()
     // For the generation of the partial mesh the uncollated file opteration 
     // has to be used, as otherwise the MPI gets stuck calling an allGather()
     fileOperation::fileHandlerPtr_ = fileOperation::New("uncollated",false);
-    fileHandler(fileOperation::fileHandlerPtr_);
+    #if (OF_FORK_VERSION >= 2006 )
+        fileHandler(std::move(fileOperation::fileHandlerPtr_));
+    #else
+        fileHandler(fileOperation::fileHandlerPtr_);
+    #endif
 }
 
 
@@ -434,7 +438,11 @@ void Foam::reconstructRegionalMesh::fileHandlerControl::reset()
 {
     // Reset file handler to default
     fileOperation::fileHandlerPtr_ = fileOperation::New(oldFileHandlerType,false);
-    fileHandler(fileOperation::fileHandlerPtr_);
+    #if (OF_FORK_VERSION >= 2006 )
+        fileHandler(std::move(fileOperation::fileHandlerPtr_));
+    #else
+        fileHandler(fileOperation::fileHandlerPtr_);
+    #endif
 }
 
 Foam::reconstructRegionalMesh::fileHandlerControl::~fileHandlerControl()

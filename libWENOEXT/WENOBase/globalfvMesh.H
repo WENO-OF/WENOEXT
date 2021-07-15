@@ -67,13 +67,13 @@ class globalfvMesh
         //- List of processors that require my cells 
         //  e.g.: that have this processor as neighbour
         const labelList sendToProcessor_;
-    
-        //- Pointer to the local mesh
-        autoPtr<fvMesh> localMeshPtr_;
 
         //- Pointer to the global mesh
         autoPtr<fvMesh> globalMeshPtr_;
-        
+
+        //- Pointer to the local mesh
+        autoPtr<fvMesh> localMeshPtr_;
+
         const fvMesh& globalMesh_;
         
         const fvMesh& localMesh_;
