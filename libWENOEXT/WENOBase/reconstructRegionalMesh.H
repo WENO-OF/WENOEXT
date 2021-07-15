@@ -51,6 +51,24 @@ namespace Foam
 
 namespace reconstructRegionalMesh
 {
+    // Class to set the correct fileHandler
+    class fileHandlerControl
+    {
+        private:
+            word oldFileHandlerType;
+
+        public:
+
+            fileHandlerControl() = default;
+            
+            ~fileHandlerControl();
+            
+            // Set the file hander to uncollated
+            void setUncollated();
+
+            // Reset the file handler to the old type
+            void reset();
+    };
 
     //- Reconsturct mesh depending on processor list
     autoPtr<fvMesh> reconstruct
