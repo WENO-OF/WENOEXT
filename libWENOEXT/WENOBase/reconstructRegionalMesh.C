@@ -28,7 +28,7 @@ Author
 \*---------------------------------------------------------------------------*/
 
 #include "reconstructRegionalMesh.H"
-
+#include "masterUncollatedFileOperation.H"
 
 Foam::fileName Foam::reconstructRegionalMesh::localPath
 (
@@ -60,6 +60,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
     const fvMesh& localMesh
 )
 {
+    fileHandlerControl myFileHandler;
+    myFileHandler.setUncollated();
+
+
     word regionName = polyMesh::defaultRegion;
     word regionDir = word::null;
 
@@ -85,7 +89,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 IOobject
                 (
                     regionName,
-                    localMesh.time().timeName(),
+                    localMesh.time().constant(),
                     localMesh.time(),
                     IOobject::NO_READ,
                     IOobject::NO_WRITE,
@@ -155,14 +159,13 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 "neighbour"
             )
         );
-        
-            
+
         fvMesh meshToAdd
         (
             IOobject
             (
                 regionName,
-                localMesh.time().timeName(),
+                localMesh.time().constant(),
                 localMesh.time(),
                 IOobject::NO_READ,
                 IOobject::NO_WRITE,
@@ -187,31 +190,27 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         
         // Read polyPatchList
         const polyBoundaryMesh& polyMeshRef = meshToAdd.boundaryMesh();
-         autoPtr<ISstream> isPtr = fileHandler().readStream
-         (
-            const_cast<polyBoundaryMesh&>(polyMeshRef),
-            localPath(localMesh,processorList[proci],"boundary"),
-            "polyBoundaryMesh"
-        );
- 
-        ISstream& is = isPtr();
- 
-         PtrList<entry> patchEntries(is);
+
+        IFstream is(localPath(localMesh,processorList[proci],"boundary"));
+        readHeader(is);
+        PtrList<entry> patchEntries(is);
          
-         List<polyPatch*> patches(patchEntries.size());
+        List<polyPatch*> patches(patchEntries.size());
  
-         forAll(patches, patchi)
-         {
-             patches[patchi] = 
-                (polyPatch::New
+        forAll(patches, patchi)
+        {
+            patches[patchi] = 
                 (
-                   "patch",
-                    patchEntries[patchi].keyword(),
-                    patchEntries[patchi].dict(),
-                    patchi,
-                    polyMeshRef
-                )).ptr();
-         }
+                    polyPatch::New
+                    (
+                        "patch",
+                        patchEntries[patchi].keyword(),
+                        patchEntries[patchi].dict(),
+                        patchi,
+                        polyMeshRef
+                    )
+                ).ptr();
+        }
 
         meshToAdd.addPatches(patches,false);
 
@@ -237,7 +236,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         );
         
     }
-    
+
     return autoPtr<fvMesh>(masterMesh);
 }
 
@@ -374,7 +373,6 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
              << " of file " << is.name()    
              << exit(FatalIOError);
      }
-
 }
 
 
@@ -415,4 +413,32 @@ Foam::List<Foam::face> Foam::reconstructRegionalMesh::readFaceList
     }
     else
         return List<face>(is);
+}
+
+void Foam::reconstructRegionalMesh::fileHandlerControl::setUncollated()
+{
+    // Store old file handler type
+    if (isA<fileOperations::masterUncollatedFileOperation>(fileHandler()))
+        oldFileHandlerType = "collated";
+    else
+        oldFileHandlerType = "uncollated";
+
+    // For the generation of the partial mesh the uncollated file opteration 
+    // has to be used, as otherwise the MPI gets stuck calling an allGather()
+    fileOperation::fileHandlerPtr_ = fileOperation::New("uncollated",false);
+    fileHandler(fileOperation::fileHandlerPtr_);
+}
+
+
+void Foam::reconstructRegionalMesh::fileHandlerControl::reset()
+{
+    // Reset file handler to default
+    fileOperation::fileHandlerPtr_ = fileOperation::New(oldFileHandlerType,false);
+    fileHandler(fileOperation::fileHandlerPtr_);
+}
+
+Foam::reconstructRegionalMesh::fileHandlerControl::~fileHandlerControl()
+{
+    // call reset before destruction
+    reset();
 }
