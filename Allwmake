@@ -1,7 +1,27 @@
 #!/bin/bash
 
+DEFAULT_BUILD="ninja"
+
 mkdir -p build
 cd build
-cmake ../
-cmake --build .
-cmake --build . --target install 
+# Check if the build tool ninja is installed
+if ! command -v $DEFAULT_BUILD &> /dev/null
+then
+    echo "Build tool $DEFAULT_BUILD could not be found"
+    echo "Reverting back to make"
+    echo "$DEFAULT_BUILD can be installed with: "
+    echo -e "\tsudo apt update"
+    echo -e "\tsudo apt install ninja-build"
+    cmake ../ "$@"
+    cmake --build .
+    cmake --build . --target install 
+else
+    echo "Build tool $DEFAULT_BUILD was found"
+    echo "Using $DEFAULT_BUILD to build WENOEXT library in parallel"
+    cmake -GNinja ../ "$@"
+    cmake --build .
+    cmake --build . --target install 
+fi
+
+
+

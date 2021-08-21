@@ -67,22 +67,22 @@ endif()
 
 # Get current git commit
 execute_process(
-  COMMAND  git rev-parse --abbrev-ref HEAD
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE GIT_BRANCH
-  OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND  git rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 execute_process(
-  COMMAND git log -1 --format=%h
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  OUTPUT_VARIABLE GIT_COMMIT_HASH
-  OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND git log -1 --format=%h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 configure_file(
-  ${CMAKE_SOURCE_DIR}/versionRules/version.h.in
-  ${CMAKE_BINARY_DIR}/generated/version.h
+    ${CMAKE_SOURCE_DIR}/versionRules/version.h.in
+    ${CMAKE_BINARY_DIR}/generated/version.h
 )
 
 include_directories(${CMAKE_BINARY_DIR}/generated)
@@ -119,8 +119,8 @@ endif()
 
 
 configure_file(
-  ${CMAKE_SOURCE_DIR}/versionRules/codeRules.H.in
-  ${CMAKE_BINARY_DIR}/generated/codeRules.H
+    ${CMAKE_SOURCE_DIR}/versionRules/codeRules.H.in
+    ${CMAKE_BINARY_DIR}/generated/codeRules.H
 )
 
 
@@ -140,7 +140,11 @@ endif()
 
 
 # Set c++ flags
-set(CMAKE_CXX_FLAGS "-m64 -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -O3 -ftemplate-depth-100 -Wno-deprecated")
+add_compile_options(
+    -m64 
+    -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated
+    -ftemplate-depth-100
+    )
 
 set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
 
@@ -152,12 +156,33 @@ add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LAB
 #                           Add subdirectories
 #===============================================================================
 
+
+
 # Directory to build the library
 add_subdirectory(blaze-3.8)
 add_subdirectory(libWENOEXT)
 add_subdirectory(utilities)
-add_subdirectory(tests)
 
+message("\n-------------------------------------------------------------------") 
+message("\tBuild State")
+message("-------------------------------------------------------------------")
+if (CMAKE_BUILD_TYPE)
+    message("Built state is: ${CMAKE_BUILD_TYPE}")
+else()
+    message("Built state is: unspecified")
+endif()
+# Build only tests if activated
+# As strequal is a case sensitive comparison and the cmake build type can be 
+# specified case insensitive it has to be first converted
+string(TOUPPER "${CMAKE_BUILD_TYPE}" build_type_upper)
+if (build_type_upper STREQUAL "RELEASE")
+    message("Tests are NOT build for the release type")
+else()
+    message("Building tests")
+    message("This can be deactivated by using CMAKE_BUILD_TYPE=Release")
+    add_subdirectory(tests)
+endif()
+message("-------------------------------------------------------------------\n")
 
 
 
