@@ -69,6 +69,14 @@ target_link_libraries(WENOEXT PUBLIC
 )
 
 
+target_compile_definitions(WENOEXT PRIVATE
+    $<$<CONFIG:Debug>:
+        FULLDEBUG
+    >
+)
+
+
+
 install(
     TARGETS WENOEXT 
     DESTINATION $ENV{FOAM_USER_LIBBIN}
