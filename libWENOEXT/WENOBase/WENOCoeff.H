@@ -31,6 +31,9 @@ Description
 SourceFiles
     WENOCoeff.C
 
+References
+    [1] T. Pringuey, “Large Eddy Simulation of Primary Breakup,” 2012.
+
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
     Tobias Martin, <tobimartin2@googlemail.com>
@@ -67,7 +70,7 @@ protected:
         using scalarSquareMatrix = SquareMatrix<scalar>;
         
         //- Typedef for coefficient type with blaze object
-        using coeffType = blaze::DynamicVector<Type>;
+        using coeffType = blaze::DynamicMatrix<scalar,blaze::columnMajor>;
 
 
     // Private Data
@@ -98,8 +101,8 @@ protected:
         //  Has to be mutable so getWENOPol is const 
         mutable List<List<Type> > haloData_;
 
-        //- Storage for bJ vector needed in calcCoeff
-        mutable blaze::DynamicVector<Type> bJ_;
+        //- Storage for bJ matrix needed in calcCoeff
+        mutable blaze::DynamicMatrix<scalar,blaze::columnMajor> bJ_;
 
     // Private Member Functions
 

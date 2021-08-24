@@ -34,11 +34,6 @@ Author
 #include "DynamicField.H"
 #include "processorFvPatch.H"
 
-
-// Generate macro for forAll expansion of unsigned integers
-#define forAllU(list,i) \
-    for (unsigned int i=0; i<(list).size();i++)
-
 // * * * * * * * * * * * * * *  Static Variables * * * * * * * * * * * * * * //
 template<class Type>
 bool Foam::WENOCoeff<Type>::printWENODict_=false;
@@ -73,8 +68,6 @@ Foam::WENOCoeff<Type>::WENOCoeff
     ),
     nDvt_(WENOBase_.degreesOfFreedom())
 {
-    bJ_.reserve(100);
-    
     if (!printWENODict_)
     {
         // Read expert factors
@@ -108,7 +101,6 @@ Foam::WENOCoeff<Type>::WENOCoeff
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-
 template<class Type>
 void Foam::WENOCoeff<Type>::calcCoeff
 (
@@ -119,7 +111,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
 ) const
 {
     // Set coefficient size to number of stencils
-    coeffsList.setSize(stencilList.size(),coeffType(1,pTraits<Type>::zero));
+    coeffsList.setSize(stencilList.size());
     
     label coeffIndex = 0;
     
@@ -130,29 +122,36 @@ void Foam::WENOCoeff<Type>::calcCoeff
         {
             const List<label>& stencilsIDI =
                 WENOBase_.stencilsID()[cellI][stencilI];
-            const blaze::DynamicMatrix<double>& A =
+            const auto& A =
                 WENOBase_.LSmatrix()[cellI][stencilI]();
             const List<label>& cellToProcMapI =
                 WENOBase_.cellToProcMap()[cellI][stencilI];
 
-            bJ_.resize(A.columns());
+            // Storage for bJ matrix needed in calcCoeff
+            // Note: resize also pre reserves the space by default, see blaze wiki
+            const label nComp = pTraits<Type>::nComponents;
+            bJ_.resize(A.columns(),nComp);
 
             // Calculate degrees of freedom of stencil as a matrix vector product
             // First line is always constraint line
 
             for (label j = 1; j < stencilsIDI.size(); j++)
             {
-
                 // Distinguish between local and halo cells
                 if (cellToProcMapI[j] == int(WENOBase::Cell::local))
                 {
-                    bJ_[j-1] = vf[stencilsIDI[j]] - vf[cellI];
+                    // Loop over the components
+                    for (label compI = 0; compI < nComp; compI++)
+                        bJ_(j-1,compI) = component(vf[stencilsIDI[j]],compI) 
+                                        - component(vf[cellI],compI);
                 }
                 else if(cellToProcMapI[j] != int(WENOBase::Cell::deleted))
                 {
-                    bJ_[j-1] =
-                        haloData_[cellToProcMapI[j]][stencilsIDI[j]]
-                      - vf[cellI];
+                    // Loop over the components
+                    for (label compI = 0; compI < nComp; compI++)
+                        bJ_(j-1,compI) =
+                            component(haloData_[cellToProcMapI[j]][stencilsIDI[j]],compI)
+                          - component(vf[cellI],compI);
                 }
             }
             
@@ -163,6 +162,63 @@ void Foam::WENOCoeff<Type>::calcCoeff
     }
     // Correct for deleted stencils
     coeffsList.setSize(coeffIndex);
+}
+
+
+template<class Type>
+void Foam::WENOCoeff<Type>::calcWeight
+(
+    Field<Type>& coeffsWeightedI,
+    const label cellI,
+    const GeometricField<Type, fvPatchField, volMesh>& vf,
+    const DynamicList<coeffType>& coeffsList
+) const 
+{
+    const label nComp = pTraits<Type>::nComponents;
+
+    // Get smoothness indicator matrix B
+    const auto& B = WENOBase_.B()[cellI];
+
+    scalar gammaSum[nComp] = {0.0};
+    scalar gamma[nComp] = {0.0};
+
+    forAll(coeffsList, stencilI)
+    {
+        const auto& coeffs = coeffsList[stencilI];
+        
+        // First multiply B with coefficients
+        // See Eq. (6.37)  in [1]
+        auto sumB =  B*coeffs;
+        for (label compI=0; compI < nComp; compI++)
+        {
+            // Get reference to column
+            const auto colCoeff = column(coeffs,compI);
+            const auto colSumB = column(sumB,compI);
+            const scalar smoothInd = trans(colCoeff)*colSumB;
+            
+            if (stencilI == 0)
+            {
+                gamma[compI] = dm_/(intPow(epsilon_ + smoothInd,p_));
+            }
+            else
+            {
+                gamma[compI] = 1.0/(intPow(epsilon_ + smoothInd,p_));
+            }
+            
+            gammaSum[compI] += gamma[compI];
+         
+            forAll(coeffsWeightedI, coeffI)
+            {
+                setComponent(coeffsWeightedI[coeffI],compI) += gamma[compI] * colCoeff[coeffI];
+            }
+        }
+    }
+
+    forAll(coeffsWeightedI, coeffI)
+    {
+        for (label compI = 0; compI < nComp; compI++)
+            setComponent(coeffsWeightedI[coeffI],compI) /= gammaSum[compI];
+    }
 }
 
 
@@ -244,7 +300,8 @@ Foam::WENOCoeff<Type>::getWENOPol
     
     Field<Field<Type> >& coeffsWeighted = coeffsWeightedTmp.ref();
     
-    DynamicList<coeffType> coeffsI(10,coeffType(1,pTraits<Type>::zero));
+    // Construct list with default 10 elements
+    DynamicList<coeffType> coeffsI(10);
 
 
     for (label cellI = 0; cellI < mesh_.nCells(); cellI++)
@@ -276,108 +333,6 @@ Foam::WENOCoeff<Type>::getWENOPol
     }
 
     return coeffsWeightedTmp;
-}
-
-
-// Specialisation for scalar
-template<>
-inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
-(
-    Field<scalar>& coeffsWeightedI,
-    const label cellI,
-    const GeometricField<scalar, fvPatchField, volMesh>& vf,
-    const DynamicList<coeffType>& coeffsList
-) const
-{
-    scalar gamma = 0.0;
-    scalar gammaSum = 0.0;
-
-    forAll(coeffsList, stencilI)
-    {
-        const auto& coeffs = coeffsList[stencilI];
-        
-        const scalar smoothInd = trans(coeffs) * (WENOBase_.B()[cellI]*coeffs);
-
-        // Calculate gamma for central and sectorial stencils
-
-        if (stencilI == 0)
-        {
-            gamma = dm_/(intPow(epsilon_ + smoothInd,p_));
-        }
-        else
-        {
-            gamma = 1.0/(intPow(epsilon_ + smoothInd,p_));
-        }
-
-        gammaSum += gamma;
-
-        forAllU(coeffs, coeffI)
-        {
-            coeffsWeightedI[coeffI] += coeffs[coeffI]*gamma;
-        }
-    }
-
-    forAll(coeffsWeightedI, coeffI)
-    {
-        coeffsWeightedI[coeffI] /= gammaSum;
-    }       
-}
-
-
-
-template<class Type>
-void Foam::WENOCoeff<Type>::calcWeight
-(
-    Field<Type>& coeffsWeightedI,
-    const label cellI,
-    const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const DynamicList<coeffType>& coeffsList
-) const 
-{
-    scalar gamma = 0.0;
-
-    for (label compI = 0; compI < vf[0].size(); compI++)
-    {
-        scalar gammaSum = 0.0;
-
-        forAll(coeffsList, stencilI)
-        {
-            const auto& coeffs = coeffsList[stencilI];
-
-            // Get smoothness indicator
-
-            scalar smoothInd = 0.0;
-            auto sumB =  WENOBase_.B()[cellI] * coeffs;
-            forAllU(coeffs, coeffP)
-            {
-                smoothInd += coeffs[coeffP][compI]*sumB[coeffP][compI];
-            }
-
-            // Calculate gamma for central and sectorial stencils
-
-            if (stencilI == 0)
-            {
-                gamma = dm_/(intPow(epsilon_ + smoothInd,p_));
-            }
-            else
-            {
-                gamma = 1.0/(intPow(epsilon_ + smoothInd,p_));
-            }
-
-            gammaSum += gamma;
-
-            forAllU(coeffs, coeffI)
-            {
-                coeffsWeightedI[coeffI][compI] += coeffs[coeffI][compI]*gamma;
-            }
-        }
-
-        forAll(coeffsWeightedI, coeffI)
-        {
-            coeffsWeightedI[coeffI][compI] /= gammaSum;
-        }
-        
-    }
 }
 
 
