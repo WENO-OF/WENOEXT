@@ -170,7 +170,6 @@ void Foam::WENOCoeff<Type>::calcWeight
 (
     Field<Type>& coeffsWeightedI,
     const label cellI,
-    const GeometricField<Type, fvPatchField, volMesh>& vf,
     const DynamicList<coeffType>& coeffsList
 ) const 
 {
@@ -232,6 +231,9 @@ void Foam::WENOCoeff<Type>::collectData
     receiveHaloData_.setSize(WENOBase_.receiveHaloSize().size());
     sendHaloData_.setSize(WENOBase_.sendHaloCellIDList().size());
     
+    
+    outstandingRecvRequest_.setSize(WENOBase_.receiveHaloSize().size(),-1);
+    
     // This represents initEvaluate of processorFvPatchField.C
     forAll(receiveHaloData_, procI)
     {
@@ -241,11 +243,9 @@ void Foam::WENOCoeff<Type>::collectData
         const label sendProcID = WENOBase_.sendProcList()[procI];
         const label receiveProcID = WENOBase_.receiveProcList()[procI];
         sendHaloData_[procI].setSize(sendHaloCellIDs.size());
+        
         if (sendProcID == -1 && receiveProcID == -1)
             continue;
-        
-        if (sendProcID != receiveProcID)
-            WarningInFunction << "Send and receive processor are not identical"<<endl;
 
         // Fill halo data to send to other processors
         forAll(sendHaloData_[procI], cellI)
@@ -256,7 +256,7 @@ void Foam::WENOCoeff<Type>::collectData
         
         if (receiveProcID != -1)
         {
-            outstandingRecvRequest_ = UPstream::nRequests();
+            outstandingRecvRequest_[procI] = UPstream::nRequests();
             // UIPstream from processorFvPatchField.C
             UIPstream::read
             (
@@ -271,7 +271,6 @@ void Foam::WENOCoeff<Type>::collectData
         
         if (sendProcID != -1)
         {
-            outstandingSendRequest_ = UPstream::nRequests();
             // UIPstream from processorFvPatchField.C
             UOPstream::write
             (
@@ -286,17 +285,18 @@ void Foam::WENOCoeff<Type>::collectData
             
     }
         
-        
-    if
-    (
-        outstandingRecvRequest_ >= 0
-     && outstandingRecvRequest_ < Pstream::nRequests()
-    )
+    forAll(outstandingRecvRequest_,procI)
     {
-        UPstream::waitRequest(outstandingRecvRequest_);
+        if
+        (
+            outstandingRecvRequest_[procI] >= 0
+         && outstandingRecvRequest_[procI] < Pstream::nRequests()
+        )
+        {
+            UPstream::waitRequest(outstandingRecvRequest_[procI]);
+        }
+        outstandingRecvRequest_[procI] = -1;
     }
-    outstandingSendRequest_ = -1;
-    outstandingRecvRequest_ = -1;
 }
 
 
@@ -309,7 +309,6 @@ Foam::WENOCoeff<Type>::getWENOPol
 {
     if (Pstream::parRun())
         collectData(vf);
-
 
     // Runtime operations
     
@@ -351,7 +350,6 @@ Foam::WENOCoeff<Type>::getWENOPol
         (
             coeffsWeighted[cellI],
             cellI,
-            vf,
             coeffsI
         );
     }

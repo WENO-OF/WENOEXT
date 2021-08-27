@@ -107,12 +107,9 @@ protected:
 
         //- Storage for bJ matrix needed in calcCoeff
         mutable blaze::DynamicMatrix<scalar,blaze::columnMajor> bJ_;
-        
-        //- Outstanding request
-        mutable label outstandingSendRequest_;
 
         //- Outstanding request
-        mutable label outstandingRecvRequest_;
+        mutable labelList outstandingRecvRequest_;
 
     // Private Member Functions
 
@@ -137,13 +134,11 @@ protected:
             DynamicList<coeffType>& coeffsList
         ) const;
 
-
         //- Get weighted combination for any other type
         virtual void calcWeight
         (
             Field<Type>& coeffsWeightedI,
             const label cellI,
-            const GeometricField<Type, fvPatchField, volMesh>& vf,
             const DynamicList<coeffType>& coeffsI
         ) const;
 
