@@ -13,13 +13,11 @@ then
     echo -e "\tsudo apt update"
     echo -e "\tsudo apt install ninja-build"
     cmake ../ "$@"
-    cmake --build .
     cmake --build . --target install 
 else
     echo "Build tool $DEFAULT_BUILD was found"
     echo "Using $DEFAULT_BUILD to build WENOEXT library in parallel"
     cmake -GNinja ../ "$@"
-    cmake --build .
     cmake --build . --target install 
 fi
 
