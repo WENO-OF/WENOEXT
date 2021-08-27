@@ -99,7 +99,11 @@ protected:
 
         //- Lists of field values of halo cells
         //  Has to be mutable so getWENOPol is const 
-        mutable List<List<Type> > haloData_;
+        mutable List<List<Type> > receiveHaloData_;
+
+        //- Lists of field values of halo cells
+        //  Has to be mutable so getWENOPol is const 
+        mutable List<List<Type> > sendHaloData_;
 
         //- Storage for bJ matrix needed in calcCoeff
         mutable blaze::DynamicMatrix<scalar,blaze::columnMajor> bJ_;

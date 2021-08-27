@@ -150,7 +150,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
                     // Loop over the components
                     for (label compI = 0; compI < nComp; compI++)
                         bJ_(j-1,compI) =
-                            component(haloData_[cellToProcMapI[j]][stencilsIDI[j]],compI)
+                            component(receiveHaloData_[cellToProcMapI[j]][stencilsIDI[j]],compI)
                           - component(vf[cellI],compI);
                 }
             }
@@ -228,33 +228,29 @@ void Foam::WENOCoeff<Type>::collectData
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
-    List<List<Type> > sendHaloCells(WENOBase_.sendHaloCellIDList().size());
     // Distribute data to neighbour processors
-    haloData_.setSize(WENOBase_.receiveHaloSize().size());
+    receiveHaloData_.setSize(WENOBase_.receiveHaloSize().size());
+    sendHaloData_.setSize(WENOBase_.sendHaloCellIDList().size());
     
     // This represents initEvaluate of processorFvPatchField.C
-    forAll(sendHaloCells, procI)
+    forAll(receiveHaloData_, procI)
     {
-        haloData_[procI].setSize(WENOBase_.receiveHaloSize()[procI]);
-        
+        receiveHaloData_[procI].setSize(WENOBase_.receiveHaloSize()[procI]);
         // Make const references for easier access
         const labelList& sendHaloCellIDs = WENOBase_.sendHaloCellIDList()[procI];
         const label sendProcID = WENOBase_.sendProcList()[procI];
         const label receiveProcID = WENOBase_.receiveProcList()[procI];
-        
+        sendHaloData_[procI].setSize(sendHaloCellIDs.size());
         if (sendProcID == -1 && receiveProcID == -1)
             continue;
         
         if (sendProcID != receiveProcID)
             WarningInFunction << "Send and receive processor are not identical"<<endl;
-        
-        // collect all cells to send to other processors
-        sendHaloCells[procI].setSize(sendHaloCellIDs.size());
 
         // Fill halo data to send to other processors
-        forAll(sendHaloCells[procI], cellI)
+        forAll(sendHaloData_[procI], cellI)
         {
-            sendHaloCells[procI][cellI] =
+            sendHaloData_[procI][cellI] =
                 vf.internalField()[sendHaloCellIDs[cellI]];
         }
         
@@ -266,8 +262,8 @@ void Foam::WENOCoeff<Type>::collectData
             (
                 Pstream::commsTypes::nonBlocking,
                 receiveProcID,
-                reinterpret_cast<char*>(haloData_[procI].data()), // The data to read into
-                haloData_[procI].byteSize(),
+                reinterpret_cast<char*>(receiveHaloData_[procI].data()), // The data to read into
+                receiveHaloData_[procI].byteSize(),
                 UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
                 mesh_.comm()   // this is the communicator stored e.g. in the mesh object
             );
@@ -281,8 +277,8 @@ void Foam::WENOCoeff<Type>::collectData
             (
                 Pstream::commsTypes::nonBlocking,
                 sendProcID,
-                reinterpret_cast<char*>(sendHaloCells[procI].data()), // The data to read into
-                sendHaloCells[procI].byteSize(),
+                reinterpret_cast<char*>(sendHaloData_[procI].data()), // The data to read into
+                sendHaloData_[procI].byteSize(),
                 UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
                 mesh_.comm()   // this is the communicator stored e.g. in the mesh object
             );
