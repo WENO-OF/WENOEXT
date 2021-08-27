@@ -374,8 +374,12 @@ void Foam::WENOBase::distributeStencils
     #endif
 
     // Set size of receiveHaloSize list
-    receiveHaloSize_.setSize(Pstream::nProcs(),0);
-    
+    receiveHaloSize_.setSize(Pstream::nProcs());
+    forAll(receiveHaloSize_,procI)
+    {
+        receiveHaloSize_[procI] = 0;
+    }
+     
     // Send halo cell list to neighbouring processors to request cells
     // Store the size of receiving halos
     forAll(receiveProcList_, procI)
