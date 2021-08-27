@@ -228,51 +228,79 @@ void Foam::WENOCoeff<Type>::collectData
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
+    List<List<Type> > sendHaloCells(WENOBase_.sendHaloCellIDList().size());
     // Distribute data to neighbour processors
-
-    haloData_.setSize(WENOBase_.ownHalos().size());
-
-    forAll(haloData_, procI)
-    {
-        haloData_[procI].setSize(WENOBase_.ownHalos()[procI].size());
-
-        forAll(haloData_[procI], cellI)
-        {
-            haloData_[procI][cellI] =
-                vf.internalField()[WENOBase_.ownHalos()[procI][cellI]];
-        }
-    }
+    haloData_.setSize(WENOBase_.receiveHaloSize().size());
     
-    
-    #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
-        PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
-    #else
-        PstreamBuffers pBufs(Pstream::nonBlocking);
-    #endif
-
-    // Distribute data
-    forAll(WENOBase_.sendProcList(), procI)
+    // This represents initEvaluate of processorFvPatchField.C
+    forAll(sendHaloCells, procI)
     {
-        if (WENOBase_.sendProcList()[procI] != -1)
+        haloData_[procI].setSize(WENOBase_.receiveHaloSize()[procI]);
+        
+        // Make const references for easier access
+        const labelList& sendHaloCellIDs = WENOBase_.sendHaloCellIDList()[procI];
+        const label sendProcID = WENOBase_.sendProcList()[procI];
+        const label receiveProcID = WENOBase_.receiveProcList()[procI];
+        
+        if (sendProcID == -1 && receiveProcID == -1)
+            continue;
+        
+        if (sendProcID != receiveProcID)
+            WarningInFunction << "Send and receive processor are not identical"<<endl;
+        
+        // collect all cells to send to other processors
+        sendHaloCells[procI].setSize(sendHaloCellIDs.size());
+
+        // Fill halo data to send to other processors
+        forAll(sendHaloCells[procI], cellI)
         {
-            UOPstream toBuffer(WENOBase_.sendProcList()[procI], pBufs);
-            toBuffer << haloData_[procI];
+            sendHaloCells[procI][cellI] =
+                vf.internalField()[sendHaloCellIDs[cellI]];
         }
+        
+        if (receiveProcID != -1)
+        {
+            outstandingRecvRequest_ = UPstream::nRequests();
+            // UIPstream from processorFvPatchField.C
+            UIPstream::read
+            (
+                Pstream::commsTypes::nonBlocking,
+                receiveProcID,
+                reinterpret_cast<char*>(haloData_[procI].data()), // The data to read into
+                haloData_[procI].byteSize(),
+                UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
+                mesh_.comm()   // this is the communicator stored e.g. in the mesh object
+            );
+        }
+        
+        if (sendProcID != -1)
+        {
+            outstandingSendRequest_ = UPstream::nRequests();
+            // UIPstream from processorFvPatchField.C
+            UOPstream::write
+            (
+                Pstream::commsTypes::nonBlocking,
+                sendProcID,
+                reinterpret_cast<char*>(sendHaloCells[procI].data()), // The data to read into
+                sendHaloCells[procI].byteSize(),
+                UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
+                mesh_.comm()   // this is the communicator stored e.g. in the mesh object
+            );
+        }
+            
     }
-
-    pBufs.finishedSends();
-
-    // Collect data
-
-    forAll(WENOBase_.receiveProcList(), procI)
+        
+        
+    if
+    (
+        outstandingRecvRequest_ >= 0
+     && outstandingRecvRequest_ < Pstream::nRequests()
+    )
     {
-        haloData_[procI].clear();
-        if (WENOBase_.receiveProcList()[procI] != -1)
-        {
-            UIPstream fromBuffer(WENOBase_.receiveProcList()[procI], pBufs);
-            fromBuffer >> haloData_[procI];
-        }
+        UPstream::waitRequest(outstandingRecvRequest_);
     }
+    outstandingSendRequest_ = -1;
+    outstandingRecvRequest_ = -1;
 }
 
 

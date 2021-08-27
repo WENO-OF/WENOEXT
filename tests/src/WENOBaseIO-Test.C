@@ -132,7 +132,7 @@ TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
     List<labelListList> cellToProcMap = WENO.cellToProcMap();
     labelList receiveProcList = WENO.receiveProcList();
     labelList sendProcList = WENO.sendProcList();
-    labelListList ownHalos = WENO.ownHalos();
+    labelListList sendHaloCellIDList = WENO.sendHaloCellIDList();
     List<geometryWENO::DynamicMatrix> B = WENO.B();
     List<Pair<geometryWENO::volIntegralType>> intBasTrans = WENO.intBasTrans();
     List<scalar> refFacAr =WENO.refFacAr();
@@ -164,8 +164,8 @@ TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
     checkList(receiveProcList,WENO.receiveProcList());
     INFO("Check sendProcList ...");
     checkList(sendProcList,WENO.sendProcList());
-    INFO("Check ownHalos ...");
-    checkList(ownHalos,WENO.ownHalos());
+    INFO("Check sendHaloCellIDList ...");
+    checkList(sendHaloCellIDList,WENO.sendHaloCellIDList());
     INFO("Check B List ...")
     checkList(B,WENO.B());
     INFO("Check intBasTrans ...")

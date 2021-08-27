@@ -118,8 +118,11 @@ class WENOBase
         //  stencilsID_
         List<labelListList> stencilsGlobalID_;
 
-        //- Lists of ID's of halo cells
-        labelListList ownHalos_;
+        //- Lists of ID's of halo cells to send to other processors
+        labelListList sendHaloCellIDList_;
+        
+        //- List of receivingHalo sizes
+        labelList receiveHaloSize_;
 
         //- Mapping cell to halo processor 
         //  Could be extended to boundary conditions
@@ -333,9 +336,14 @@ public:
             return sendProcList_;
         }
         
-        inline const labelListList& ownHalos() const 
+        inline const labelListList& sendHaloCellIDList() const 
         {
-            return ownHalos_;
+            return sendHaloCellIDList_;
+        }
+        
+        inline const labelList& receiveHaloSize() const 
+        {
+            return receiveHaloSize_;
         }
         
         inline const matrixDB& LSmatrix() const

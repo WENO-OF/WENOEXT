@@ -103,6 +103,12 @@ protected:
 
         //- Storage for bJ matrix needed in calcCoeff
         mutable blaze::DynamicMatrix<scalar,blaze::columnMajor> bJ_;
+        
+        //- Outstanding request
+        mutable label outstandingSendRequest_;
+
+        //- Outstanding request
+        mutable label outstandingRecvRequest_;
 
     // Private Member Functions
 

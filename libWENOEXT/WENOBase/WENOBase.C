@@ -335,7 +335,7 @@ void Foam::WENOBase::distributeStencils
 (
     labelListList& haloCells
 )
-{
+{    
     // Get the procList of all other processors
     List<labelList> allValues(Pstream::nProcs());
 
@@ -373,12 +373,17 @@ void Foam::WENOBase::distributeStencils
         PstreamBuffers pBufs(Pstream::nonBlocking);
     #endif
 
-    // Distribute halo cell ID's
-    // Assigning new ID, starting at 0
+    // Set size of receiveHaloSize list
+    receiveHaloSize_.setSize(Pstream::nProcs());
+
+    // Send halo cell list to neighbouring processors to request cells
+    // Store the size of receiving halos
     forAll(receiveProcList_, procI)
     {
         if (receiveProcList_[procI] != -1)
         {
+            // Store the size of receiving halos
+            receiveHaloSize_[procI] = haloCells[procI].size();
             UOPstream toBuffer(receiveProcList_[procI], pBufs);
             toBuffer << haloCells[procI];
         }
@@ -735,7 +740,7 @@ Foam::WENOBase::WENOBase
 
         labelList nStencils(localMesh.nCells(),0);
         
-        ownHalos_.setSize(Pstream::nProcs());
+        sendHaloCellIDList_.setSize(Pstream::nProcs());
 
         // ------------------ Start Processing ---------------------------------
       
@@ -1112,7 +1117,7 @@ void Foam::WENOBase::correctParallelRun
     );
 
     // Store the local cellID of your own halos
-    ownHalos_ = haloProcessorCellID;
+    sendHaloCellIDList_ = haloProcessorCellID;
 }
 
 
@@ -1215,9 +1220,13 @@ bool Foam::WENOBase::readList
         IFstream isLS(Dir_/"Pseudoinverses",IFstream::streamFormat::BINARY);
         isLS >> LSmatrix_;
 
-        ownHalos_.clear();
-        IFstream isOH(Dir_/"OwnHalos",IFstream::streamFormat::BINARY);
-        isOH >> ownHalos_;
+        sendHaloCellIDList_.clear();
+        IFstream isOH(Dir_/"sendHaloCellIDList",IFstream::streamFormat::BINARY);
+        isOH >> sendHaloCellIDList_;
+        
+        receiveHaloSize_.clear();
+        IFstream isHaloSize(Dir_/"receiveHaloSize",IFstream::streamFormat::BINARY);
+        isHaloSize >> receiveHaloSize_;
 
         B_.clear();
         IFstream isB(Dir_/"B",IFstream::streamFormat::BINARY);
@@ -1275,8 +1284,11 @@ void Foam::WENOBase::writeList
     OFstream osLS(Dir_/"Pseudoinverses",OFstream::streamFormat::BINARY);
     osLS << LSmatrix_;
 
-    OFstream osOH(Dir_/"OwnHalos",OFstream::streamFormat::BINARY);
-    osOH << ownHalos_;
+    OFstream osOH(Dir_/"sendHaloCellIDList",OFstream::streamFormat::BINARY);
+    osOH << sendHaloCellIDList_;
+    
+    OFstream osReceiveHaloSize(Dir_/"receiveHaloSize",OFstream::streamFormat::BINARY);
+    osReceiveHaloSize << receiveHaloSize_;
 
     OFstream osB(Dir_/"B",OFstream::streamFormat::BINARY);
     osB << B_;
