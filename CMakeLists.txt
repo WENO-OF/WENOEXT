@@ -144,6 +144,7 @@ add_compile_options(
     -m64 
     -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated
     -ftemplate-depth-100
+    -O3
     )
 
 set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
