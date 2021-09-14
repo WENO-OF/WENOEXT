@@ -37,9 +37,6 @@
 
 cmake_minimum_required (VERSION 3.10)
 
-# Project name 
-project (WENOEXT)
-
 # Enforce C++ 14 standard
 # C++ 14 is required for blaze
 set(CMAKE_CXX_STANDARD 14)
@@ -80,12 +77,30 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+execute_process(
+    COMMAND git describe --tags  
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Process tag string to set the CMake project version
+string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" VERSION_MAJOR "${GIT_TAG}")
+string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${GIT_TAG}")
+string(REGEX REPLACE "^[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_SHA1 "${GIT_TAG}")
+
+set(WENOEXT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
+
 configure_file(
     ${CMAKE_SOURCE_DIR}/versionRules/version.h.in
     ${CMAKE_BINARY_DIR}/generated/version.h
 )
 
 include_directories(${CMAKE_BINARY_DIR}/generated)
+
+
+# Project name 
+project (WENOEXT VERSION ${WENOEXT_VERSION})
 
 
 #===============================================================================
@@ -153,16 +168,17 @@ set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-need
 add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE} -DNoRepository)
 
 
+
 #===============================================================================
 #                           Add subdirectories
 #===============================================================================
-
-
 
 # Directory to build the library
 add_subdirectory(blaze-3.8)
 add_subdirectory(libWENOEXT)
 add_subdirectory(utilities)
+
+
 
 message("\n-------------------------------------------------------------------") 
 message("\tBuild State")
@@ -184,8 +200,4 @@ else()
     add_subdirectory(tests)
 endif()
 message("-------------------------------------------------------------------\n")
-
-
-
-
 
