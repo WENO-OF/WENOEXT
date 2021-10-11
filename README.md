@@ -28,7 +28,7 @@ Major development stages of the library are marked by tags and recently also hav
 ### Supported OpenFOAM Versions:
 
  * OpenFOAM (ORG) v5.x - 8
- * OpenFOAM (ESI) v1912-v2006
+ * OpenFOAM (ESI) v1912-v2012
 
 ## Authors
 

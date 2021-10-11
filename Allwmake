@@ -1,25 +1,135 @@
 #!/bin/bash
 
-DEFAULT_BUILD="ninja"
+# COLORS
+RED_BOLD='\e[1;31m'
+RESET_FONT='\e[0m'
+
+set -e
+
+checkRepoStatus()
+{
+    GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    if [[ $GIT_BRANCH == "master" ]]; then
+        NUM_MODIFIED_FILES=$(git diff-index --name-only HEAD | wc -l)
+        if [[ $NUM_MODIFIED_FILES > 0 ]]; then
+            # Set color to red and bold
+            echo -e "${RED_BOLD}ABORT COMPILATION"
+            echo "    There are modified files in your working directory"
+            echo "    Compilation on master branch is only allowed for a clean working directory"
+            echo -e "${RESET_FONT}"
+            echo "Modified files are: "
+            echo "$(git diff-index --name-only HEAD)"
+            echo "Force compiling with ./Allwmake -force"
+            exit 1
+        fi
+    fi
+
+}
+
+
+display_usage()
+{
+    echo "Usage: Allwmake [OPTIONS]"
+    echo "Options:"
+    echo "  -j|--parallel <#cores> Compile in parallel"
+    echo "  -f|--force             Force compilation for a dirty git state"
+    echo "  -h|--help              Print usage"
+    echo "  *)                     All other commands are forwarded to CMake"
+    exit 1
+}
+
+# ==============================================================================
+# Parse command line enties 
+# ==============================================================================
+
+POSITIONAL=()
+PARALLEL=false
+FORCE=false
+while [[ $# -gt 0 ]]; do
+    key="$1"
+
+    case $key in
+    -j|--parallel)
+        PARALLEL="YES"
+        shift # past argument
+        re='^[0-9]+$'
+        if [[ $1 =~ $re ]] ; then
+            NUM_CORES="$1"
+            shift
+        else
+            NUM_CORES=$(cat /proc/cpuinfo | grep processor | wc -l)            
+        fi
+      ;;
+    -f|--force)
+        FORCE="YES"
+        shift # past argument
+        ;;
+    -h|--help|-help)
+        display_usage
+        ;;
+    *)    # unknown option
+        POSITIONAL+=("$1") # save it in an array for later
+        shift # past argument
+        ;;
+    esac
+done
+
+# ==============================================================================
+# Print header
+# ==============================================================================
+echo "==========================================================================="
+echo "       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗  "
+echo "       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝  "
+echo "       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║     "
+echo "       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║     "
+echo "       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║     "
+echo "        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝     "
+echo "==========================================================================="                                                                                                                              
+echo "                                                                           "
+echo "License                                                                    "
+echo "   This file is part of WENOExt.                                           "
+echo "                                                                           "
+echo "   WENOExt is free software: you can redistribute it and/or modify         "
+echo "   it under the terms of the GNU General Public License as published by    "
+echo "   the Free Software Foundation, either version 3 of the License, or       "
+echo "   (at your option) any later version.                                     "
+echo "                                                                           "
+echo "   WENOExt is distributed in the hope that it will be useful, but          "
+echo "   WITHOUT ANY WARRANTY; without even the implied warranty of              "
+echo "   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                    "
+echo "   See the GNU General Public License for more details.                    "
+echo "                                                                           "
+echo "   You should have received a copy of the GNU General Public License       "
+echo "   along with  WENOExt.  If not, see <http://www.gnu.org/licenses/>.       "
+echo "==========================================================================="
+echo "                                                                           "
+echo "Build with these options:                                                  "
+echo "Parallel:        ${PARALLEL}                                               "
+echo "Number of cores: ${NUM_CORES}                                              "
+echo "                                                                           "
+echo "==========================================================================="
+echo "                        Start CMake Process                                "
+echo "==========================================================================="
+
+cd ${0%/*} || exit 1    # Run from this directory
+
 
 mkdir -p build
 cd build
-# Check if the build tool ninja is installed
-if ! command -v $DEFAULT_BUILD &> /dev/null
-then
-    echo "Build tool $DEFAULT_BUILD could not be found"
-    echo "Reverting back to make"
-    echo "$DEFAULT_BUILD can be installed with: "
-    echo -e "\tsudo apt update"
-    echo -e "\tsudo apt install ninja-build"
-    cmake ../ "$@"
-    cmake --build . --target install 
-else
-    echo "Build tool $DEFAULT_BUILD was found"
-    echo "Using $DEFAULT_BUILD to build WENOEXT library in parallel"
-    cmake -GNinja ../ "$@"
-    cmake --build . --target install 
+
+if [[ ${FORCE} != "YES" ]]; then
+    checkRepoStatus
 fi
 
+cmake .. ${POSITIONAL}
+if [[ ${PARALLEL} == "YES" ]]; then
+    make -j ${NUM_CORES}
+else
+    make
+fi
+make install
 
+echo "==========================================================================="
+echo "                       Done Building WENOExt                               "
+echo "==========================================================================="
 
