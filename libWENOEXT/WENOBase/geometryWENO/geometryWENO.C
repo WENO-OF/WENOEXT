@@ -49,73 +49,57 @@ void Foam::geometryWENO::initIntegrals
     const cell & cc = mesh.cells()[cellI];
 
     const labelList pLabels(cc.labels(fcs));
-    const labelList pEdge = mesh.pointPoints()[pLabels[0]];
     
     const scalar cellVolume = mesh.V()[cellI];
     
 
-    // Create reference frame of new space
-
-    labelList referenceFrame(1,pLabels[0]);
-
-    forAll(pEdge, i)
+    labelList referenceFrame;
+    
+    // Loop over all labels until first valid reference frame is found
+    forAll(pLabels,k)
     {
-        forAll(pLabels, j)
+        labelList modRefFrame(1,pLabels[k]);
+        const labelList& pEdge = mesh.pointPoints(pLabels[k]);
+        
+        forAll(pEdge, i)
         {
-            if (pEdge[i] == pLabels[j])
+            forAll(pLabels, j)
             {
-                referenceFrame.append(pEdge[i]);
+                if (pEdge[i] == pLabels[j])
+                {
+                    modRefFrame.append(pEdge[i]);
+                }
             }
         }
+        
+        if (checkReferenceFrame(modRefFrame,pts))
+        {
+            // Check the determinante
+            if (mag(det(jacobi(pts,modRefFrame)))/cellVolume > 1E-10)
+            {
+                referenceFrame = modRefFrame;
+                break;
+            }
+            else if (k == pLabels.size()-1)
+            { 
+                referenceFrame = modRefFrame;
+                WarningInFunction
+                    << "Cannot calculate the reference frame with good determinante for cell: "<<cellI
+                    << " with coordinates "<<mesh.C()[cellI]<<endl;
+                break;
+            }
+        }
+        
+        if (k == pLabels.size()-1)
+            FatalError << "Could not calculate reference frame in "
+                       << "geometryWENO::initIntegrals() for point "<<mesh.C()[cellI]
+                       << exit(FatalError);
     }
 
     refPointI = pts[referenceFrame[0]];
 
-    label k = 1;
-
-    // Check the quality of the chosen frame and change if necessary
-    while
-    (
-        referenceFrame.size() < 4 
-     || mag(det(jacobi(pts,referenceFrame)))/cellVolume < 1E-10 // cell normalized determinante 
-    )
-    {
-        if (k >= pLabels.size())
-            WarningIn("geometryWENO::initIntegrals calculate reference frame") 
-                << "Determinante of Jacobian matrix smaller than 1E-10 ("
-                <<det(jacobi(pts,referenceFrame))<<")"<<endl;
-            
-        const labelList pEdgeMod = mesh.pointPoints()[pLabels[k]];
-
-        labelList modrefFrame(1, pLabels[k]);
-
-        forAll(pEdgeMod, i)
-        {
-            forAll(pLabels, j)
-            {
-                if (pEdgeMod[i] == pLabels[j])
-                {
-                    modrefFrame.append(pEdgeMod[i]);
-                }
-            }
-        }
-
-        k++;
-
-
-        // For some meshs it is possible that a point connects only two edges 
-        // and thus does not span a tetrahedar
-        if (modrefFrame.size() > 3)
-        {
-            referenceFrame = modrefFrame;
-            refPointI = pts[referenceFrame[0]];
-        }
-    }
-
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
-
-    // We have to live with a copy assignment as Foam::Matrix() does not have
-    // a move assignment operator... 
+    
     JInvI = JacobiInverse(J);
 
     refDetI = det(JInvI);
@@ -868,8 +852,40 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
             J(i,j) = pts[referenceFrame[j+1]][i] - pts[referenceFrame[0]][i];
         }
     }
-    
     return J;
+}
+
+
+bool Foam::geometryWENO::checkReferenceFrame(const labelList& refFrame, const pointField& pts)
+{
+    // First check that it has over 3 edges
+    if (refFrame.size() < 4)
+        return false;
+
+    // Check that values are distinct
+    for (int i=0; i < refFrame.size(); i++)
+    {
+        for (int j=i+1; j < refFrame.size(); j++)
+        {
+            if (refFrame[i] == refFrame[j])
+                return false;
+        }
+    }
+
+    // Check for singularities
+    for (int i = 0;i<3;i++)
+    {
+        scalar maxVal = 0;
+        for (int j = 0; j<3;j++)
+        {
+            maxVal = max(maxVal,pts[refFrame[j+1]][i] - pts[refFrame[0]][i]);
+        }
+        // If a row has only zero entries it leads to a singularity
+        // in the jacobi matrix
+        if (maxVal == 0.0)
+            return false;
+    }
+    return true;
 }
 
 

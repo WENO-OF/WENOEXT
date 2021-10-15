@@ -738,11 +738,12 @@ Foam::WENOBase::WENOBase
         ownHalos_.setSize(Pstream::nProcs());
 
         // ------------------ Start Processing ---------------------------------
-        
+      
+        Info << "\t1) Init volume integrals..." << endl;
         // Initialize the volume integrals 
         initVolIntegrals(globalfvMesh);
 
-        Info << "\t1) Create local stencils..." << endl;
+        Info << "\t2) Create local stencils..." << endl;
         createStencilID(globalMesh,globalfvMesh.localToGlobalCellID(),nStencils,extendRatio);
         
         // Copy globalStencilID list to stencilID 
@@ -752,7 +753,7 @@ Foam::WENOBase::WENOBase
         // Correct stencilID list to local cellID values 
         if(Pstream::parRun())
         {
-            Info << "\t2) Create haloCells ... " << endl;
+            Info << "\t\t) Create haloCells ... " << endl;
             correctParallelRun(globalfvMesh,nStencils);
         }
         

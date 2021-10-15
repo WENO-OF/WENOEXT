@@ -182,6 +182,8 @@ namespace geometryWENO
             const scalar x3, const scalar y3, const scalar z3
         );
 
+        bool checkReferenceFrame(const labelList& refFrame, const pointField& pts);
+
         // Const array for Gauss quadratur 7th order
         // Coefficients can be found in 
         //   Quadrature Formulas in Two DimensionsMath 5172 
