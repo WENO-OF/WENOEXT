@@ -50,8 +50,6 @@ void Foam::geometryWENO::initIntegrals
 
     const labelList pLabels(cc.labels(fcs));
     
-    const scalar cellVolume = mesh.V()[cellI];
-    
 
     labelList referenceFrame;
     
@@ -74,20 +72,17 @@ void Foam::geometryWENO::initIntegrals
         
         if (checkReferenceFrame(modRefFrame,pts))
         {
-            // Check the determinante
-            if (mag(det(jacobi(pts,modRefFrame)))/cellVolume > 1E-10)
-            {
-                referenceFrame = modRefFrame;
-                break;
-            }
-            else if (k == pLabels.size()-1)
-            { 
-                referenceFrame = modRefFrame;
-                WarningInFunction
-                    << "Cannot calculate the reference frame with good determinante for cell: "<<cellI
-                    << " with coordinates "<<mesh.C()[cellI]<<endl;
-                break;
-            }
+            referenceFrame = modRefFrame;
+            break;
+        }
+        else if (k == pLabels.size()-1)
+        { 
+            referenceFrame = modRefFrame;
+            WarningInFunction
+                << "Cannot calculate the reference frame with good determinant ("
+                << mag(det(jacobi(pts,modRefFrame))) << ") for cell: "<<cellI
+                << " with coordinates "<<mesh.C()[cellI]<<endl;
+            break;
         }
         
         if (k == pLabels.size()-1)
@@ -861,30 +856,12 @@ bool Foam::geometryWENO::checkReferenceFrame(const labelList& refFrame, const po
     // First check that it has over 3 edges
     if (refFrame.size() < 4)
         return false;
+    
+    // Check the determinant of the Jacobi matrix needed for the calculation
+    // of the inverse
+    if (mag(det(jacobi(pts,refFrame))) < 1E-20)
+        return false;
 
-    // Check that values are distinct
-    for (int i=0; i < refFrame.size(); i++)
-    {
-        for (int j=i+1; j < refFrame.size(); j++)
-        {
-            if (refFrame[i] == refFrame[j])
-                return false;
-        }
-    }
-
-    // Check for singularities
-    for (int i = 0;i<3;i++)
-    {
-        scalar maxVal = 0;
-        for (int j = 0; j<3;j++)
-        {
-            maxVal = max(maxVal,pts[refFrame[j+1]][i] - pts[refFrame[0]][i]);
-        }
-        // If a row has only zero entries it leads to a singularity
-        // in the jacobi matrix
-        if (maxVal == 0.0)
-            return false;
-    }
     return true;
 }
 
