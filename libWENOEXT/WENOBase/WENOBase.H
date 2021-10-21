@@ -321,56 +321,76 @@ public:
             return stencilsID_;
         }
         
+        //- Map cells of stencil to the processor
+        //  If the entry is Cell::local than it is a local cell
         inline const List<labelListList>& cellToProcMap() const 
         {
             return cellToProcMap_;
         }
         
+        //- List of processors IDs to receive information from
+        //  The List has the size of all processors and the entry -1 if 
+        //  no information is received from that processor
         inline const labelList& receiveProcList() const
         {
             return receiveProcList_;
         }
         
+        //- List of processors IDs to send information to.
+        //  The list has the size of all processors and entry -1 stands for no
+        //  information being send
         inline const labelList& sendProcList() const
         {
             return sendProcList_;
         }
         
+        //- For the given processor ID return the list of local cellIDs to send
         inline const labelListList& sendHaloCellIDList() const 
         {
             return sendHaloCellIDList_;
         }
         
+        //- The number of cells to be received for the given processor ID
+        //  e.g. receiveHaloSize[procID] returns the number of cells received 
+        //  by processor procID
         inline const labelList& receiveHaloSize() const 
         {
             return receiveHaloSize_;
         }
         
+        //- Matrix data bank with pseudo inverse matrices
         inline const matrixDB& LSmatrix() const
         {
             return LSmatrix_;
         }
         
+        //- List of smoothing matrices
         inline const List<geometryWENO::DynamicMatrix>& B() const 
         {
             return B_;
         }
         
+        //- Returns lists of surface integrals of basis functions
+        //  Calculated in the reference space stored for the owner and neighbour
+        //  side. Owner side is the first entry and neighbour side the second
         inline const List<Pair<volIntegralType>>& intBasTrans() const 
         {
             return intBasTrans_;
         }
         
+        //- List of face areas in the reference space
         inline const List<scalar>& refFacAr() const 
         {
             return refFacAr_;
         }
         
+        //- List of number of solution dimensions 
         inline const labelListList& dimList() const 
         {
             return dimList_;
         }
         
+        //- The degrees of freedom of the polynome
         inline label degreesOfFreedom() const
         {
             return nDvt_;
