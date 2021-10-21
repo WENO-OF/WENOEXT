@@ -97,7 +97,11 @@ void Foam::geometryWENO::initIntegrals
     
     JInvI = JacobiInverse(J);
 
-    refDetI = det(JInvI);
+    // Foam::det(SquareMatrix<Type>) is overloaded and modifies the input matrix
+    // if it not const! 
+    const scalarSquareMatrix JInvConst;
+
+    refDetI = det(JInvConst);
 
     const point refPointTrans =
         Foam::geometryWENO::transformPoint
