@@ -138,7 +138,7 @@ TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
     List<scalar> refFacAr =WENO.refFacAr();
     labelListList dimList = WENO.dimList();
     label degreesOfFreedom = WENO.degreesOfFreedom();
-    List<List<blaze::DynamicMatrix<double>>> LSMatrix;
+    List<List<geometryWENO::DynamicMatrix>> LSMatrix;
     LSMatrix.resize(WENO.LSmatrix().size());
     forAll(LSMatrix,cellI)
     {
