@@ -30,6 +30,8 @@ Description
 
 SourceFiles
     geometryWENO.C
+    
+    [1] T. Pringuey, “Large Eddy Simulation of Primary Breakup,” 2012.
 
 Author
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
@@ -61,7 +63,7 @@ namespace geometryWENO
 
     //- Typedef for 3D scalar matrix
     using volIntegralType = List3D<scalar>;
-    using scalarSquareMatrix = SquareMatrix<scalar>;
+    using scalarSquareMatrix = blaze::StaticMatrix<scalar,3UL,3UL>;
     using DynamicMatrix = blaze::DynamicMatrix<scalar>;
     
     // Member Functions
@@ -78,7 +80,7 @@ namespace geometryWENO
             const vector v2
         );
 
-        //- Calculate integral of Eq. (3.20) in Master Thesis 
+        //- Calculate integral of Eq. (6.23) in Pringuey PhD thesis [1]
         //  for any combination of l,m,n with the restrain '(l+m+n) < r'
         void initIntegrals
         (
@@ -104,12 +106,7 @@ namespace geometryWENO
             const scalar refDetI,
             volIntegralType& transVolMom
         );
-
-        //- Calculate inverse of Jacobian matrix
-        scalarSquareMatrix JacobiInverse
-        (
-            const scalarSquareMatrix& J
-        );
+        
 
         //- Transform an arbitrary point into reference space of owner cell
         point transformPoint

@@ -53,7 +53,7 @@ void Foam::WENOBase::splitStencil
     const pointField& pts = globalMesh.points();
     const cell& faces = globalMesh.cells()[globalCellI];
 
-    List<List<scalarSquareMatrix> > JacobiInvQ(nStencilsI - 1);
+    List<List<geometryWENO::scalarSquareMatrix> > JacobiInvQ(nStencilsI - 1);
 
     label exludeFace = 0;
 
@@ -94,7 +94,7 @@ void Foam::WENOBase::splitStencil
             {
                 const triFace& tri(triFaces[i]);
 
-                scalarSquareMatrix J = geometryWENO::jacobi(
+                const geometryWENO::scalarSquareMatrix J = geometryWENO::jacobi(
                     globalMesh.C()[globalCellI][0],
                     globalMesh.C()[globalCellI][1],
                     globalMesh.C()[globalCellI][2],
@@ -103,7 +103,7 @@ void Foam::WENOBase::splitStencil
                     pts[tri[2]][0], pts[tri[2]][1], pts[tri[2]][2]
                 );
 
-                JacobiInvQ[faceI - exludeFace][i] = Foam::geometryWENO::JacobiInverse(J);
+                JacobiInvQ[faceI - exludeFace][i] = blaze::inv(J);
             }
         }
         else

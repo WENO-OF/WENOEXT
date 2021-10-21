@@ -31,6 +31,8 @@ FoamFile
     //  This can save memory especially for high order WENO scheme 
     //  Increases the calculation time! Default is off
     bestConditioned true;
-    
 
+    checkCondition  false;
+
+    writeData       false;
 // ************************************************************************* //

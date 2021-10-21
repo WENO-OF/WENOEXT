@@ -95,14 +95,11 @@ void Foam::geometryWENO::initIntegrals
 
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
     
-    JInvI = JacobiInverse(J);
-
-    // Foam::det(SquareMatrix<Type>) is overloaded and modifies the input matrix
-    // if it not const! 
-    const scalarSquareMatrix JInvConst;
-
-    refDetI = det(JInvConst);
-
+    JInvI = blaze::inv(J);
+    
+    refDetI = blaze::det(JInvI);
+    
+    
     const point refPointTrans =
         Foam::geometryWENO::transformPoint
         (
@@ -297,37 +294,6 @@ void Foam::geometryWENO::transformIntegral
 }
 
 
-Foam::scalarSquareMatrix Foam::geometryWENO::JacobiInverse
-(
-    const scalarSquareMatrix& J
-)
-{
-    scalarSquareMatrix JacobiInv(3,0.0);
-
-    scalar det = Foam::det(J);
-
-    JacobiInv[0][0] = (J(1,1)*J(2,2)-J(1,2)*J(2,1))/det;
-
-    JacobiInv[0][1] = (J(0,2)*J(2,1)-J(0,1)*J(2,2))/det;
-
-    JacobiInv[0][2] = (J(0,1)*J(1,2)-J(0,2)*J(1,1))/det;
-
-    JacobiInv[1][0] = (J(1,2)*J(2,0)-J(1,0)*J(2,2))/det;
-
-    JacobiInv[1][1] = (J(0,0)*J(2,2)-J(0,2)*J(2,0))/det;
-
-    JacobiInv[1][2] = (J(0,2)*J(1,0)-J(0,0)*J(1,2))/det;
-
-    JacobiInv[2][0] = (J(1,0)*J(2,1)-J(1,1)*J(2,0))/det;
-
-    JacobiInv[2][1] = (J(0,1)*J(2,0)-J(0,0)*J(2,1))/det;
-
-    JacobiInv[2][2] = (J(0,0)*J(1,1)-J(0,1)*J(1,0))/det;
-
-    return JacobiInv;
-}
-
-
 Foam::point Foam::geometryWENO::transformPoint
 (
     const scalarSquareMatrix& Jinv,
@@ -341,7 +307,7 @@ Foam::point Foam::geometryWENO::transformPoint
     {
         for (label l = 0; l < 3; l++)
         {
-            xiP[q] += Jinv[q][l]*(xP[l] - x0[l]);
+            xiP[q] += Jinv(q,l)*(xP[l] - x0[l]);
         }
     }
 
@@ -842,7 +808,7 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
     const labelList& referenceFrame
 )
 {
-    scalarSquareMatrix J(3,0);
+    scalarSquareMatrix J;
     
     for (int i = 0;i<3;i++)
     {
@@ -878,7 +844,7 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
     const scalar x3, const scalar y3, const scalar z3
 )
 {
-    scalarSquareMatrix J(3,0);
+    scalarSquareMatrix J;
     
     J(0,0) = x1-x0;
     J(0,1) = x2-x0;

@@ -87,10 +87,6 @@ class WENOBase
 
         //- Typedef for 3D scalar matrix
         using volIntegralType = List3D<scalar> ;
-        
-        //- C++11 typedef for squareMatrix
-        //  This is used for Jacobian matrix
-        using scalarSquareMatrix = SquareMatrix<scalar>;
 
         //- Path to lists in constant folder
         fileName Dir_;
@@ -151,7 +147,7 @@ class WENOBase
         List<scalar> refFacAr_;
 
         //- Lists of inverse Jacobians for each cell
-        List<scalarSquareMatrix> JInv_;
+        List<geometryWENO::scalarSquareMatrix> JInv_;
 
         //- Lists of determinants of inverse Jacobian for each cell
         List<scalar> refDet_;

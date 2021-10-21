@@ -55,8 +55,6 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     \**************************************************************************/
     
     
-    using scalarSquareMatrix = SquareMatrix<scalar>;
-    
     pointField pts(4,vector(0,0,0));
     
     // Populate points
@@ -70,11 +68,11 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     
     SECTION("Jacobi with reference frame")
     {
-        scalarSquareMatrix J = geometryWENO::jacobi(pts,referenceFrame);
+        geometryWENO::scalarSquareMatrix J = geometryWENO::jacobi(pts,referenceFrame);
         
-        for (int i = 0; i<J.n();i++)
+        for (unsigned int i = 0; i<J.rows();i++)
         {
-            for (int j = 0; j < J.n(); j++)
+            for (unsigned int j = 0; j < J.columns(); j++)
             {
                 if (i==j)
                     REQUIRE(Approx(J(i,j)) == i+1);
@@ -87,7 +85,7 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     SECTION("Jacobi with given points")
     {
         // Create Jacobi from components
-        scalarSquareMatrix J = geometryWENO::jacobi
+        geometryWENO::scalarSquareMatrix J = geometryWENO::jacobi
         (
             pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
             pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
@@ -97,9 +95,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
             pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
         );
         
-        for (int i = 0; i<J.n();i++)
+        for (unsigned int i = 0; i<J.rows();i++)
         {
-            for (int j = 0; j < J.n(); j++)
+            for (unsigned int j = 0; j < J.columns(); j++)
             {
                 if (i==j)
                     REQUIRE(Approx(J(i,j)) == i+1);
@@ -114,12 +112,12 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
             
             THEN("Calculate Inverse of Jacobi")
             {
-                scalarSquareMatrix JInv = geometryWENO::JacobiInverse(J);
+                geometryWENO::scalarSquareMatrix JInv = blaze::inv(J);
                 WHEN("Inverse of Jacobi is correct")
                 {
-                    for (int i = 0; i<J.n();i++)
+                    for (unsigned int i = 0; i < J.rows();i++)
                     {
-                        for (int j = 0; j < J.n(); j++)
+                        for (unsigned int j = 0; j < J.columns(); j++)
                         {
                             if (i==j)
                                 REQUIRE(Approx(JInv(i,j)*J(i,j)) == 1.0);
@@ -230,7 +228,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     
     const label cellI = 33;
 
-    scalarSquareMatrix JInvI;
+    geometryWENO::scalarSquareMatrix JInvI;
     point refPointI;
     scalar refDetI;
     
@@ -281,7 +279,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         {
             for (int j=0; j < 3; j++)
             {
-                sumJInv += JInvI[i][j];
+                sumJInv += JInvI(i,j);
             }
         }
         
@@ -336,7 +334,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         {
             for (int j=0; j < 3; j++)
             {
-                sumJInv += JInvI[i][j];
+                sumJInv += JInvI(i,j);
             }
         }
         
@@ -390,7 +388,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         {
             for (int j=0; j < 3; j++)
             {
-                sumJInv += JInvI[i][j];
+                sumJInv += JInvI(i,j);
             }
         }
         
