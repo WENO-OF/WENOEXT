@@ -70,17 +70,17 @@ void Foam::geometryWENO::initIntegrals
             }
         }
         
-        if (checkReferenceFrame(modRefFrame,pts))
+        if (modRefFrame.size() > 3 && cond(jacobi(pts,modRefFrame)) < 1E+10)
         {
             referenceFrame = modRefFrame;
             break;
         }
-        else if (k == pLabels.size()-1)
+        else if (modRefFrame.size() > 3 && k == pLabels.size()-1)
         { 
             referenceFrame = modRefFrame;
             WarningInFunction
-                << "Cannot calculate the reference frame with good determinant ("
-                << mag(det(jacobi(pts,modRefFrame))) << ") for cell: "<<cellI
+                << "Cannot calculate the reference frame with good condition ("
+                << cond(jacobi(pts,modRefFrame)) << ") for cell: "<<cellI
                 << " with coordinates "<<mesh.C()[cellI]<<endl;
             break;
         }
@@ -821,18 +821,12 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
 }
 
 
-bool Foam::geometryWENO::checkReferenceFrame(const labelList& refFrame, const pointField& pts)
+Foam::scalar Foam::geometryWENO::cond(const scalarSquareMatrix& J)
 {
-    // First check that it has over 3 edges
-    if (refFrame.size() < 4)
-        return false;
-    
-    // Check the determinant of the Jacobi matrix needed for the calculation
-    // of the inverse
-    if (mag(det(jacobi(pts,refFrame))) < 1E-20)
-        return false;
+    // Calcualte the eigenvalues of the Jacobi matrix 
+    blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> sigma = eigen(J);
 
-    return true;
+    return max(abs(sigma))/min(abs(sigma));
 }
 
 
