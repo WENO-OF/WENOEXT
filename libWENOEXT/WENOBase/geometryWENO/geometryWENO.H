@@ -47,6 +47,7 @@ Author
 #include "fvMesh.H"
 #include "fvCFD.H"
 #include "blaze/Math.h"
+#include "BlazeIO.H"
 #include "List3D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

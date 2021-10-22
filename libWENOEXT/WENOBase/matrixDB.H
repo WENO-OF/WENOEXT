@@ -60,13 +60,6 @@ Istream& operator >> (Istream&, matrixDB&);
 
 Ostream& operator << (Ostream&, const matrixDB&);
 
-// Read write operators for blaze matrix
-Istream& operator >> (Istream&, blaze::DynamicMatrix<double,blaze::rowMajor>&);
-Istream& operator >> (Istream&, blaze::DynamicMatrix<double,blaze::columnMajor>&);
-
-Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::rowMajor>&);
-Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::columnMajor>&);
-
 /*---------------------------------------------------------------------------*\
                             Class matrixDB Declaration
 \*---------------------------------------------------------------------------*/
