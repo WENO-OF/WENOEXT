@@ -96,7 +96,11 @@ void Foam::geometryWENO::initIntegrals
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
     
     JInvI = blaze::inv(J);
-    
+   
+    blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
+    lu(JInvI,L,U,P);
+    JInvI = L*U;
+
     refDetI = blaze::det(JInvI);
     
     
