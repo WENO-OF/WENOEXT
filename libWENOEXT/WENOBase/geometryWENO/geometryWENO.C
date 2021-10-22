@@ -616,7 +616,7 @@ void Foam::geometryWENO::surfIntTrans
     const fvMesh& mesh,
     const label polOrder,
     const List<volIntegralType>& volIntegralsList,
-    const List<scalarSquareMatrix>& JInv,
+    const blazeList& JInv,
     const List<point>& refPoint,
     List<Pair<volIntegralType>>& intBasTrans,
     List<scalar>& refFacAr

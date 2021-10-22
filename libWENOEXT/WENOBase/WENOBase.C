@@ -928,6 +928,8 @@ Foam::WENOBase::WENOBase
     volIntegralsList_.clear();
 
     JInv_.clear();
+    // Release the memory
+    JInv_.shrink_to_fit();
 
     refDet_.clear();
 
@@ -1165,7 +1167,7 @@ void Foam::WENOBase::initVolIntegrals
     
     volIntegralsList_.setSize(localMesh.nCells());
 
-    JInv_.setSize(localMesh.nCells());
+    JInv_.resize(localMesh.nCells());
     refPoint_.setSize(localMesh.nCells());
     refDet_.setSize(localMesh.nCells());
     

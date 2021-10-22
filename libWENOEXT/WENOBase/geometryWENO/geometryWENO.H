@@ -67,6 +67,11 @@ namespace geometryWENO
     using scalarSquareMatrix = blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor>;
     using DynamicMatrix = blaze::DynamicMatrix<scalar>;
     
+    //- For static matrices a custom allocator is required when dynamic
+    //  allocation is used. OpenFOAM does not provide an option for an 
+    //  allocator with a list. 
+    using blazeList = std::vector<geometryWENO::scalarSquareMatrix,blaze::AlignedAllocator<scalar>>;
+    
     // Member Functions
 
         //- Evaluate the surface integral using Gaussian quadrature
@@ -150,7 +155,7 @@ namespace geometryWENO
             const fvMesh& mesh,
             const label polOrder,
             const List<volIntegralType>& volIntegralsList,
-            const List<scalarSquareMatrix>& JInv,
+            const blazeList& JInv,
             const List<point>& refPoint,
             List<Pair<volIntegralType> >& intBasTrans,
             List<scalar>& refFacAr

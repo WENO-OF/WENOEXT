@@ -139,6 +139,7 @@ class WENOBase
 
         //- List of volume integrals over basis functions
         //  Calculated in the reference space
+        // TODO: Make this an autoPtr so memory can be released
         List<volIntegralType> volIntegralsList_;
 
         //- Lists of surface integrals of basis functions
@@ -150,7 +151,7 @@ class WENOBase
         List<scalar> refFacAr_;
 
         //- Lists of inverse Jacobians for each cell
-        List<geometryWENO::scalarSquareMatrix> JInv_;
+        geometryWENO::blazeList JInv_;
 
         //- Lists of determinants of inverse Jacobian for each cell
         List<scalar> refDet_;
