@@ -64,7 +64,7 @@ namespace geometryWENO
 
     //- Typedef for 3D scalar matrix
     using volIntegralType = List3D<scalar>;
-    using scalarSquareMatrix = blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor>;
+    using scalarSquareMatrix = blaze::StaticMatrix<scalar,3UL,3UL,blaze::rowMajor>;
     using DynamicMatrix = blaze::DynamicMatrix<scalar>;
     
     //- For static matrices a custom allocator is required when dynamic

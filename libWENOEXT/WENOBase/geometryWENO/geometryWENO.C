@@ -95,10 +95,10 @@ void Foam::geometryWENO::initIntegrals
 
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
     
-    JInvI = blaze::inv(J);
+    blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor> temp = blaze::inv(J);
    
     blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
-    lu(JInvI,L,U,P);
+    lu(temp,L,U,P);
     JInvI = L*U;
 
     refDetI = blaze::det(JInvI);
@@ -305,17 +305,14 @@ Foam::point Foam::geometryWENO::transformPoint
     const point x0
 )
 {
-    point xiP(0,0,0);
+    blaze::StaticVector<scalar,3UL,blaze::columnVector> v;
+    v[0] = xP[0]-x0[0];
+    v[1] = xP[1]-x0[1];
+    v[2] = xP[2]-x0[2];
 
-    for (label q = 0; q < 3; q++)
-    {
-        for (label l = 0; l < 3; l++)
-        {
-            xiP[q] += Jinv(q,l)*(xP[l] - x0[l]);
-        }
-    }
+    auto vT = Jinv * v;
 
-    return xiP;
+    return point(vT[0],vT[1],vT[2]);
 }
 
 
