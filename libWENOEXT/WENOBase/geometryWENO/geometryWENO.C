@@ -30,6 +30,10 @@ Author
 
 #include "geometryWENO.H"
 
+#if defined(__AVX__)
+    #include <immintrin.h>
+#endif
+
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 
@@ -318,9 +322,9 @@ Foam::point Foam::geometryWENO::transformPoint
 
 Foam::scalar Foam::geometryWENO::gaussQuad
 (
-        const scalar n,
-        const scalar m,
-        const scalar l,
+        const int n,
+        const int m,
+        const int l,
         const point xi0,
         const vector v0,
         const vector v1,
@@ -343,7 +347,71 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     // Sum up over Gaussian points with transformation on projected triangle
 
     scalar sum = 0.0;
+#if defined(__AVX__)
+    auto intPowAVX = [](const __m256d base,const unsigned int exponent) -> __m256d
+    {
+        __m256d temp = _mm256_set1_pd(1.0);
+        for (unsigned int i =0; i<exponent;i++)
+        {
+            temp = _mm256_mul_pd(temp,base);
+        }
+        return temp;
+    };
+    
+    {
+    scalar xi[4];
+    scalar eta[4];
+    scalar zeta[4];
+    // go through 1 to 12 as they align in memory
+    for (label j = 0; j < 12; j=j+4)
+    {
+        for (size_t k=0; k < 4; k++)
+        {
+            xi[k] =
+                v0.x()* (1 - gaussCoeff[j+k][0] - gaussCoeff[j+k][1])
+              + v1.x()* gaussCoeff[j+k][0] + v2.x()*gaussCoeff[j+k][1] - xi0.x();
+            eta[k] =
+                v0.y()* (1- gaussCoeff[j+k][0]- gaussCoeff[j+k][1])
+              + v1.y()* gaussCoeff[j+k][0] +v2.y()* gaussCoeff[j+k][1] - xi0.y();
+            zeta[k] =
+                v0.z()* (1- gaussCoeff[j+k][0]- gaussCoeff[j+k][1])
+              + v1.z()* gaussCoeff[j+k][0] +v2.z()* gaussCoeff[j+k][1] - xi0.z();
+        }
+        __m256d mxi   = _mm256_set_pd(  xi[0],   xi[1],   xi[2],   xi[3]);
+        __m256d meta  = _mm256_set_pd( eta[0],  eta[1],  eta[2],  eta[3]);
+        __m256d mzeta = _mm256_set_pd(zeta[0], zeta[1], zeta[2], zeta[3]);
+        
+        mxi = intPowAVX(mxi,n);
+        meta = intPowAVX(meta,m);
+        mzeta = intPowAVX(mzeta,l);
 
+        __m256d mgaussCoeff = _mm256_set_pd(gaussCoeff[j][2],gaussCoeff[j+1][2],
+                                            gaussCoeff[j+2][2],gaussCoeff[j+3][2]);
+
+        __m256d temp;
+        temp = _mm256_mul_pd(mxi,meta);
+        temp = _mm256_mul_pd(temp,mzeta);
+        temp = _mm256_mul_pd(mgaussCoeff,temp);
+
+        sum += temp[0]+temp[1]+temp[2]+temp[3];
+    }
+    }
+    // Add the last iteration
+    size_t j = 12;
+    scalar xi =
+        v0.x()* (1 - gaussCoeff[j][0] - gaussCoeff[j][1])
+      + v1.x()* gaussCoeff[j][0] + v2.x()*gaussCoeff[j][1] - xi0.x();
+    scalar eta =
+        v0.y()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
+      + v1.y()* gaussCoeff[j][0] +v2.y()* gaussCoeff[j][1] - xi0.y();
+    scalar zeta =
+        v0.z()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
+      + v1.z()* gaussCoeff[j][0] +v2.z()* gaussCoeff[j][1] - xi0.z();
+
+    sum += gaussCoeff[j][2]* intPow(xi,n)*intPow(eta,m)*intPow(zeta,l);
+    
+    return sum;
+#else
     for (label j = 0; j < 13; j++)
     {
         scalar xi =
@@ -358,8 +426,8 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     
         sum += gaussCoeff[j][2]* intPow(xi,n)*intPow(eta,m)*intPow(zeta,l);
     }
-
     return sum;
+#endif
 }
 
 

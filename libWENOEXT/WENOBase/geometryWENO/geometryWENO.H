@@ -77,9 +77,9 @@ namespace geometryWENO
         //- Evaluate the surface integral using Gaussian quadrature
         scalar gaussQuad
         (
-            const scalar n,
-            const scalar m,
-            const scalar l,
+            const int n,
+            const int m,
+            const int l,
             const point x0,
             const vector v0,
             const vector v1,
