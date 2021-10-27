@@ -827,6 +827,9 @@ Foam::scalar Foam::geometryWENO::cond(const scalarSquareMatrix& J)
     // Calcualte the eigenvalues of the Jacobi matrix 
     blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> sigma = eigen(J);
 
+    if (min(abs(sigma)) < ROOTVSMALL)
+        return GREAT;
+    
     return max(abs(sigma))/min(abs(sigma));
 }
 
