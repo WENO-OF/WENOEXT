@@ -106,6 +106,15 @@ void Foam::geometryWENO::initIntegrals
     JInvI = L*U;
 
     refDetI = blaze::det(JInvI);
+    if (mag(refDetI) < SMALL)
+    {
+        WarningInFunction
+            << "Determinante of referenceFrame is too small ("
+            << refDetI << ") for cell: "<<cellI
+            << " with coordinates "<<mesh.C()[cellI]<<endl;
+        refDetI = refDetI < 0 ? -1.0*SMALL : SMALL;
+    }
+        
     
     
     const point refPointTrans =
