@@ -153,6 +153,11 @@ void Foam::geometryWENO::initIntegrals
         vector vn = (v1 - v0) ^ (v2 - v0);
 
         scalar area = 0.5*mag(vn);
+        
+        // For some mesh the triangle has a close to zero area. These triangles 
+        // are excluded
+        if (area < ROOTVSMALL)
+            continue;
 
         if (sign(vn & (v0 - refPointTrans)) < 0.0)
         {
@@ -254,6 +259,11 @@ void Foam::geometryWENO::transformIntegral
         vector vn = (v1 - v0) ^ (v2 - v0);
 
         scalar area = 0.5*mag(vn);
+        
+        // For some mesh the triangle has a close to zero area. These triangles 
+        // are excluded
+        if (area < ROOTVSMALL)
+            continue;
 
         if (sign(vn & (v0 - transCenterJ)) < 0.0)
         {
@@ -487,6 +497,11 @@ void Foam::geometryWENO::smoothIndIntegrals
         vector vn = (v1 - v0) ^ (v2 - v0);
 
         scalar area = 0.5*mag(vn);
+
+        // For some mesh the triangle has a close to zero area. These triangles 
+        // are excluded
+        if (area < ROOTVSMALL)
+            continue;
 
         if (sign(vn & (v0 - transCenterI)) < 0.0)
         {
