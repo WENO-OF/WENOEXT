@@ -224,7 +224,6 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     
     
     using volIntegralType = List3D<scalar>;
-    using scalarSquareMatrix = SquareMatrix<scalar>;
     
     const label cellI = 33;
 
@@ -274,17 +273,12 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         REQUIRE(Approx(sumI) == 1.25);
         
-        double sumJInv = 0;
-        for (int i=0; i < 3; i++)
-        {
-            for (int j=0; j < 3; j++)
-            {
-                sumJInv += JInvI(i,j);
-            }
-        }
-        
-        REQUIRE(Approx(sumJInv) == 10.0);
-        
+        // Check that the determinant is correct
+        // The determinant of the inverse Jacobi matrix is an expression
+        // for the inverse volume if the cell is rectengular
+        // E.g.: V' = det(JInv) * V
+        // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
+        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);        
     }
     
     
@@ -329,17 +323,12 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         REQUIRE(Approx(sumI) == 1.25);
         
-        double sumJInv = 0;
-        for (int i=0; i < 3; i++)
-        {
-            for (int j=0; j < 3; j++)
-            {
-                sumJInv += JInvI(i,j);
-            }
-        }
-        
-        REQUIRE(Approx(sumJInv) == 10.0);
-
+        // Check that the determinant is correct
+        // The determinant of the inverse Jacobi matrix is an expression
+        // for the inverse volume if the cell is rectengular
+        // E.g.: V' = det(JInv) * V
+        // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
+        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);
     }
     
     
@@ -383,17 +372,12 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         }
         REQUIRE(Approx(sumI) == 1.308333);
         
-        double sumJInv = 0;
-        for (int i=0; i < 3; i++)
-        {
-            for (int j=0; j < 3; j++)
-            {
-                sumJInv += JInvI(i,j);
-            }
-        }
-        
-        REQUIRE(Approx(sumJInv) == 10.0);
-
+        // Check that the determinant is correct
+        // The determinant of the inverse Jacobi matrix is an expression
+        // for the inverse volume if the cell is rectengular
+        // E.g.: V' = det(JInv) * V
+        // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
+        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);
     }
     
 }
