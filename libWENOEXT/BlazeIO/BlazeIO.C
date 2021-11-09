@@ -171,7 +171,24 @@ Foam::Ostream& Foam::operator <<
 Foam::Ostream& Foam::operator <<
 (
     Ostream& os,
-    const blaze::StaticMatrix<double,3UL,3UL>& M
+    const blaze::StaticMatrix<double,3UL,3UL,blaze::rowMajor>& M
+)
+{
+    for (size_t i = 0; i < M.rows(); i++)
+    {
+        os << M(i,0);
+        for (size_t j = 1; j < M.columns(); j++)
+            os <<" "<< M(i,j);
+        os << "\n";
+    }
+    return os;
+}
+
+
+Foam::Ostream& Foam::operator <<
+(
+    Ostream& os,
+    const blaze::StaticMatrix<double,3UL,3UL,blaze::columnMajor>& M
 )
 {
     for (size_t i = 0; i < M.rows(); i++)

@@ -57,7 +57,8 @@ Istream& operator >> (Istream&, blaze::DynamicMatrix<double,blaze::columnMajor>&
 Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::rowMajor>&);
 Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::columnMajor>&);
 
-Ostream& operator << (Ostream&, const blaze::StaticMatrix<double,3UL,3UL>&);
+Ostream& operator << (Ostream&, const blaze::StaticMatrix<double,3UL,3UL,blaze::rowMajor>&);
+Ostream& operator << (Ostream&, const blaze::StaticMatrix<double,3UL,3UL,blaze::columnMajor>&);
 
 
 } // End namespace Foam
