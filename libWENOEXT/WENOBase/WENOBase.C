@@ -762,7 +762,7 @@ Foam::WENOBase::WENOBase
         // Correct stencilID list to local cellID values 
         if(Pstream::parRun())
         {
-            Info << "\t\t) Create haloCells ... " << endl;
+            Info << "\t\t Create haloCells ... " << endl;
             correctParallelRun(globalfvMesh,nStencils);
         }
         
