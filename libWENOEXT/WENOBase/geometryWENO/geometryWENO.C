@@ -57,7 +57,8 @@ void Foam::geometryWENO::initIntegrals
 
     labelList referenceFrame;
     
-    // Loop over all labels until first valid reference frame is found
+    // Loop over all points of the cell to find best conditioned reference system
+    scalar bestCond = 1E+10;
     forAll(pLabels,k)
     {
         labelList modRefFrame(1,pLabels[k]);
@@ -73,13 +74,14 @@ void Foam::geometryWENO::initIntegrals
                 }
             }
         }
-        
-        if (modRefFrame.size() > 3 && cond(jacobi(pts,modRefFrame)) < 1E+10)
+   
+           
+        if (modRefFrame.size() > 3 && cond(jacobi(pts,modRefFrame)) < bestCond)
         {
+            bestCond = cond(jacobi(pts,modRefFrame));
             referenceFrame = modRefFrame;
-            break;
         }
-        else if (modRefFrame.size() > 3 && k == pLabels.size()-1)
+        else if (modRefFrame.size() > 3 && k == pLabels.size()-1 && bestCond == 1E+10)
         { 
             referenceFrame = modRefFrame;
             WarningInFunction
@@ -88,23 +90,21 @@ void Foam::geometryWENO::initIntegrals
                 << " with coordinates "<<mesh.C()[cellI]<<endl;
             break;
         }
-        
-        if (k == pLabels.size()-1)
+        else if (k == pLabels.size()-1 && bestCond == 1E+10)
+        {
             FatalError << "Could not calculate reference frame in "
                        << "geometryWENO::initIntegrals() for point "<<mesh.C()[cellI]
                        << exit(FatalError);
+        }
     }
 
     refPointI = pts[referenceFrame[0]];
 
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
     
-    blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor> temp = blaze::inv(J);
-   
-    blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
-    lu(temp,L,U,P);
-    JInvI = L*U;
+    calculateInverseJacobi(J,JInvI);
 
+    
     refDetI = blaze::det(JInvI);
     if (mag(refDetI) < SMALL)
     {
@@ -771,7 +771,7 @@ void Foam::geometryWENO::surfIntTrans
             // Evaluate surface integral using Gaussian quadratures
             forAll(triFaces, i)
             {
-                const triFace& tri(triFaces[i]);
+                const triFace& tri = triFaces[i];
 
                 vector v0 =
                     Foam::geometryWENO::transformPoint
@@ -949,6 +949,21 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
     J(2,2) = z3-z0;
     
     return J;
+}
+
+
+void Foam::geometryWENO::calculateInverseJacobi
+(
+    const scalarSquareMatrix& J, 
+    scalarSquareMatrix& JInvI
+)
+{
+    blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor> temp = blaze::inv(J);
+   
+    // Use LU decomposition to improve the Jacobi Matrix
+    blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
+    lu(temp,L,U,P);
+    JInvI = L*U;    
 }
 
 // ************************************************************************* //

@@ -224,7 +224,13 @@ namespace geometryWENO
             //{0.79742698535309, 0.10128650732346, 0.12593918054483}
         //};
         
-
+        //- Calculate the inverse of the Jacobi Matrix J and perform
+        //  additional checks and modifications to improve the condition
+        void calculateInverseJacobi
+        (
+            const scalarSquareMatrix& J, 
+            scalarSquareMatrix& JInvI
+        );
 
 } // End namespace geometryWENO
 
