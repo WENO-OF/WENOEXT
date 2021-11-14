@@ -234,6 +234,9 @@ void Foam::WENOCoeff<Type>::collectData
     
     outstandingRecvRequest_.setSize(WENOBase_.receiveHaloSize().size(),-1);
     
+    // store current request index
+    const label nReq = UPstream::nRequests();
+    
     // This represents initEvaluate of processorFvPatchField.C
     forAll(receiveHaloData_, procI)
     {
@@ -284,19 +287,12 @@ void Foam::WENOCoeff<Type>::collectData
         }
             
     }
-        
-    forAll(outstandingRecvRequest_,procI)
-    {
-        if
-        (
-            outstandingRecvRequest_[procI] >= 0
-         && outstandingRecvRequest_[procI] < Pstream::nRequests()
-        )
-        {
-            UPstream::waitRequest(outstandingRecvRequest_[procI]);
-        }
-        outstandingRecvRequest_[procI] = -1;
-    }
+    
+    // Note: For large scale simulations it appears that one 
+    // MPI_Waitall is better than using MPI_Wait for each request.
+    // Also using MPI_Test in calcCoeff() for a real non-blocking communication
+    // increased communication time for large number of processors (>2000)
+    UPstream::waitRequests(nReq);
 }
 
 
