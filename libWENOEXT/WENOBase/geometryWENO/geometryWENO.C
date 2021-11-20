@@ -367,14 +367,20 @@ Foam::scalar Foam::geometryWENO::gaussQuad
 
     scalar sum = 0.0;
 #if defined(__AVX__)
-    auto intPowAVX = [](const __m256d base,const unsigned int exponent) -> __m256d
+    auto intPowAVX = [](__m256d& base,const unsigned int exponent) -> void
     {
-        __m256d temp = _mm256_set1_pd(1.0);
-        for (unsigned int i =0; i<exponent;i++)
+        if (exponent == 0)
         {
-            temp = _mm256_mul_pd(temp,base);
+            base = _mm256_set1_pd(1.0);
+            return;
         }
-        return temp;
+        
+        const __m256d temp = base;
+        
+        for (unsigned int i=1; i<exponent; i++)
+        {
+            base = _mm256_mul_pd(temp,base);
+        }
     };
     
     {
@@ -400,9 +406,9 @@ Foam::scalar Foam::geometryWENO::gaussQuad
         __m256d meta  = _mm256_set_pd( eta[0],  eta[1],  eta[2],  eta[3]);
         __m256d mzeta = _mm256_set_pd(zeta[0], zeta[1], zeta[2], zeta[3]);
         
-        mxi = intPowAVX(mxi,n);
-        meta = intPowAVX(meta,m);
-        mzeta = intPowAVX(mzeta,l);
+        intPowAVX(mxi,n);
+        intPowAVX(meta,m);
+        intPowAVX(mzeta,l);
 
         __m256d mgaussCoeff = _mm256_set_pd(gaussCoeff[j][2],gaussCoeff[j+1][2],
                                             gaussCoeff[j+2][2],gaussCoeff[j+3][2]);
