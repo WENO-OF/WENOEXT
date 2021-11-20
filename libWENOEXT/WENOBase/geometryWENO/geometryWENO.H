@@ -80,10 +80,10 @@ namespace geometryWENO
             const int n,
             const int m,
             const int l,
-            const point x0,
-            const vector v0,
-            const vector v1,
-            const vector v2
+            const point& x0,
+            const vector& v0,
+            const vector& v1,
+            const vector& v2
         );
 
         //- Calculate integral of Eq. (6.23) in Pringuey PhD thesis [1]
@@ -105,10 +105,10 @@ namespace geometryWENO
         (
             const fvMesh& mesh,
             const label cellJ,
-            const point transCenterJ,
+            const point& transCenterJ,
             const label polOrder,
             const scalarSquareMatrix& JInvI,
-            const point refPointI,
+            const point& refPointI,
             const scalar refDetI,
             volIntegralType& transVolMom
         );
@@ -118,8 +118,8 @@ namespace geometryWENO
         point transformPoint
         (
             const scalarSquareMatrix& Jinv,
-            const point xP,
-            const point x0
+            const point& xP,
+            const point& x0
         );
 
 
@@ -130,7 +130,7 @@ namespace geometryWENO
             const label cellI,
             const label polOrder,
             const scalarSquareMatrix& JacobianI,
-            const point refPointI,
+            const point& refPointI,
             volIntegralType& smoothVolIntegral
         );
 
@@ -142,7 +142,7 @@ namespace geometryWENO
             const label polOrder,
             const label nDvt,
             const scalarSquareMatrix& JInvI,
-            const point refPointI,
+            const point& refPointI,
             const labelList& dim
         );
 

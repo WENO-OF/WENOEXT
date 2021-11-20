@@ -219,10 +219,10 @@ void Foam::geometryWENO::transformIntegral
 (
     const fvMesh& mesh,
     const label cellJ,
-    const point transCenterJ,
+    const point& transCenterJ,
     const label polOrder,
     const scalarSquareMatrix& JInvI,
-    const point refPointI,
+    const point& refPointI,
     const scalar refDetI,
     volIntegralType& transVolMom
 )
@@ -324,8 +324,8 @@ void Foam::geometryWENO::transformIntegral
 Foam::point Foam::geometryWENO::transformPoint
 (
     const scalarSquareMatrix& Jinv,
-    const point xP,
-    const point x0
+    const point& xP,
+    const point& x0
 )
 {
     blaze::StaticVector<scalar,3UL,blaze::columnVector> v;
@@ -344,10 +344,10 @@ Foam::scalar Foam::geometryWENO::gaussQuad
         const int n,
         const int m,
         const int l,
-        const point xi0,
-        const vector v0,
-        const vector v1,
-        const vector v2
+        const point& xi0,
+        const vector& v0,
+        const vector& v1,
+        const vector& v2
 )
 {
     // For integer power it is much faster to do an integer multiplication
@@ -463,7 +463,7 @@ void Foam::geometryWENO::smoothIndIntegrals
     const label cellI,
     const label polOrder,
     const scalarSquareMatrix& JInvI,
-    const point refPointI,
+    const point& refPointI,
     volIntegralType& smoothVolIntegral
 )
 {
@@ -588,7 +588,7 @@ Foam::geometryWENO::DynamicMatrix Foam::geometryWENO::getB
     const label polOrder,
     const label nDvt,
     const scalarSquareMatrix& JInvI,
-    const point refPointI,
+    const point& refPointI,
     const labelList& dim
 )
 {
