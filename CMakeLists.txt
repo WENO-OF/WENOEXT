@@ -36,6 +36,9 @@
 # ===========================================================================
 
 cmake_minimum_required (VERSION 3.10)
+# make cache variables for install destinations
+include(GNUInstallDirs)
+
 
 # Enforce C++ 14 standard
 # C++ 14 is required for blaze
@@ -102,6 +105,12 @@ include_directories(${CMAKE_BINARY_DIR}/generated)
 # Project name 
 project (WENOEXT VERSION ${WENOEXT_VERSION})
 
+# Set default install path
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/installed" CACHE PATH "default install path" FORCE )
+endif()
+
+
 
 #===============================================================================
 #   Set OpenFOAM Environment
@@ -138,7 +147,12 @@ configure_file(
     ${CMAKE_BINARY_DIR}/generated/codeRules.H
 )
 
+# Install generated files
+install(FILES ${CMAKE_BINARY_DIR}/generated/version.h
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
+install(FILES ${CMAKE_BINARY_DIR}/generated/codeRules.H
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 
 # If VERSION > 1000 then it is a OpenFOAM.com (ESI) version
@@ -201,4 +215,15 @@ else()
     add_subdirectory(tests)
 endif()
 message("-------------------------------------------------------------------\n")
+
+
+#===============================================================================
+#                      Install CMake Exports
+#===============================================================================
+
+install(EXPORT WENOEXTTargets 
+        FILE WENOEXT.cmake
+        NAMESPACE WENOEXT::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/WENOEXT
+)
 

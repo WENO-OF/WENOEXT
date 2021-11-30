@@ -41,8 +41,7 @@ add_library(WENOEXT SHARED
 
 
 
-target_include_directories(WENOEXT PUBLIC 
-  Blaze
+target_include_directories(WENOEXT PUBLIC
   $ENV{FOAM_SRC}/dynamicMesh/lnInclude
   $ENV{FOAM_SRC}/finiteVolume/lnInclude
   $ENV{FOAM_SRC}/meshTools/lnInclude
@@ -51,11 +50,17 @@ target_include_directories(WENOEXT PUBLIC
   ${TRISURFACE_INC}
   $ENV{FOAM_SRC}/OpenFOAM/lnInclude
   $ENV{FOAM_SRC}/OSspecific/POSIX/lnInclude
-  ./WENOBase/geometryWENO
-  ./WENOBase/
-  ./BlazeIO/
-  ../versionRules
+  "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/blaze-3.8>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/WENOBase/geometryWENO>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/WENOBase>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/BlazeIO>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Blaze>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/WENOBase/geometryWENO>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/WENOBase>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/BlazeIO>"
 )
+
+
 
 target_link_libraries(WENOEXT PUBLIC
  Blaze
@@ -70,6 +75,8 @@ target_link_libraries(WENOEXT PUBLIC
  ${TRISURFACE_LIB}
 )
 
+target_link_libraries(WENOEXT INTERFACE Blaze)
+
 
 target_compile_definitions(WENOEXT PRIVATE
     $<$<CONFIG:Debug>:
@@ -81,6 +88,20 @@ target_compile_definitions(WENOEXT PRIVATE
 
 install(
     TARGETS WENOEXT 
-    DESTINATION $ENV{FOAM_USER_LIBBIN}
+    EXPORT WENOEXTTargets
+    LIBRARY DESTINATION $ENV{FOAM_USER_LIBBIN}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE
+)
+
+# Install the header files in the include directory 
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  FILES_MATCHING
+  PATTERN "*.H"
+)
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/WENOBase/WENOCoeff.C
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/WENOBase/
 )
