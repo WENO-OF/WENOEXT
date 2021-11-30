@@ -86,7 +86,7 @@ TEST_CASE("List3D Test","[baseTest]")
         matrix.write(osIntBasTrans);
         
         Foam::IFstream isIntBasTrans("List3D.dat",Foam::IFstream::streamFormat::BINARY);
-        Foam::List3D<Foam::label> copyMatrix(isIntBasTrans);
+        Foam::List3D<int> copyMatrix(isIntBasTrans);
         
         REQUIRE(copyMatrix.size() == matrix.size());
         REQUIRE(copyMatrix.sizeX() == matrix.sizeX());
@@ -247,7 +247,7 @@ TEST_CASE("List3D Test","[baseTest]")
         matrix.write(osIntBasTrans);
         
         Foam::IFstream isIntBasTrans("List3D.dat",Foam::IFstream::streamFormat::BINARY);
-        Foam::List3D<Foam::label> copyMatrix;
+        Foam::List3D<int> copyMatrix;
         copyMatrix.read(isIntBasTrans);
         
         REQUIRE(copyMatrix.size() == matrix.size());

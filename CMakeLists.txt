@@ -157,6 +157,7 @@ endif()
 # Set c++ flags
 add_compile_options(
     -m64 
+    -mavx2
     -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated
     -ftemplate-depth-100
     -O3

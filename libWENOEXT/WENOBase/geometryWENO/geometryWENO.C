@@ -30,6 +30,10 @@ Author
 
 #include "geometryWENO.H"
 
+#if defined(__AVX__)
+    #include <immintrin.h>
+#endif
+
 // * * * * * * * * * * * * * Static Member Functions * * * * * * * * * * * * //
 
 
@@ -49,77 +53,70 @@ void Foam::geometryWENO::initIntegrals
     const cell & cc = mesh.cells()[cellI];
 
     const labelList pLabels(cc.labels(fcs));
-    const labelList pEdge = mesh.pointPoints()[pLabels[0]];
-    
-    const scalar cellVolume = mesh.V()[cellI];
     
 
-    // Create reference frame of new space
-
-    labelList referenceFrame(1,pLabels[0]);
-
-    forAll(pEdge, i)
+    labelList referenceFrame;
+    
+    // Loop over all points of the cell to find best conditioned reference system
+    scalar bestCond = 1E+10;
+    forAll(pLabels,k)
     {
-        forAll(pLabels, j)
+        labelList modRefFrame(1,pLabels[k]);
+        const labelList& pEdge = mesh.pointPoints(pLabels[k]);
+        
+        forAll(pEdge, i)
         {
-            if (pEdge[i] == pLabels[j])
+            forAll(pLabels, j)
             {
-                referenceFrame.append(pEdge[i]);
+                if (pEdge[i] == pLabels[j])
+                {
+                    modRefFrame.append(pEdge[i]);
+                }
             }
+        }
+   
+           
+        if (modRefFrame.size() > 3 && cond(jacobi(pts,modRefFrame)) < bestCond)
+        {
+            bestCond = cond(jacobi(pts,modRefFrame));
+            referenceFrame = modRefFrame;
+        }
+        else if (modRefFrame.size() > 3 && k == pLabels.size()-1 && bestCond == 1E+10)
+        { 
+            referenceFrame = modRefFrame;
+            WarningInFunction
+                << "Cannot calculate the reference frame with good condition ("
+                << cond(jacobi(pts,modRefFrame)) << ") for cell: "<<cellI
+                << " with coordinates "<<mesh.C()[cellI]<<endl;
+            break;
+        }
+        else if (k == pLabels.size()-1 && bestCond == 1E+10)
+        {
+            FatalError << "Could not calculate reference frame in "
+                       << "geometryWENO::initIntegrals() for point "<<mesh.C()[cellI]
+                       << exit(FatalError);
         }
     }
 
     refPointI = pts[referenceFrame[0]];
 
-    label k = 1;
-
-    // Check the quality of the chosen frame and change if necessary
-    while
-    (
-        referenceFrame.size() < 4 
-     || mag(det(jacobi(pts,referenceFrame)))/cellVolume < 1E-10 // cell normalized determinante 
-    )
-    {
-        if (k >= pLabels.size())
-            WarningIn("geometryWENO::initIntegrals calculate reference frame") 
-                << "Determinante of Jacobian matrix smaller than 1E-10 ("
-                <<det(jacobi(pts,referenceFrame))<<")"<<endl;
-            
-        const labelList pEdgeMod = mesh.pointPoints()[pLabels[k]];
-
-        labelList modrefFrame(1, pLabels[k]);
-
-        forAll(pEdgeMod, i)
-        {
-            forAll(pLabels, j)
-            {
-                if (pEdgeMod[i] == pLabels[j])
-                {
-                    modrefFrame.append(pEdgeMod[i]);
-                }
-            }
-        }
-
-        k++;
-
-
-        // For some meshs it is possible that a point connects only two edges 
-        // and thus does not span a tetrahedar
-        if (modrefFrame.size() > 3)
-        {
-            referenceFrame = modrefFrame;
-            refPointI = pts[referenceFrame[0]];
-        }
-    }
-
     scalarSquareMatrix J = jacobi(pts,referenceFrame);
+    
+    calculateInverseJacobi(J,JInvI);
 
-    // We have to live with a copy assignment as Foam::Matrix() does not have
-    // a move assignment operator... 
-    JInvI = JacobiInverse(J);
-
-    refDetI = det(JInvI);
-
+    
+    refDetI = blaze::det(JInvI);
+    if (mag(refDetI) < SMALL)
+    {
+        WarningInFunction
+            << "Determinante of referenceFrame is too small ("
+            << refDetI << ") for cell: "<<cellI
+            << " with coordinates "<<mesh.C()[cellI]<<endl;
+        refDetI = refDetI < 0 ? -1.0*SMALL : SMALL;
+    }
+        
+    
+    
     const point refPointTrans =
         Foam::geometryWENO::transformPoint
         (
@@ -156,6 +153,11 @@ void Foam::geometryWENO::initIntegrals
         vector vn = (v1 - v0) ^ (v2 - v0);
 
         scalar area = 0.5*mag(vn);
+        
+        // For some mesh the triangle has a close to zero area. These triangles 
+        // are excluded
+        if (area < ROOTVSMALL)
+            continue;
 
         if (sign(vn & (v0 - refPointTrans)) < 0.0)
         {
@@ -217,10 +219,10 @@ void Foam::geometryWENO::transformIntegral
 (
     const fvMesh& mesh,
     const label cellJ,
-    const point transCenterJ,
+    const point& transCenterJ,
     const label polOrder,
     const scalarSquareMatrix& JInvI,
-    const point refPointI,
+    const point& refPointI,
     const scalar refDetI,
     volIntegralType& transVolMom
 )
@@ -257,6 +259,11 @@ void Foam::geometryWENO::transformIntegral
         vector vn = (v1 - v0) ^ (v2 - v0);
 
         scalar area = 0.5*mag(vn);
+        
+        // For some mesh the triangle has a close to zero area. These triangles 
+        // are excluded
+        if (area < ROOTVSMALL)
+            continue;
 
         if (sign(vn & (v0 - transCenterJ)) < 0.0)
         {
@@ -314,67 +321,33 @@ void Foam::geometryWENO::transformIntegral
 }
 
 
-Foam::scalarSquareMatrix Foam::geometryWENO::JacobiInverse
-(
-    const scalarSquareMatrix& J
-)
-{
-    scalarSquareMatrix JacobiInv(3,0.0);
-
-    scalar det = Foam::det(J);
-
-    JacobiInv[0][0] = (J(1,1)*J(2,2)-J(1,2)*J(2,1))/det;
-
-    JacobiInv[0][1] = (J(0,2)*J(2,1)-J(0,1)*J(2,2))/det;
-
-    JacobiInv[0][2] = (J(0,1)*J(1,2)-J(0,2)*J(1,1))/det;
-
-    JacobiInv[1][0] = (J(1,2)*J(2,0)-J(1,0)*J(2,2))/det;
-
-    JacobiInv[1][1] = (J(0,0)*J(2,2)-J(0,2)*J(2,0))/det;
-
-    JacobiInv[1][2] = (J(0,2)*J(1,0)-J(0,0)*J(1,2))/det;
-
-    JacobiInv[2][0] = (J(1,0)*J(2,1)-J(1,1)*J(2,0))/det;
-
-    JacobiInv[2][1] = (J(0,1)*J(2,0)-J(0,0)*J(2,1))/det;
-
-    JacobiInv[2][2] = (J(0,0)*J(1,1)-J(0,1)*J(1,0))/det;
-
-    return JacobiInv;
-}
-
-
 Foam::point Foam::geometryWENO::transformPoint
 (
     const scalarSquareMatrix& Jinv,
-    const point xP,
-    const point x0
+    const point& xP,
+    const point& x0
 )
 {
-    point xiP(0,0,0);
+    blaze::StaticVector<scalar,3UL,blaze::columnVector> v;
+    v[0] = xP[0]-x0[0];
+    v[1] = xP[1]-x0[1];
+    v[2] = xP[2]-x0[2];
 
-    for (label q = 0; q < 3; q++)
-    {
-        for (label l = 0; l < 3; l++)
-        {
-            xiP[q] += Jinv[q][l]*(xP[l] - x0[l]);
-        }
-    }
+    auto vT = Jinv * v;
 
-    return xiP;
+    return point(vT[0],vT[1],vT[2]);
 }
 
 
 Foam::scalar Foam::geometryWENO::gaussQuad
 (
-        const scalar n,
-        const scalar m,
-        const scalar l,
-        const point xi0,
-        const vector v0,
-        const vector v1,
-        const vector v2
+        const int n,
+        const int m,
+        const int l,
+        const point& xi0,
+        const vector& v0,
+        const vector& v1,
+        const vector& v2
 )
 {
     // For integer power it is much faster to do an integer multiplication
@@ -393,7 +366,77 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     // Sum up over Gaussian points with transformation on projected triangle
 
     scalar sum = 0.0;
+#if defined(__AVX__)
+    auto intPowAVX = [](__m256d& base,const unsigned int exponent) -> void
+    {
+        if (exponent == 0)
+        {
+            base = _mm256_set1_pd(1.0);
+            return;
+        }
+        
+        const __m256d temp = base;
+        
+        for (unsigned int i=1; i<exponent; i++)
+        {
+            base = _mm256_mul_pd(temp,base);
+        }
+    };
+    
+    {
+    scalar xi[4];
+    scalar eta[4];
+    scalar zeta[4];
+    // go through 1 to 12 as they align in memory
+    for (label j = 0; j < 12; j=j+4)
+    {
+        for (size_t k=0; k < 4; k++)
+        {
+            xi[k] =
+                v0.x()* (1 - gaussCoeff[j+k][0] - gaussCoeff[j+k][1])
+              + v1.x()* gaussCoeff[j+k][0] + v2.x()*gaussCoeff[j+k][1] - xi0.x();
+            eta[k] =
+                v0.y()* (1- gaussCoeff[j+k][0]- gaussCoeff[j+k][1])
+              + v1.y()* gaussCoeff[j+k][0] +v2.y()* gaussCoeff[j+k][1] - xi0.y();
+            zeta[k] =
+                v0.z()* (1- gaussCoeff[j+k][0]- gaussCoeff[j+k][1])
+              + v1.z()* gaussCoeff[j+k][0] +v2.z()* gaussCoeff[j+k][1] - xi0.z();
+        }
+        __m256d mxi   = _mm256_set_pd(  xi[0],   xi[1],   xi[2],   xi[3]);
+        __m256d meta  = _mm256_set_pd( eta[0],  eta[1],  eta[2],  eta[3]);
+        __m256d mzeta = _mm256_set_pd(zeta[0], zeta[1], zeta[2], zeta[3]);
+        
+        intPowAVX(mxi,n);
+        intPowAVX(meta,m);
+        intPowAVX(mzeta,l);
 
+        __m256d mgaussCoeff = _mm256_set_pd(gaussCoeff[j][2],gaussCoeff[j+1][2],
+                                            gaussCoeff[j+2][2],gaussCoeff[j+3][2]);
+
+        __m256d temp;
+        temp = _mm256_mul_pd(mxi,meta);
+        temp = _mm256_mul_pd(temp,mzeta);
+        temp = _mm256_mul_pd(mgaussCoeff,temp);
+
+        sum += temp[0]+temp[1]+temp[2]+temp[3];
+    }
+    }
+    // Add the last iteration
+    size_t j = 12;
+    scalar xi =
+        v0.x()* (1 - gaussCoeff[j][0] - gaussCoeff[j][1])
+      + v1.x()* gaussCoeff[j][0] + v2.x()*gaussCoeff[j][1] - xi0.x();
+    scalar eta =
+        v0.y()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
+      + v1.y()* gaussCoeff[j][0] +v2.y()* gaussCoeff[j][1] - xi0.y();
+    scalar zeta =
+        v0.z()* (1- gaussCoeff[j][0]- gaussCoeff[j][1])
+      + v1.z()* gaussCoeff[j][0] +v2.z()* gaussCoeff[j][1] - xi0.z();
+
+    sum += gaussCoeff[j][2]* intPow(xi,n)*intPow(eta,m)*intPow(zeta,l);
+    
+    return sum;
+#else
     for (label j = 0; j < 13; j++)
     {
         scalar xi =
@@ -408,8 +451,8 @@ Foam::scalar Foam::geometryWENO::gaussQuad
     
         sum += gaussCoeff[j][2]* intPow(xi,n)*intPow(eta,m)*intPow(zeta,l);
     }
-
     return sum;
+#endif
 }
 
 
@@ -420,7 +463,7 @@ void Foam::geometryWENO::smoothIndIntegrals
     const label cellI,
     const label polOrder,
     const scalarSquareMatrix& JInvI,
-    const point refPointI,
+    const point& refPointI,
     volIntegralType& smoothVolIntegral
 )
 {
@@ -460,6 +503,11 @@ void Foam::geometryWENO::smoothIndIntegrals
         vector vn = (v1 - v0) ^ (v2 - v0);
 
         scalar area = 0.5*mag(vn);
+
+        // For some mesh the triangle has a close to zero area. These triangles 
+        // are excluded
+        if (area < ROOTVSMALL)
+            continue;
 
         if (sign(vn & (v0 - transCenterI)) < 0.0)
         {
@@ -540,7 +588,7 @@ Foam::geometryWENO::DynamicMatrix Foam::geometryWENO::getB
     const label polOrder,
     const label nDvt,
     const scalarSquareMatrix& JInvI,
-    const point refPointI,
+    const point& refPointI,
     const labelList& dim
 )
 {
@@ -663,7 +711,7 @@ void Foam::geometryWENO::surfIntTrans
     const fvMesh& mesh,
     const label polOrder,
     const List<volIntegralType>& volIntegralsList,
-    const List<scalarSquareMatrix>& JInv,
+    const blazeList& JInv,
     const List<point>& refPoint,
     List<Pair<volIntegralType>>& intBasTrans,
     List<scalar>& refFacAr
@@ -729,7 +777,7 @@ void Foam::geometryWENO::surfIntTrans
             // Evaluate surface integral using Gaussian quadratures
             forAll(triFaces, i)
             {
-                const triFace& tri(triFaces[i]);
+                const triFace& tri = triFaces[i];
 
                 vector v0 =
                     Foam::geometryWENO::transformPoint
@@ -859,7 +907,7 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
     const labelList& referenceFrame
 )
 {
-    scalarSquareMatrix J(3,0);
+    scalarSquareMatrix J;
     
     for (int i = 0;i<3;i++)
     {
@@ -868,8 +916,19 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
             J(i,j) = pts[referenceFrame[j+1]][i] - pts[referenceFrame[0]][i];
         }
     }
-    
     return J;
+}
+
+
+Foam::scalar Foam::geometryWENO::cond(const scalarSquareMatrix& J)
+{
+    // Calcualte the eigenvalues of the Jacobi matrix 
+    blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> sigma = eigen(J);
+
+    if (min(abs(sigma)) < ROOTVSMALL)
+        return GREAT;
+    
+    return max(abs(sigma))/min(abs(sigma));
 }
 
 
@@ -881,7 +940,7 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
     const scalar x3, const scalar y3, const scalar z3
 )
 {
-    scalarSquareMatrix J(3,0);
+    scalarSquareMatrix J;
     
     J(0,0) = x1-x0;
     J(0,1) = x2-x0;
@@ -896,6 +955,21 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
     J(2,2) = z3-z0;
     
     return J;
+}
+
+
+void Foam::geometryWENO::calculateInverseJacobi
+(
+    const scalarSquareMatrix& J, 
+    scalarSquareMatrix& JInvI
+)
+{
+    blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor> temp = blaze::inv(J);
+   
+    // Use LU decomposition to improve the Jacobi Matrix
+    blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
+    lu(temp,L,U,P);
+    JInvI = L*U;    
 }
 
 // ************************************************************************* //

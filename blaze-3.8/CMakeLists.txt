@@ -11,6 +11,17 @@ add_library(Blaze INTERFACE)
 
 target_include_directories(Blaze INTERFACE  .)
 
+#===============================================================================
+# Configure LAPACK
+#===============================================================================
+
+# Blaze requires LAPACK for the calculation of SVD and the eigenvalues of 
+# a matrix.
+
+find_package(LAPACK REQUIRED)
+target_link_libraries(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LIBRARIES}>)
+target_compile_options(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LINKER_FLAGS}>)
+
 
 #===============================================================================
 #   Set Cache of Blaze Automatic 

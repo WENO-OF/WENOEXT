@@ -29,6 +29,7 @@
 # ===========================================================================
 
 add_library(WENOEXT SHARED 
+    BlazeIO/BlazeIO.C
     WENOBase/geometryWENO/geometryWENO.C
     WENOBase/WENOBase.C
     WENOBase/globalfvMesh.C
@@ -52,6 +53,7 @@ target_include_directories(WENOEXT PUBLIC
   $ENV{FOAM_SRC}/OSspecific/POSIX/lnInclude
   ./WENOBase/geometryWENO
   ./WENOBase/
+  ./BlazeIO/
   ../versionRules
 )
 

@@ -358,7 +358,7 @@ void Foam::matrixDB::write(Ostream& os) const
 
 void Foam::matrixDB::read(Istream& is)
 {
-    blaze::DynamicMatrix<double> matrix;
+    geometryWENO::DynamicMatrix matrix;
     keyType key;
     
     int DBSize;
@@ -376,7 +376,7 @@ void Foam::matrixDB::read(Istream& is)
             is >> matrix;
             DB_.insert
             (
-                std::pair<keyType,blaze::DynamicMatrix<double>>(key,matrix)
+                std::pair<keyType,geometryWENO::DynamicMatrix>(key,matrix)
             );
             i++;
         }
@@ -425,67 +425,5 @@ Foam::Istream& Foam::operator >>(Istream& is, matrixDB& matrixDB_)
 Foam::Ostream& Foam::operator <<(Ostream& os,const matrixDB& matrixDB_)
 {
     matrixDB_.write(os);
-    return os;
-}
-
-
-Foam::Istream& Foam::operator >>(Istream& is, blaze::DynamicMatrix<double>& M)
-{
-    // Frist write out the size 
-    unsigned int rows;
-    unsigned int columns;
-    
-    is >> rows;
-    is >> columns;
-    
-    M.resize(rows,columns);
-    
-    if (is.format() == IOstream::ASCII)
-    {
-        for (unsigned int i=0; i<M.rows(); i++)
-        {
-            for (unsigned int j=0; j<M.columns(); j++)
-            {
-                is >> M(i,j);
-            }
-        }
-    }
-    else
-    {
-        unsigned int spacing;
-        is >> spacing;
-        is.read(reinterpret_cast<char*>(M.data()),rows*spacing*sizeof(double));
-    }
-    
-    return is;
-}
-
-
-Foam::Ostream& Foam::operator <<(Ostream& os,const blaze::DynamicMatrix<double>& M)
-{
-    // Frist write out the size 
-    os << M.rows() << endl;
-    os << M.columns() << endl;
-    
-    if (os.format() == IOstream::ASCII)
-    {
-        for (unsigned int i=0; i<M.rows(); i++)
-        {
-            for (unsigned int j=0; j<M.columns(); j++)
-            {
-                os << M(i,j)<<" ";
-            }
-            os << endl;
-        }
-    }
-    else
-    {
-        // Matrix can be padded for alignment. Rows and columns does not give 
-        // the spacing
-        os << M.spacing()<<endl;
-        os.write(reinterpret_cast<const char*>(M.data()),(M.spacing()*M.rows()* sizeof(double)));
-        os.flush();
-    }
-    
     return os;
 }
