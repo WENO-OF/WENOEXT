@@ -48,6 +48,21 @@ When using this work please cite:
 2. Execute `Allwmake` to build the library
    The compilation of the library uses cmake instead of wmake files!
 
+### Options
+
+Parallel compilation can be activated with:
+`./Allwmake -j <# of cores>`
+if the number of cores is omitted then the number of cores is determined
+automatically.
+
+On the master branch only clean git commits can be compiled. 
+If a dirty git state shall be compiled the `-f|--force` option has to be used
+on the master branch. 
+
+
+For optimal performance AVX instruction sets can be activated with the
+USE_AVX switch:
+`./Allwmake -DUSE_AVX=ON`
 
 ### Note to GNU compiler:
 
