@@ -60,6 +60,15 @@ if (NOT DEFINED ENV{FOAM_USER_LIBBIN} OR NOT DEFINED ENV{FOAM_SRC})
     message(FATAL_ERROR "OpenFOAM environemt variables not available")
 endif()
 
+#===============================================================================
+#   Switch to activate AVX instructions 
+#===============================================================================
+# Some older processors do not have AVX instruction sets 
+# and thus AVX has to be disabled
+# Default is OFF
+
+option (USE_AVX "If enabled, uses -mAVX and -mAVX2" Off)
+
 
 #===============================================================================
 #   Create Version File
@@ -171,11 +180,17 @@ endif()
 # Set c++ flags
 add_compile_options(
     -m64 
-    -mavx2
     -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated
     -ftemplate-depth-100
     -O3
     )
+
+if (${USE_AVX})
+add_compile_options(
+    -mavx
+    -mavx2
+    )
+endif()
 
 set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
 
