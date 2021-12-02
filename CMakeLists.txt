@@ -61,13 +61,13 @@ if (NOT DEFINED ENV{FOAM_USER_LIBBIN} OR NOT DEFINED ENV{FOAM_SRC})
 endif()
 
 #===============================================================================
-#   Switch to activate AVX instructions 
+#   Switch to activate march=native 
 #===============================================================================
-# Some older processors do not have AVX instruction sets 
-# and thus AVX has to be disabled
-# Default is OFF
+# If the code is distributed on several different CPU architectures swtich
+# this option off
+# Default is ON
 
-option (USE_AVX "If enabled, uses -mAVX and -mAVX2" Off)
+option (MARCH_NATIVE "If enabled, uses -march=native" ON)
 
 
 #===============================================================================
@@ -179,16 +179,14 @@ endif()
 
 # Set c++ flags
 add_compile_options(
-    -m64 
     -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated
     -ftemplate-depth-100
     -O3
     )
 
-if (${USE_AVX})
+if (${MARCH_NATIVE})
 add_compile_options(
-    -mavx
-    -mavx2
+    -march=native
     )
 endif()
 

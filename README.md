@@ -59,10 +59,9 @@ On the master branch only clean git commits can be compiled.
 If a dirty git state shall be compiled the `-f|--force` option has to be used
 on the master branch. 
 
-
-For optimal performance AVX instruction sets can be activated with the
-USE_AVX switch:
-`./Allwmake -DUSE_AVX=ON`
+By default the `march=native` compiler flag is activated. For some cases it is 
+necessary to deactive this flag. To deactivate this flag use:
+`./Allwmake -DMARCH_NATIVE=OFF`
 
 ### Note to GNU compiler:
 
