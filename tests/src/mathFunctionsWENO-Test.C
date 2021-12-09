@@ -5,7 +5,7 @@
        ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
        ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
         ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
--------------------------------------------------------------------------------                                                                                                                                                  
+-------------------------------------------------------------------------------                                                                                                                                                         
 License
     This file is part of WENO Ext.
 
@@ -22,52 +22,71 @@ License
     You should have received a copy of the GNU General Public License
     along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
-Class
-    Foam::BlazeIO
+
+Application
+    mathFunctionsWENO-Test
 
 Description
-    Functions to use OpenFOAM stream objects with Blaze matrices 
-
-SourceFiles
-    BlazeIO.C
-
+    Test the math functions
+    
 Author
-    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de>
 
 \*---------------------------------------------------------------------------*/
 
+#include "catch.hpp"
 
-
-#ifndef BlazeIO_H
-#define BlazeIO_H
-
-#include "linear.H"
-#include "Ostream.H"
-#include "blaze/Math.h"
+#include "mathFunctionsWENO.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-namespace Foam
+TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
 {
-// Read operators for blaze matrix
-Istream& operator >> (Istream&, blaze::DynamicMatrix<double,blaze::rowMajor>&);
-Istream& operator >> (Istream&, blaze::DynamicMatrix<double,blaze::columnMajor>&);
+    SECTION("determinant of 3x3 matrix")
+    {
+        // Check the determinante of 3x3 matrix
+        const geometryWENO::scalarSquareMatrix A
+        {
+            {2,-5,3},
+            {0,7,-2},
+            {-1,4,1}
+        };
+        REQUIRE(mathFunctionsWENO::det(A) == 41);
+    }
 
-// Write operators for blaze matr
-Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::rowMajor>&);
-Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::columnMajor>&);
+    // Check the eigen values 
+    SECTION("eigenvalues of 3x3 matrix")
+    {
+        // Check the determinante of 3x3 matrix
+        const geometryWENO::scalarSquareMatrix A
+        {
+            { 5, 2, 0},
+            { 2, 5, 0},
+            {-3, 4, 6}
+        };
 
-Ostream& operator << (Ostream&, const blaze::StaticMatrix<double,3UL,3UL,blaze::rowMajor>&);
-Ostream& operator << (Ostream&, const blaze::StaticMatrix<double,3UL,3UL,blaze::columnMajor>&);
+        blaze::DynamicVector<double,blaze::columnVector> eigVal{7,3,6};
 
-// Write operators for blaze vector
-Ostream& operator << (Ostream&, const blaze::DynamicVector<double,blaze::columnVector>&);
-Ostream& operator << (Ostream&, const blaze::DynamicVector<double,blaze::rowVector>&);
+        REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
+    }
 
-} // End namespace Foam
+    SECTION("inverse of 3x3 matrix")
+    {
+        const geometryWENO::scalarSquareMatrix A
+        {
+            { 0,-3,-2},
+            { 1,-4,-2},
+            {-3, 4, 1}
+        };
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+        const geometryWENO::scalarSquareMatrix AInv
+        {
+            { 4,-5,-2},
+            { 5,-6,-2},
+            {-8, 9, 3}
+        };
 
-#endif
+        REQUIRE(mathFunctionsWENO::inv(A) == AInv); 
+    }
+}
 
-// ************************************************************************* //

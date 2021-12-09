@@ -200,3 +200,24 @@ Foam::Ostream& Foam::operator <<
     }
     return os;
 }
+
+
+Foam::Ostream& Foam::operator << (Ostream& os, const blaze::DynamicVector<double,blaze::columnVector>& V)
+{
+    for (size_t i = 0; i < V.size() - 1; i++)
+    {
+        os << V[i] << ",";
+    }
+    os << V[V.size()-1]<<"\n";
+    return os;
+
+}
+Foam::Ostream& Foam::operator << (Ostream& os, const blaze::DynamicVector<double,blaze::rowVector>& V)
+{
+    for (size_t i = 0; i < V.size() - 1; i++)
+    {
+        os << V[i] << ",";
+    }
+    os << V[V.size()-1]<<"\n";
+    return os;
+}
