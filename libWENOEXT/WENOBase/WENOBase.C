@@ -763,7 +763,7 @@ Foam::WENOBase::WENOBase
         if(Pstream::parRun())
         {
             Info << "\t\t Create haloCells ... " << endl;
-            correctParallelRun(globalfvMesh,nStencils);
+            correctParallelRun(globalfvMesh);
         }
         
 
@@ -1029,8 +1029,7 @@ void Foam::WENOBase::createStencilID
 
 void Foam::WENOBase::correctParallelRun
 (
-    const WENO::globalfvMesh& globalfvMesh,
-    const labelList& nStencils
+    const WENO::globalfvMesh& globalfvMesh
 )
 {
     // labelList of halo cells as their cellID in the local mesh

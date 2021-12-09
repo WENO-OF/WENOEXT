@@ -242,8 +242,7 @@ class WENOBase
         //  halo cells
         void correctParallelRun
         (
-            const WENO::globalfvMesh& globalfvMesh,
-            const labelList& nStencils
+            const WENO::globalfvMesh& globalfvMesh
         );
         
         
