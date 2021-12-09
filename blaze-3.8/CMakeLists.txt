@@ -27,12 +27,11 @@ install(DIRECTORY blaze DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Blaze)
 # Configure LAPACK
 #===============================================================================
 
-# Blaze requires LAPACK for the calculation of SVD and the eigenvalues of 
-# a matrix.
-
-find_package(LAPACK REQUIRED)
-target_link_libraries(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LIBRARIES}>)
-target_compile_options(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LINKER_FLAGS}>)
+if (USE_LAPACK)
+    find_package(LAPACK REQUIRED)
+    target_link_libraries(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LIBRARIES}>)
+    target_compile_options(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LINKER_FLAGS}>)
+endif()
 
 
 #===============================================================================

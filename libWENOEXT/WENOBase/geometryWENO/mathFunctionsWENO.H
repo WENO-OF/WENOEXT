@@ -201,6 +201,7 @@ void Foam::mathFunctionsWENO::pivot(geometryWENO::scalarSquareMatrix& A)
     PA = M1*PA;
 
     // Find largest element in the second column 
+    Amax = -1E+15;
     for (unsigned int i=1; i < A.rows(); i++)
     {
         if (std::abs(A(i,1)) > Amax)

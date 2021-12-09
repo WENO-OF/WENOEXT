@@ -63,6 +63,12 @@ By default the `march=native` compiler flag is activated. For some cases it is
 necessary to deactive this flag. To deactivate this flag use:
 `./Allwmake -DMARCH_NATIVE=OFF`
 
+By default the Blaze functions are used for matrix operations such as LU decomposition,
+eigen values etc. These functions require a LAPACK library!
+If no LAPACK library is available the mathFunctionsWENO can be used which do not require 
+LAPACK
+`./Allwmake -DUSE_LAPACK=OFF`
+
 ### Note to GNU compiler:
 
 GNU compiler version must be higher than 7. For g++ < v7 an error is reported for 

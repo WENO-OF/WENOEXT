@@ -29,6 +29,8 @@ Author
 \*---------------------------------------------------------------------------*/
 
 #include "geometryWENO.H"
+#include "mathFunctionsWENO.H"
+#include "codeRules.H"
 
 #if defined(__AVX__)
     #include <immintrin.h>
@@ -922,9 +924,13 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
 
 Foam::scalar Foam::geometryWENO::cond(const scalarSquareMatrix& J)
 {
+    #ifdef USE_LAPACK
     // Calcualte the eigenvalues of the Jacobi matrix 
-    blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> sigma = eigen(J);
-
+        auto sigma = eigen(J);
+    #else
+        auto sigma = mathFunctionsWENO::eigen(J); 
+    #endif
+    
     if (min(abs(sigma)) < ROOTVSMALL)
         return GREAT;
     
@@ -964,12 +970,18 @@ void Foam::geometryWENO::calculateInverseJacobi
     scalarSquareMatrix& JInvI
 )
 {
-    blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor> temp = blaze::inv(J);
-   
-    // Use LU decomposition to improve the Jacobi Matrix
-    blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
-    lu(temp,L,U,P);
-    JInvI = L*U;    
+    // Use Blaze functions if LAPACK is available
+    #ifdef USE_LAPACK 
+        blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor> temp = blaze::inv(J);
+       
+        // Use LU decomposition to improve the Jacobi Matrix
+        blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
+        lu(temp,L,U,P);
+        JInvI = L*U;
+    #else
+        JInvI = mathFunctionsWENO::inv(J); 
+        mathFunctionsWENO::pivot(JInvI);
+    #endif
 }
 
 // ************************************************************************* //
