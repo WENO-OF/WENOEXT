@@ -106,8 +106,10 @@ void Foam::geometryWENO::initIntegrals
     
     calculateInverseJacobi(J,JInvI);
 
-    
-    refDetI = blaze::det(JInvI);
+    // Use math functions WENO as blaze::det could be subject
+    // to fatal floating point cancellation: 
+    // see also: https://bitbucket.org/blaze-lib/blaze/issues/425/
+    refDetI = mathFunctionsWENO::det(JInvI);
     if (mag(refDetI) < SMALL)
     {
         WarningInFunction
