@@ -71,7 +71,9 @@ option (MARCH_NATIVE "If enabled, uses -march=native" ON)
 
 # Blaze requires LAPACK for the calculation of SVD and the eigenvalues of 
 # a matrix.
-option (USE_LAPACK "If enabled, uses LAPACK for matrix operations" ON)
+# If Blaze functions should be used it has to be switched on
+# Default: OFF
+option (USE_LAPACK "If enabled, uses LAPACK for matrix operations" OFF)
 
 
 #===============================================================================
