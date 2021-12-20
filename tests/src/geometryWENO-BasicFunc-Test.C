@@ -402,7 +402,6 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
             {
                 for (int n = 0; n < volIntegrals.sizeZ(); ++n)
                 {
-                    Info << "n,m,l"<<n<<","<<m<<","<<l<<endl;
                     if (n==0 && m==0 && l==0)
                         REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0);
                     else if (   (n==2 && m == 0 && l == 0)
