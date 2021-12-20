@@ -19,7 +19,7 @@ checkRepoStatus()
             echo -e "${RESET_FONT}"
             echo "Modified files are: "
             echo "$(git diff-index --name-only HEAD)"
-            echo "Force compiling with ./Allwmake -force"
+            echo "Force compiling with ./Allwmake --force or ./Allwmake -f"
             exit 1
         fi
     fi
