@@ -55,8 +55,6 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     \**************************************************************************/
     
     
-    using scalarSquareMatrix = SquareMatrix<scalar>;
-    
     pointField pts(4,vector(0,0,0));
     
     // Populate points
@@ -70,11 +68,11 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     
     SECTION("Jacobi with reference frame")
     {
-        scalarSquareMatrix J = geometryWENO::jacobi(pts,referenceFrame);
+        geometryWENO::scalarSquareMatrix J = geometryWENO::jacobi(pts,referenceFrame);
         
-        for (int i = 0; i<J.n();i++)
+        for (unsigned int i = 0; i<J.rows();i++)
         {
-            for (int j = 0; j < J.n(); j++)
+            for (unsigned int j = 0; j < J.columns(); j++)
             {
                 if (i==j)
                     REQUIRE(Approx(J(i,j)) == i+1);
@@ -87,7 +85,7 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     SECTION("Jacobi with given points")
     {
         // Create Jacobi from components
-        scalarSquareMatrix J = geometryWENO::jacobi
+        geometryWENO::scalarSquareMatrix J = geometryWENO::jacobi
         (
             pts[referenceFrame[0]][0], pts[referenceFrame[0]][1],
             pts[referenceFrame[0]][2], pts[referenceFrame[1]][0],
@@ -97,9 +95,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
             pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
         );
         
-        for (int i = 0; i<J.n();i++)
+        for (unsigned int i = 0; i<J.rows();i++)
         {
-            for (int j = 0; j < J.n(); j++)
+            for (unsigned int j = 0; j < J.columns(); j++)
             {
                 if (i==j)
                     REQUIRE(Approx(J(i,j)) == i+1);
@@ -114,12 +112,12 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
             
             THEN("Calculate Inverse of Jacobi")
             {
-                scalarSquareMatrix JInv = geometryWENO::JacobiInverse(J);
+                geometryWENO::scalarSquareMatrix JInv = blaze::inv(J);
                 WHEN("Inverse of Jacobi is correct")
                 {
-                    for (int i = 0; i<J.n();i++)
+                    for (unsigned int i = 0; i < J.rows();i++)
                     {
-                        for (int j = 0; j < J.n(); j++)
+                        for (unsigned int j = 0; j < J.columns(); j++)
                         {
                             if (i==j)
                                 REQUIRE(Approx(JInv(i,j)*J(i,j)) == 1.0);
@@ -206,9 +204,7 @@ TEST_CASE("geometryWENO: Quadrature","[baseTest]")
 TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
 {
     // ------------------------------------------------------------------------
-    //          Regression Test of geometryWENO::initIntegrals()
-    // 
-    // Use calcualted values from an implementation that is known to be correct
+    //          Test of geometryWENO::initIntegrals()
     
     
     
@@ -226,11 +222,10 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
     
     
     using volIntegralType = List3D<scalar>;
-    using scalarSquareMatrix = SquareMatrix<scalar>;
     
     const label cellI = 33;
 
-    scalarSquareMatrix JInvI;
+    geometryWENO::scalarSquareMatrix JInvI;
     point refPointI;
     scalar refDetI;
     
@@ -242,6 +237,30 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
 
         geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
         
+        // For a quadar the volume integral is always zero except for 
+        // n=0, m=0, l=2;   n=0, m=2, l=0;   n=2,m=0,l=0
+        // It would also be non zero for n=2,m=2,l=0 but that is out of bounds
+        // for the polOrder of three
+        // The volume integral is easy to calculate for these points by hand
+        for (int l = 0; l < volIntegrals.sizeX(); ++l)
+        {
+            for (int m = 0; m < volIntegrals.sizeY(); ++m)
+            {
+                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
+                {
+                    if (n==0 && m==0 && l==0)
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0);
+                    else if (   (n==2 && m == 0 && l == 0)
+                        || (n==0 && m == 2 && l == 0)
+                        || (n==0 && m == 0 && l == 2))
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/12.0);
+                    else 
+                        REQUIRE(Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
+                }
+            }
+        }
+        
+        
         
         const point transCenterJ =
         Foam::geometryWENO::transformPoint
@@ -259,34 +278,31 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         );
                 
         
-        
-        // Quick Check of volIntegrals by using the sum over all elements:
-        double sumI = 0;
-        for (int l = 0; l < volIntegrals.sizeX(); ++l)
+        for (int l = 0; l < transVolMom.sizeX(); ++l)
         {
-            for (int m = 0; m < volIntegrals.sizeY(); ++m)
+            for (int m = 0; m < transVolMom.sizeY(); ++m)
             {
-                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
+                for (int n = 0; n < transVolMom.sizeZ(); ++n)
                 {
-                    sumI += volIntegrals(l,m,n);
-                    REQUIRE(Approx(volIntegrals(l,m,n)) == transVolMom(l,m,n));
+                    if (n==0 && m==0 && l==0)
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0);
+                    else if (   (n==2 && m == 0 && l == 0)
+                        || (n==0 && m == 2 && l == 0)
+                        || (n==0 && m == 0 && l == 2))
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/12.0);
+                    else 
+                        REQUIRE(Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
         
-        REQUIRE(Approx(sumI) == 1.25);
         
-        double sumJInv = 0;
-        for (int i=0; i < 3; i++)
-        {
-            for (int j=0; j < 3; j++)
-            {
-                sumJInv += JInvI[i][j];
-            }
-        }
-        
-        REQUIRE(Approx(sumJInv) == 10.0);
-        
+        // Check that the determinant is correct
+        // The determinant of the inverse Jacobi matrix is an expression
+        // for the inverse volume if the cell is rectengular
+        // E.g.: V' = det(JInv) * V
+        // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
+        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);        
     }
     
     
@@ -298,6 +314,31 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
         
+        // For a quadar the volume integral is always zero except for 
+        // n=0, m=0, l=2;   n=0, m=2, l=0;   n=2,m=0,l=0
+        // It would also be non zero for n=2,m=2,l=0 but that is out of bounds
+        // for the polOrder of three
+        // All other entries have to be zero
+        // The volume integral is easy to calculate for these points by hand
+        for (int l = 0; l < volIntegrals.sizeX(); ++l)
+        {
+            for (int m = 0; m < volIntegrals.sizeY(); ++m)
+            {
+                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
+                {
+                    if (n==0 && m==0 && l==0)
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0);
+                    else if (   (n==2 && m == 0 && l == 0)
+                        || (n==0 && m == 2 && l == 0)
+                        || (n==0 && m == 0 && l == 2))
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/12.0);
+                    else 
+                        REQUIRE(Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
+                }
+            }
+        }
+        
+        
         const point transCenterJ =
         Foam::geometryWENO::transformPoint
         (
@@ -314,34 +355,31 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         );
                 
         
-        
-        // Quick Check of volIntegrals by using the sum over all elements:
-        double sumI = 0;
-        for (int l = 0; l < volIntegrals.sizeX(); ++l)
+        for (int l = 0; l < transVolMom.sizeX(); ++l)
         {
-            for (int m = 0; m < volIntegrals.sizeY(); ++m)
+            for (int m = 0; m < transVolMom.sizeY(); ++m)
             {
-                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
+                for (int n = 0; n < transVolMom.sizeZ(); ++n)
                 {
-                    sumI += volIntegrals(l,m,n);
-                    REQUIRE(Approx(volIntegrals(l,m,n)) == transVolMom(l,m,n));
+                    if (n==0 && m==0 && l==0)
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0);
+                    else if (   (n==2 && m == 0 && l == 0)
+                        || (n==0 && m == 2 && l == 0)
+                        || (n==0 && m == 0 && l == 2))
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/12.0);
+                    else 
+                        REQUIRE(Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
         
-        REQUIRE(Approx(sumI) == 1.25);
         
-        double sumJInv = 0;
-        for (int i=0; i < 3; i++)
-        {
-            for (int j=0; j < 3; j++)
-            {
-                sumJInv += JInvI[i][j];
-            }
-        }
-        
-        REQUIRE(Approx(sumJInv) == 10.0);
-
+        // Check that the determinant is correct
+        // The determinant of the inverse Jacobi matrix is an expression
+        // for the inverse volume if the cell is rectengular
+        // E.g.: V' = det(JInv) * V
+        // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
+        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);
     }
     
     
@@ -353,6 +391,39 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         
         geometryWENO::initIntegrals(mesh,cellI,polOrder,volIntegrals,JInvI,refPointI,refDetI);
         
+        // For a quadar the volume integral is always zero except for 
+        // n=0, m=0, l=2;   n=0, m=2, l=0;   n=2,m=0,l=0
+        // n=2, m=2, l=0;   n=2, m=0, l=2;   n=0,m=2,l=2
+        // All other entries have to be zero
+        // The volume integral is easy to calculate for these points by hand
+        for (int l = 0; l < volIntegrals.sizeX(); ++l)
+        {
+            for (int m = 0; m < volIntegrals.sizeY(); ++m)
+            {
+                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
+                {
+                    Info << "n,m,l"<<n<<","<<m<<","<<l<<endl;
+                    if (n==0 && m==0 && l==0)
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0);
+                    else if (   (n==2 && m == 0 && l == 0)
+                        || (n==0 && m == 2 && l == 0)
+                        || (n==0 && m == 0 && l == 2))
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/12.0);
+                    else if (   (n==2 && m == 2 && l == 0)
+                        || (n==0 && m == 2 && l == 2)
+                        || (n==2 && m == 0 && l == 2))
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/144.0);
+                    else if (   (n==4 && m == 0 && l == 0)
+                        || (n==0 && m == 4 && l == 0)
+                        || (n==0 && m == 0 && l == 4))
+                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/80.0);
+                    else 
+                        REQUIRE(Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
+                }
+            }
+        }
+        
+        
         const point transCenterJ =
         Foam::geometryWENO::transformPoint
         (
@@ -369,33 +440,38 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         );
                 
         
-        
-        // Quick Check of volIntegrals by using the sum over all elements:
-        double sumI = 0;
-        for (int l = 0; l < volIntegrals.sizeX(); ++l)
+        for (int l = 0; l < transVolMom.sizeX(); ++l)
         {
-            for (int m = 0; m < volIntegrals.sizeY(); ++m)
+            for (int m = 0; m < transVolMom.sizeY(); ++m)
             {
-                for (int n = 0; n < volIntegrals.sizeZ(); ++n)
+                for (int n = 0; n < transVolMom.sizeZ(); ++n)
                 {
-                    sumI += volIntegrals(l,m,n);
-                    REQUIRE(Approx(volIntegrals(l,m,n)) == transVolMom(l,m,n));
+                    if (n==0 && m==0 && l==0)
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0);
+                    else if (   (n==2 && m == 0 && l == 0)
+                        || (n==0 && m == 2 && l == 0)
+                        || (n==0 && m == 0 && l == 2))
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/12.0);
+                    else if (   (n==2 && m == 2 && l == 0)
+                        || (n==0 && m == 2 && l == 2)
+                        || (n==2 && m == 0 && l == 2))
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/144.0);
+                    else if (   (n==4 && m == 0 && l == 0)
+                        || (n==0 && m == 4 && l == 0)
+                        || (n==0 && m == 0 && l == 4))
+                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/80.0);
+                    else 
+                        REQUIRE(Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
-        REQUIRE(Approx(sumI) == 1.308333);
         
-        double sumJInv = 0;
-        for (int i=0; i < 3; i++)
-        {
-            for (int j=0; j < 3; j++)
-            {
-                sumJInv += JInvI[i][j];
-            }
-        }
-        
-        REQUIRE(Approx(sumJInv) == 10.0);
-
+        // Check that the determinant is correct
+        // The determinant of the inverse Jacobi matrix is an expression
+        // for the inverse volume if the cell is rectengular
+        // E.g.: V' = det(JInv) * V
+        // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
+        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);
     }
     
 }

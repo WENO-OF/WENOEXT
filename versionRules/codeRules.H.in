@@ -43,6 +43,7 @@ Contributors/Copyright:
 #cmakedefine OF_FORK_ESI
 #cmakedefine OF_FORK_ORG
 #cmakedefine OF_FORK_VERSION @OF_FORK_VERSION@
+#cmakedefine USE_LAPACK
 
 #if __cplusplus > 199711L
 #define FOAM_CXX_COMPILER_ALLOWS_NON_POD_IN_UNION

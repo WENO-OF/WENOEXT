@@ -36,9 +36,9 @@
 # ===========================================================================
 
 cmake_minimum_required (VERSION 3.10)
+# make cache variables for install destinations
+include(GNUInstallDirs)
 
-# Project name 
-project (WENOEXT)
 
 # Enforce C++ 14 standard
 # C++ 14 is required for blaze
@@ -60,6 +60,21 @@ if (NOT DEFINED ENV{FOAM_USER_LIBBIN} OR NOT DEFINED ENV{FOAM_SRC})
     message(FATAL_ERROR "OpenFOAM environemt variables not available")
 endif()
 
+#===============================================================================
+#   Switch to activate march=native 
+#===============================================================================
+# If the code is distributed on several different CPU architectures swtich
+# this option off
+# Default is ON
+
+option (MARCH_NATIVE "If enabled, uses -march=native" ON)
+
+# Blaze requires LAPACK for the calculation of SVD and the eigenvalues of 
+# a matrix.
+# If Blaze functions should be used it has to be switched on
+# Default: OFF
+option (USE_LAPACK "If enabled, uses LAPACK for matrix operations" OFF)
+
 
 #===============================================================================
 #   Create Version File
@@ -80,12 +95,36 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+execute_process(
+    COMMAND git describe --tags  
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_TAG
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Process tag string to set the CMake project version
+string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" VERSION_MAJOR "${GIT_TAG}")
+string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${GIT_TAG}")
+string(REGEX REPLACE "^[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_SHA1 "${GIT_TAG}")
+
+set(WENOEXT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
+
 configure_file(
     ${CMAKE_SOURCE_DIR}/versionRules/version.h.in
     ${CMAKE_BINARY_DIR}/generated/version.h
 )
 
 include_directories(${CMAKE_BINARY_DIR}/generated)
+
+
+# Project name 
+project (WENOEXT VERSION ${WENOEXT_VERSION})
+
+# Set default install path
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/installed" CACHE PATH "default install path" FORCE )
+endif()
+
 
 
 #===============================================================================
@@ -123,7 +162,12 @@ configure_file(
     ${CMAKE_BINARY_DIR}/generated/codeRules.H
 )
 
+# Install generated files
+install(FILES ${CMAKE_BINARY_DIR}/generated/version.h
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
+install(FILES ${CMAKE_BINARY_DIR}/generated/codeRules.H
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 
 # If VERSION > 1000 then it is a OpenFOAM.com (ESI) version
@@ -141,11 +185,16 @@ endif()
 
 # Set c++ flags
 add_compile_options(
-    -m64 
     -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated
     -ftemplate-depth-100
     -O3
     )
+
+if (${MARCH_NATIVE})
+add_compile_options(
+    -march=native
+    )
+endif()
 
 set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
 
@@ -153,16 +202,17 @@ set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-need
 add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE} -DNoRepository)
 
 
+
 #===============================================================================
 #                           Add subdirectories
 #===============================================================================
-
-
 
 # Directory to build the library
 add_subdirectory(blaze-3.8)
 add_subdirectory(libWENOEXT)
 add_subdirectory(utilities)
+
+
 
 message("\n-------------------------------------------------------------------") 
 message("\tBuild State")
@@ -186,6 +236,13 @@ endif()
 message("-------------------------------------------------------------------\n")
 
 
+#===============================================================================
+#                      Install CMake Exports
+#===============================================================================
 
-
+install(EXPORT WENOEXTTargets 
+        FILE WENOEXT.cmake
+        NAMESPACE WENOEXT::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/WENOEXT
+)
 

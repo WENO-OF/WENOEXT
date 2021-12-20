@@ -99,10 +99,17 @@ protected:
 
         //- Lists of field values of halo cells
         //  Has to be mutable so getWENOPol is const 
-        mutable List<List<Type> > haloData_;
+        mutable List<List<Type> > receiveHaloData_;
+
+        //- Lists of field values of halo cells
+        //  Has to be mutable so getWENOPol is const 
+        mutable List<List<Type> > sendHaloData_;
 
         //- Storage for bJ matrix needed in calcCoeff
         mutable blaze::DynamicMatrix<scalar,blaze::columnMajor> bJ_;
+
+        //- Outstanding request
+        mutable labelList outstandingRecvRequest_;
 
     // Private Member Functions
 
@@ -127,13 +134,11 @@ protected:
             DynamicList<coeffType>& coeffsList
         ) const;
 
-
         //- Get weighted combination for any other type
         virtual void calcWeight
         (
             Field<Type>& coeffsWeightedI,
             const label cellI,
-            const GeometricField<Type, fvPatchField, volMesh>& vf,
             const DynamicList<coeffType>& coeffsI
         ) const;
 

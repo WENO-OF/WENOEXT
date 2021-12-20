@@ -150,7 +150,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
                     // Loop over the components
                     for (label compI = 0; compI < nComp; compI++)
                         bJ_(j-1,compI) =
-                            component(haloData_[cellToProcMapI[j]][stencilsIDI[j]],compI)
+                            component(receiveHaloData_[cellToProcMapI[j]][stencilsIDI[j]],compI)
                           - component(vf[cellI],compI);
                 }
             }
@@ -170,7 +170,6 @@ void Foam::WENOCoeff<Type>::calcWeight
 (
     Field<Type>& coeffsWeightedI,
     const label cellI,
-    const GeometricField<Type, fvPatchField, volMesh>& vf,
     const DynamicList<coeffType>& coeffsList
 ) const 
 {
@@ -229,50 +228,71 @@ void Foam::WENOCoeff<Type>::collectData
 ) const
 {
     // Distribute data to neighbour processors
-
-    haloData_.setSize(WENOBase_.ownHalos().size());
-
-    forAll(haloData_, procI)
-    {
-        haloData_[procI].setSize(WENOBase_.ownHalos()[procI].size());
-
-        forAll(haloData_[procI], cellI)
-        {
-            haloData_[procI][cellI] =
-                vf.internalField()[WENOBase_.ownHalos()[procI][cellI]];
-        }
-    }
+    receiveHaloData_.setSize(WENOBase_.receiveHaloSize().size());
+    sendHaloData_.setSize(WENOBase_.sendHaloCellIDList().size());
     
     
-    #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
-        PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
-    #else
-        PstreamBuffers pBufs(Pstream::nonBlocking);
-    #endif
-
-    // Distribute data
-    forAll(WENOBase_.sendProcList(), procI)
+    outstandingRecvRequest_.setSize(WENOBase_.receiveHaloSize().size(),-1);
+    
+    // store current request index
+    const label nReq = UPstream::nRequests();
+    
+    // This represents initEvaluate of processorFvPatchField.C
+    forAll(receiveHaloData_, procI)
     {
-        if (WENOBase_.sendProcList()[procI] != -1)
+        receiveHaloData_[procI].setSize(WENOBase_.receiveHaloSize()[procI]);
+        // Make const references for easier access
+        const labelList& sendHaloCellIDs = WENOBase_.sendHaloCellIDList()[procI];
+        const label sendProcID = WENOBase_.sendProcList()[procI];
+        const label receiveProcID = WENOBase_.receiveProcList()[procI];
+        sendHaloData_[procI].setSize(sendHaloCellIDs.size());
+        
+        if (sendProcID == -1 && receiveProcID == -1)
+            continue;
+
+        // Fill halo data to send to other processors
+        forAll(sendHaloData_[procI], cellI)
         {
-            UOPstream toBuffer(WENOBase_.sendProcList()[procI], pBufs);
-            toBuffer << haloData_[procI];
+            sendHaloData_[procI][cellI] =
+                vf.internalField()[sendHaloCellIDs[cellI]];
         }
-    }
-
-    pBufs.finishedSends();
-
-    // Collect data
-
-    forAll(WENOBase_.receiveProcList(), procI)
-    {
-        haloData_[procI].clear();
-        if (WENOBase_.receiveProcList()[procI] != -1)
+        
+        if (receiveProcID != -1)
         {
-            UIPstream fromBuffer(WENOBase_.receiveProcList()[procI], pBufs);
-            fromBuffer >> haloData_[procI];
+            outstandingRecvRequest_[procI] = UPstream::nRequests();
+            // UIPstream from processorFvPatchField.C
+            UIPstream::read
+            (
+                Pstream::commsTypes::nonBlocking,
+                receiveProcID,
+                reinterpret_cast<char*>(receiveHaloData_[procI].data()), // The data to read into
+                receiveHaloData_[procI].byteSize(),
+                UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
+                mesh_.comm()   // this is the communicator stored e.g. in the mesh object
+            );
         }
+        
+        if (sendProcID != -1)
+        {
+            // UIPstream from processorFvPatchField.C
+            UOPstream::write
+            (
+                Pstream::commsTypes::nonBlocking,
+                sendProcID,
+                reinterpret_cast<char*>(sendHaloData_[procI].data()), // The data to read into
+                sendHaloData_[procI].byteSize(),
+                UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
+                mesh_.comm()   // this is the communicator stored e.g. in the mesh object
+            );
+        }
+            
     }
+    
+    // Note: For large scale simulations it appears that one 
+    // MPI_Waitall is better than using MPI_Wait for each request.
+    // Also using MPI_Test in calcCoeff() for a real non-blocking communication
+    // increased communication time for large number of processors (>2000)
+    UPstream::waitRequests(nReq);
 }
 
 
@@ -285,7 +305,6 @@ Foam::WENOCoeff<Type>::getWENOPol
 {
     if (Pstream::parRun())
         collectData(vf);
-
 
     // Runtime operations
     
@@ -327,7 +346,6 @@ Foam::WENOCoeff<Type>::getWENOPol
         (
             coeffsWeighted[cellI],
             cellI,
-            vf,
             coeffsI
         );
     }

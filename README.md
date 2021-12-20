@@ -48,6 +48,28 @@ When using this work please cite:
 2. Execute `Allwmake` to build the library
    The compilation of the library uses cmake instead of wmake files!
 
+### Options
+
+Parallel compilation can be activated with:
+`./Allwmake -j <# of cores>`
+if the number of cores is omitted then the number of cores is determined
+automatically.
+
+On the master branch only clean git commits can be compiled. 
+If a dirty git state shall be compiled the `-f|--force` option has to be used
+on the master branch. 
+
+By default the `march=native` compiler flag is activated. For some cases it is 
+necessary to deactive this flag. To deactivate this flag use:
+`./Allwmake -DMARCH_NATIVE=OFF`
+
+
+To compute the eigenvalues of a matrix and the Jacobi inverse matrices own
+functions defined in mathFunctionsWENO are used. It is possible to switch on 
+the usage of LAPACK libraries by setting 
+`./Allwmake -DUSE_LAPACK=ON`
+If switched on, check with the [WENO-PerformanceTests](https://github.com/WENO-OF/WENO-PerformanceTests)
+if the performance improves or decreases.
 
 ### Note to GNU compiler:
 

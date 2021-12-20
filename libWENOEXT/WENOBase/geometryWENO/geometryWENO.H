@@ -30,6 +30,8 @@ Description
 
 SourceFiles
     geometryWENO.C
+    
+    [1] T. Pringuey, “Large Eddy Simulation of Primary Breakup,” 2012.
 
 Author
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
@@ -45,6 +47,7 @@ Author
 #include "fvMesh.H"
 #include "fvCFD.H"
 #include "blaze/Math.h"
+#include "BlazeIO.H"
 #include "List3D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -61,24 +64,29 @@ namespace geometryWENO
 
     //- Typedef for 3D scalar matrix
     using volIntegralType = List3D<scalar>;
-    using scalarSquareMatrix = SquareMatrix<scalar>;
+    using scalarSquareMatrix = blaze::StaticMatrix<scalar,3UL,3UL,blaze::rowMajor>;
     using DynamicMatrix = blaze::DynamicMatrix<scalar>;
+    
+    //- For static matrices a custom allocator is required when dynamic
+    //  allocation is used. OpenFOAM does not provide an option for an 
+    //  allocator with a list. 
+    using blazeList = std::vector<geometryWENO::scalarSquareMatrix,blaze::AlignedAllocator<scalar>>;
     
     // Member Functions
 
         //- Evaluate the surface integral using Gaussian quadrature
         scalar gaussQuad
         (
-            const scalar n,
-            const scalar m,
-            const scalar l,
-            const point x0,
-            const vector v0,
-            const vector v1,
-            const vector v2
+            const int n,
+            const int m,
+            const int l,
+            const point& x0,
+            const vector& v0,
+            const vector& v1,
+            const vector& v2
         );
 
-        //- Calculate integral of Eq. (3.20) in Master Thesis 
+        //- Calculate integral of Eq. (6.23) in Pringuey PhD thesis [1]
         //  for any combination of l,m,n with the restrain '(l+m+n) < r'
         void initIntegrals
         (
@@ -97,26 +105,21 @@ namespace geometryWENO
         (
             const fvMesh& mesh,
             const label cellJ,
-            const point transCenterJ,
+            const point& transCenterJ,
             const label polOrder,
             const scalarSquareMatrix& JInvI,
-            const point refPointI,
+            const point& refPointI,
             const scalar refDetI,
             volIntegralType& transVolMom
         );
-
-        //- Calculate inverse of Jacobian matrix
-        scalarSquareMatrix JacobiInverse
-        (
-            const scalarSquareMatrix& J
-        );
+        
 
         //- Transform an arbitrary point into reference space of owner cell
         point transformPoint
         (
             const scalarSquareMatrix& Jinv,
-            const point xP,
-            const point x0
+            const point& xP,
+            const point& x0
         );
 
 
@@ -127,7 +130,7 @@ namespace geometryWENO
             const label cellI,
             const label polOrder,
             const scalarSquareMatrix& JacobianI,
-            const point refPointI,
+            const point& refPointI,
             volIntegralType& smoothVolIntegral
         );
 
@@ -139,7 +142,7 @@ namespace geometryWENO
             const label polOrder,
             const label nDvt,
             const scalarSquareMatrix& JInvI,
-            const point refPointI,
+            const point& refPointI,
             const labelList& dim
         );
 
@@ -152,7 +155,7 @@ namespace geometryWENO
             const fvMesh& mesh,
             const label polOrder,
             const List<volIntegralType>& volIntegralsList,
-            const List<scalarSquareMatrix>& JInv,
+            const blazeList& JInv,
             const List<point>& refPoint,
             List<Pair<volIntegralType> >& intBasTrans,
             List<scalar>& refFacAr
@@ -182,7 +185,8 @@ namespace geometryWENO
             const scalar x3, const scalar y3, const scalar z3
         );
 
-        bool checkReferenceFrame(const labelList& refFrame, const pointField& pts);
+        //- Calculate the matrix condition of matrix J
+        scalar cond(const scalarSquareMatrix& J);
 
         // Const array for Gauss quadratur 7th order
         // Coefficients can be found in 
@@ -220,7 +224,13 @@ namespace geometryWENO
             //{0.79742698535309, 0.10128650732346, 0.12593918054483}
         //};
         
-
+        //- Calculate the inverse of the Jacobi Matrix J and perform
+        //  additional checks and modifications to improve the condition
+        void calculateInverseJacobi
+        (
+            const scalarSquareMatrix& J, 
+            scalarSquareMatrix& JInvI
+        );
 
 } // End namespace geometryWENO
 

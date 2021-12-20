@@ -9,7 +9,29 @@
 
 add_library(Blaze INTERFACE)
 
-target_include_directories(Blaze INTERFACE  .)
+target_include_directories(Blaze INTERFACE
+   "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>"
+   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Blaze>"
+)
+
+install(TARGETS Blaze
+        EXPORT WENOEXTTargets 
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Blaze)
+
+install(DIRECTORY blaze DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Blaze)
+
+
+
+
+#===============================================================================
+# Configure LAPACK
+#===============================================================================
+
+if (USE_LAPACK)
+    find_package(LAPACK REQUIRED)
+    target_link_libraries(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LIBRARIES}>)
+    target_compile_options(Blaze INTERFACE $<BUILD_INTERFACE:${LAPACK_LINKER_FLAGS}>)
+endif()
 
 
 #===============================================================================
