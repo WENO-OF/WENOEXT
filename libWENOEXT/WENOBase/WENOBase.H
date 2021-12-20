@@ -1,25 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                         
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
     Foam::WENOBase
@@ -31,7 +32,7 @@ SourceFiles
     WENOBase.C
 
 Author
-    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020de>
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020>
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
 
 \*---------------------------------------------------------------------------*/
@@ -86,10 +87,6 @@ class WENOBase
 
         //- Typedef for 3D scalar matrix
         using volIntegralType = List3D<scalar> ;
-        
-        //- C++11 typedef for squareMatrix
-        //  This is used for Jacobian matrix
-        using scalarSquareMatrix = SquareMatrix<scalar>;
 
         //- Path to lists in constant folder
         fileName Dir_;
@@ -121,8 +118,11 @@ class WENOBase
         //  stencilsID_
         List<labelListList> stencilsGlobalID_;
 
-        //- Lists of ID's of halo cells
-        labelListList ownHalos_;
+        //- Lists of ID's of halo cells to send to other processors
+        labelListList sendHaloCellIDList_;
+        
+        //- List of receivingHalo sizes
+        labelList receiveHaloSize_;
 
         //- Mapping cell to halo processor 
         //  Could be extended to boundary conditions
@@ -139,6 +139,7 @@ class WENOBase
 
         //- List of volume integrals over basis functions
         //  Calculated in the reference space
+        // TODO: Make this an autoPtr so memory can be released
         List<volIntegralType> volIntegralsList_;
 
         //- Lists of surface integrals of basis functions
@@ -150,7 +151,7 @@ class WENOBase
         List<scalar> refFacAr_;
 
         //- Lists of inverse Jacobians for each cell
-        List<scalarSquareMatrix> JInv_;
+        geometryWENO::blazeList JInv_;
 
         //- Lists of determinants of inverse Jacobian for each cell
         List<scalar> refDet_;
@@ -241,8 +242,7 @@ class WENOBase
         //  halo cells
         void correctParallelRun
         (
-            const WENO::globalfvMesh& globalfvMesh,
-            const labelList& nStencils
+            const WENO::globalfvMesh& globalfvMesh
         );
         
         
@@ -321,51 +321,76 @@ public:
             return stencilsID_;
         }
         
+        //- Map cells of stencil to the processor
+        //  If the entry is Cell::local than it is a local cell
         inline const List<labelListList>& cellToProcMap() const 
         {
             return cellToProcMap_;
         }
         
+        //- List of processors IDs to receive information from
+        //  The List has the size of all processors and the entry -1 if 
+        //  no information is received from that processor
         inline const labelList& receiveProcList() const
         {
             return receiveProcList_;
         }
         
+        //- List of processors IDs to send information to.
+        //  The list has the size of all processors and entry -1 stands for no
+        //  information being send
         inline const labelList& sendProcList() const
         {
             return sendProcList_;
         }
         
-        inline const labelListList& ownHalos() const 
+        //- For the given processor ID return the list of local cellIDs to send
+        inline const labelListList& sendHaloCellIDList() const 
         {
-            return ownHalos_;
+            return sendHaloCellIDList_;
         }
         
+        //- The number of cells to be received for the given processor ID
+        //  e.g. receiveHaloSize[procID] returns the number of cells received 
+        //  by processor procID
+        inline const labelList& receiveHaloSize() const 
+        {
+            return receiveHaloSize_;
+        }
+        
+        //- Matrix data bank with pseudo inverse matrices
         inline const matrixDB& LSmatrix() const
         {
             return LSmatrix_;
         }
         
+        //- List of smoothing matrices
         inline const List<geometryWENO::DynamicMatrix>& B() const 
         {
             return B_;
         }
         
+        //- Returns lists of surface integrals of basis functions
+        //  Calculated in the reference space stored for the owner and neighbour
+        //  side. Owner side is the first entry and neighbour side the second
         inline const List<Pair<volIntegralType>>& intBasTrans() const 
         {
             return intBasTrans_;
         }
         
+        //- List of face areas in the reference space
         inline const List<scalar>& refFacAr() const 
         {
             return refFacAr_;
         }
         
+        //- List of number of solution dimensions 
         inline const labelListList& dimList() const 
         {
             return dimList_;
         }
         
+        //- The degrees of freedom of the polynome
         inline label degreesOfFreedom() const
         {
             return nDvt_;

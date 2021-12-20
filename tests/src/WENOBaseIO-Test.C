@@ -1,25 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                         
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
     WENOBase I/O Test 
@@ -131,13 +132,13 @@ TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
     List<labelListList> cellToProcMap = WENO.cellToProcMap();
     labelList receiveProcList = WENO.receiveProcList();
     labelList sendProcList = WENO.sendProcList();
-    labelListList ownHalos = WENO.ownHalos();
+    labelListList sendHaloCellIDList = WENO.sendHaloCellIDList();
     List<geometryWENO::DynamicMatrix> B = WENO.B();
     List<Pair<geometryWENO::volIntegralType>> intBasTrans = WENO.intBasTrans();
     List<scalar> refFacAr =WENO.refFacAr();
     labelListList dimList = WENO.dimList();
     label degreesOfFreedom = WENO.degreesOfFreedom();
-    List<List<blaze::DynamicMatrix<double>>> LSMatrix;
+    List<List<geometryWENO::DynamicMatrix>> LSMatrix;
     LSMatrix.resize(WENO.LSmatrix().size());
     forAll(LSMatrix,cellI)
     {
@@ -163,8 +164,8 @@ TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
     checkList(receiveProcList,WENO.receiveProcList());
     INFO("Check sendProcList ...");
     checkList(sendProcList,WENO.sendProcList());
-    INFO("Check ownHalos ...");
-    checkList(ownHalos,WENO.ownHalos());
+    INFO("Check sendHaloCellIDList ...");
+    checkList(sendHaloCellIDList,WENO.sendHaloCellIDList());
     INFO("Check B List ...")
     checkList(B,WENO.B());
     INFO("Check intBasTrans ...")

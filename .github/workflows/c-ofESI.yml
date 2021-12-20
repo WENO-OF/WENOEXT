@@ -2,9 +2,9 @@ name: OpenFOAM ESI
 
 on:
   push:
-    branches: [ master, dev-v3.x]
+    branches: [ master, hotfix-* ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, development ]
 
 jobs:
   build-OF1912:
@@ -24,3 +24,12 @@ jobs:
     - uses: actions/checkout@v2
     - name: OpenFOAMv2006
       run: make runTestsOFv2006
+  
+  build-OF2012:
+    name: OpenFOAM v2012
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: OpenFOAMv2012
+      run: make runTestsOFv2012

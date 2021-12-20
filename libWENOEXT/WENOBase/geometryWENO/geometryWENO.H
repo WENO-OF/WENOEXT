@@ -1,25 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                      
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
     Foam::geometryWENO
@@ -29,6 +30,8 @@ Description
 
 SourceFiles
     geometryWENO.C
+    
+    [1] T. Pringuey, “Large Eddy Simulation of Primary Breakup,” 2012.
 
 Author
     Tobias Martin, <tobimartin2@googlemail.com>.  All rights reserved.
@@ -44,6 +47,7 @@ Author
 #include "fvMesh.H"
 #include "fvCFD.H"
 #include "blaze/Math.h"
+#include "BlazeIO.H"
 #include "List3D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -60,24 +64,29 @@ namespace geometryWENO
 
     //- Typedef for 3D scalar matrix
     using volIntegralType = List3D<scalar>;
-    using scalarSquareMatrix = SquareMatrix<scalar>;
+    using scalarSquareMatrix = blaze::StaticMatrix<scalar,3UL,3UL,blaze::rowMajor>;
     using DynamicMatrix = blaze::DynamicMatrix<scalar>;
+    
+    //- For static matrices a custom allocator is required when dynamic
+    //  allocation is used. OpenFOAM does not provide an option for an 
+    //  allocator with a list. 
+    using blazeList = std::vector<geometryWENO::scalarSquareMatrix,blaze::AlignedAllocator<scalar>>;
     
     // Member Functions
 
         //- Evaluate the surface integral using Gaussian quadrature
         scalar gaussQuad
         (
-            const scalar n,
-            const scalar m,
-            const scalar l,
-            const point x0,
-            const vector v0,
-            const vector v1,
-            const vector v2
+            const int n,
+            const int m,
+            const int l,
+            const point& x0,
+            const vector& v0,
+            const vector& v1,
+            const vector& v2
         );
 
-        //- Calculate integral of Eq. (3.20) in Master Thesis 
+        //- Calculate integral of Eq. (6.23) in Pringuey PhD thesis [1]
         //  for any combination of l,m,n with the restrain '(l+m+n) < r'
         void initIntegrals
         (
@@ -96,26 +105,21 @@ namespace geometryWENO
         (
             const fvMesh& mesh,
             const label cellJ,
-            const point transCenterJ,
+            const point& transCenterJ,
             const label polOrder,
             const scalarSquareMatrix& JInvI,
-            const point refPointI,
+            const point& refPointI,
             const scalar refDetI,
             volIntegralType& transVolMom
         );
-
-        //- Calculate inverse of Jacobian matrix
-        scalarSquareMatrix JacobiInverse
-        (
-            const scalarSquareMatrix& J
-        );
+        
 
         //- Transform an arbitrary point into reference space of owner cell
         point transformPoint
         (
             const scalarSquareMatrix& Jinv,
-            const point xP,
-            const point x0
+            const point& xP,
+            const point& x0
         );
 
 
@@ -126,7 +130,7 @@ namespace geometryWENO
             const label cellI,
             const label polOrder,
             const scalarSquareMatrix& JacobianI,
-            const point refPointI,
+            const point& refPointI,
             volIntegralType& smoothVolIntegral
         );
 
@@ -138,7 +142,7 @@ namespace geometryWENO
             const label polOrder,
             const label nDvt,
             const scalarSquareMatrix& JInvI,
-            const point refPointI,
+            const point& refPointI,
             const labelList& dim
         );
 
@@ -151,7 +155,7 @@ namespace geometryWENO
             const fvMesh& mesh,
             const label polOrder,
             const List<volIntegralType>& volIntegralsList,
-            const List<scalarSquareMatrix>& JInv,
+            const blazeList& JInv,
             const List<point>& refPoint,
             List<Pair<volIntegralType> >& intBasTrans,
             List<scalar>& refFacAr
@@ -181,6 +185,9 @@ namespace geometryWENO
             const scalar x3, const scalar y3, const scalar z3
         );
 
+        //- Calculate the matrix condition of matrix J
+        scalar cond(const scalarSquareMatrix& J);
+
         // Const array for Gauss quadratur 7th order
         // Coefficients can be found in 
         //   Quadrature Formulas in Two DimensionsMath 5172 
@@ -204,7 +211,7 @@ namespace geometryWENO
             {0.63844418856981, 0.31286549600487,  0.07711376089026}, // 10
             {0.31286549600487, 0.04869031542532,  0.07711376089026}, // 11
             {0.04869031542532, 0.63844418856981,  0.07711376089026} // 12
-        
+        };
         // Coeffcients for 5th order
         //const static scalar gaussCoeff[7][3] = 
         //{
@@ -216,8 +223,14 @@ namespace geometryWENO
             //{0.10128650732346, 0.79742698535309, 0.12593918054483},
             //{0.79742698535309, 0.10128650732346, 0.12593918054483}
         //};
-};
-
+        
+        //- Calculate the inverse of the Jacobi Matrix J and perform
+        //  additional checks and modifications to improve the condition
+        void calculateInverseJacobi
+        (
+            const scalarSquareMatrix& J, 
+            scalarSquareMatrix& JInvI
+        );
 
 } // End namespace geometryWENO
 

@@ -13,7 +13,7 @@ WORKDIR /home/gitlab/build
 COPY --chown=gitlab:gitlab . .
 
 # First compile the code
-RUN . $foamDotFile && ./Allwmake
+RUN . $foamDotFile && ./Allwclean && ./Allwmake
 
 # Run all unit tests
 RUN . $foamDotFile && cd tests && ./runTest

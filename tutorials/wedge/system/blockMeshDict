@@ -16,6 +16,8 @@ FoamFile
 
 convertToMeters 0.1;
 
+mergeType   points;
+
 vertices
 (
     (0 0 0)

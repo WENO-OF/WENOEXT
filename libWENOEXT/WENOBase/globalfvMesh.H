@@ -1,25 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                    
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
     Foam::WENO::globalfvMesh
@@ -66,10 +67,13 @@ class globalfvMesh
         //- List of processors that require my cells 
         //  e.g.: that have this processor as neighbour
         const labelList sendToProcessor_;
-    
+
         //- Pointer to the global mesh
         autoPtr<fvMesh> globalMeshPtr_;
-        
+
+        //- Pointer to the local mesh
+        autoPtr<fvMesh> localMeshPtr_;
+
         const fvMesh& globalMesh_;
         
         const fvMesh& localMesh_;
@@ -90,6 +94,8 @@ class globalfvMesh
         labelList neighborProcessorList(const fvMesh& mesh);
         
         labelList sendToProcessorList(const fvMesh& mesh);
+
+        autoPtr<fvMesh> createLocalMesh(const fvMesh& mesh);
         
         autoPtr<fvMesh> createGlobalMesh(const fvMesh& mesh);
         

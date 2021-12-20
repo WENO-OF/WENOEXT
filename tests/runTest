@@ -77,8 +77,6 @@ function runAll {
     
     cd ${currDir}/Cases/2DMesh-cyclic
     sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [upwindFitTest]
-    decomposePar -force 
-    ../../src/WENO_TEST [upwindFitTest-parallel]
 
     cd ${currDir}/Cases/2DMesh-cyclicAMI
     sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [upwindFitTest]

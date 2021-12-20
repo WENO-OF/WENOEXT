@@ -1,25 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                         
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
@@ -32,11 +33,6 @@ Author
 #include "WENOCoeff.H"
 #include "DynamicField.H"
 #include "processorFvPatch.H"
-
-
-// Generate macro for forAll expansion of unsigned integers
-#define forAllU(list,i) \
-    for (unsigned int i=0; i<(list).size();i++)
 
 // * * * * * * * * * * * * * *  Static Variables * * * * * * * * * * * * * * //
 template<class Type>
@@ -72,8 +68,6 @@ Foam::WENOCoeff<Type>::WENOCoeff
     ),
     nDvt_(WENOBase_.degreesOfFreedom())
 {
-    bJ_.reserve(100);
-    
     if (!printWENODict_)
     {
         // Read expert factors
@@ -107,7 +101,6 @@ Foam::WENOCoeff<Type>::WENOCoeff
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
-
 template<class Type>
 void Foam::WENOCoeff<Type>::calcCoeff
 (
@@ -118,7 +111,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
 ) const
 {
     // Set coefficient size to number of stencils
-    coeffsList.setSize(stencilList.size(),coeffType(1,pTraits<Type>::zero));
+    coeffsList.setSize(stencilList.size());
     
     label coeffIndex = 0;
     
@@ -129,29 +122,36 @@ void Foam::WENOCoeff<Type>::calcCoeff
         {
             const List<label>& stencilsIDI =
                 WENOBase_.stencilsID()[cellI][stencilI];
-            const blaze::DynamicMatrix<double>& A =
+            const auto& A =
                 WENOBase_.LSmatrix()[cellI][stencilI]();
             const List<label>& cellToProcMapI =
                 WENOBase_.cellToProcMap()[cellI][stencilI];
 
-            bJ_.resize(A.columns());
+            // Storage for bJ matrix needed in calcCoeff
+            // Note: resize also pre reserves the space by default, see blaze wiki
+            const label nComp = pTraits<Type>::nComponents;
+            bJ_.resize(A.columns(),nComp);
 
             // Calculate degrees of freedom of stencil as a matrix vector product
             // First line is always constraint line
 
             for (label j = 1; j < stencilsIDI.size(); j++)
             {
-
                 // Distinguish between local and halo cells
                 if (cellToProcMapI[j] == int(WENOBase::Cell::local))
                 {
-                    bJ_[j-1] = vf[stencilsIDI[j]] - vf[cellI];
+                    // Loop over the components
+                    for (label compI = 0; compI < nComp; compI++)
+                        bJ_(j-1,compI) = component(vf[stencilsIDI[j]],compI) 
+                                        - component(vf[cellI],compI);
                 }
                 else if(cellToProcMapI[j] != int(WENOBase::Cell::deleted))
                 {
-                    bJ_[j-1] =
-                        haloData_[cellToProcMapI[j]][stencilsIDI[j]]
-                      - vf[cellI];
+                    // Loop over the components
+                    for (label compI = 0; compI < nComp; compI++)
+                        bJ_(j-1,compI) =
+                            component(receiveHaloData_[cellToProcMapI[j]][stencilsIDI[j]],compI)
+                          - component(vf[cellI],compI);
                 }
             }
             
@@ -166,56 +166,133 @@ void Foam::WENOCoeff<Type>::calcCoeff
 
 
 template<class Type>
+void Foam::WENOCoeff<Type>::calcWeight
+(
+    Field<Type>& coeffsWeightedI,
+    const label cellI,
+    const DynamicList<coeffType>& coeffsList
+) const 
+{
+    const label nComp = pTraits<Type>::nComponents;
+
+    // Get smoothness indicator matrix B
+    const auto& B = WENOBase_.B()[cellI];
+
+    scalar gammaSum[nComp] = {0.0};
+    scalar gamma[nComp] = {0.0};
+
+    forAll(coeffsList, stencilI)
+    {
+        const auto& coeffs = coeffsList[stencilI];
+        
+        // First multiply B with coefficients
+        // See Eq. (6.37)  in [1]
+        auto sumB =  B*coeffs;
+        for (label compI=0; compI < nComp; compI++)
+        {
+            // Get reference to column
+            const auto colCoeff = column(coeffs,compI);
+            const auto colSumB = column(sumB,compI);
+            const scalar smoothInd = trans(colCoeff)*colSumB;
+            
+            if (stencilI == 0)
+            {
+                gamma[compI] = dm_/(intPow(epsilon_ + smoothInd,p_));
+            }
+            else
+            {
+                gamma[compI] = 1.0/(intPow(epsilon_ + smoothInd,p_));
+            }
+            
+            gammaSum[compI] += gamma[compI];
+         
+            forAll(coeffsWeightedI, coeffI)
+            {
+                setComponent(coeffsWeightedI[coeffI],compI) += gamma[compI] * colCoeff[coeffI];
+            }
+        }
+    }
+
+    forAll(coeffsWeightedI, coeffI)
+    {
+        for (label compI = 0; compI < nComp; compI++)
+            setComponent(coeffsWeightedI[coeffI],compI) /= gammaSum[compI];
+    }
+}
+
+
+template<class Type>
 void Foam::WENOCoeff<Type>::collectData
 (
     const GeometricField<Type, fvPatchField, volMesh>& vf
 ) const
 {
     // Distribute data to neighbour processors
-
-    haloData_.setSize(WENOBase_.ownHalos().size());
-
-    forAll(haloData_, procI)
-    {
-        haloData_[procI].setSize(WENOBase_.ownHalos()[procI].size());
-
-        forAll(haloData_[procI], cellI)
-        {
-            haloData_[procI][cellI] =
-                vf.internalField()[WENOBase_.ownHalos()[procI][cellI]];
-        }
-    }
+    receiveHaloData_.setSize(WENOBase_.receiveHaloSize().size());
+    sendHaloData_.setSize(WENOBase_.sendHaloCellIDList().size());
     
     
-    #ifdef FOAM_PSTREAM_COMMSTYPE_IS_ENUMCLASS 
-        PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
-    #else
-        PstreamBuffers pBufs(Pstream::nonBlocking);
-    #endif
-
-    // Distribute data
-    forAll(WENOBase_.sendProcList(), procI)
+    outstandingRecvRequest_.setSize(WENOBase_.receiveHaloSize().size(),-1);
+    
+    // store current request index
+    const label nReq = UPstream::nRequests();
+    
+    // This represents initEvaluate of processorFvPatchField.C
+    forAll(receiveHaloData_, procI)
     {
-        if (WENOBase_.sendProcList()[procI] != -1)
+        receiveHaloData_[procI].setSize(WENOBase_.receiveHaloSize()[procI]);
+        // Make const references for easier access
+        const labelList& sendHaloCellIDs = WENOBase_.sendHaloCellIDList()[procI];
+        const label sendProcID = WENOBase_.sendProcList()[procI];
+        const label receiveProcID = WENOBase_.receiveProcList()[procI];
+        sendHaloData_[procI].setSize(sendHaloCellIDs.size());
+        
+        if (sendProcID == -1 && receiveProcID == -1)
+            continue;
+
+        // Fill halo data to send to other processors
+        forAll(sendHaloData_[procI], cellI)
         {
-            UOPstream toBuffer(WENOBase_.sendProcList()[procI], pBufs);
-            toBuffer << haloData_[procI];
+            sendHaloData_[procI][cellI] =
+                vf.internalField()[sendHaloCellIDs[cellI]];
         }
-    }
-
-    pBufs.finishedSends();
-
-    // Collect data
-
-    forAll(WENOBase_.receiveProcList(), procI)
-    {
-        haloData_[procI].clear();
-        if (WENOBase_.receiveProcList()[procI] != -1)
+        
+        if (receiveProcID != -1)
         {
-            UIPstream fromBuffer(WENOBase_.receiveProcList()[procI], pBufs);
-            fromBuffer >> haloData_[procI];
+            outstandingRecvRequest_[procI] = UPstream::nRequests();
+            // UIPstream from processorFvPatchField.C
+            UIPstream::read
+            (
+                Pstream::commsTypes::nonBlocking,
+                receiveProcID,
+                reinterpret_cast<char*>(receiveHaloData_[procI].data()), // The data to read into
+                receiveHaloData_[procI].byteSize(),
+                UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
+                mesh_.comm()   // this is the communicator stored e.g. in the mesh object
+            );
         }
+        
+        if (sendProcID != -1)
+        {
+            // UIPstream from processorFvPatchField.C
+            UOPstream::write
+            (
+                Pstream::commsTypes::nonBlocking,
+                sendProcID,
+                reinterpret_cast<char*>(sendHaloData_[procI].data()), // The data to read into
+                sendHaloData_[procI].byteSize(),
+                UPstream::msgType(),   // this is UPstream::msgType() from processorFvPatch.H
+                mesh_.comm()   // this is the communicator stored e.g. in the mesh object
+            );
+        }
+            
     }
+    
+    // Note: For large scale simulations it appears that one 
+    // MPI_Waitall is better than using MPI_Wait for each request.
+    // Also using MPI_Test in calcCoeff() for a real non-blocking communication
+    // increased communication time for large number of processors (>2000)
+    UPstream::waitRequests(nReq);
 }
 
 
@@ -228,7 +305,6 @@ Foam::WENOCoeff<Type>::getWENOPol
 {
     if (Pstream::parRun())
         collectData(vf);
-
 
     // Runtime operations
     
@@ -243,7 +319,8 @@ Foam::WENOCoeff<Type>::getWENOPol
     
     Field<Field<Type> >& coeffsWeighted = coeffsWeightedTmp.ref();
     
-    DynamicList<coeffType> coeffsI(10,coeffType(1,pTraits<Type>::zero));
+    // Construct list with default 10 elements
+    DynamicList<coeffType> coeffsI(10);
 
 
     for (label cellI = 0; cellI < mesh_.nCells(); cellI++)
@@ -269,114 +346,11 @@ Foam::WENOCoeff<Type>::getWENOPol
         (
             coeffsWeighted[cellI],
             cellI,
-            vf,
             coeffsI
         );
     }
 
     return coeffsWeightedTmp;
-}
-
-
-// Specialisation for scalar
-template<>
-inline void Foam::WENOCoeff<Foam::scalar>::calcWeight
-(
-    Field<scalar>& coeffsWeightedI,
-    const label cellI,
-    const GeometricField<scalar, fvPatchField, volMesh>& vf,
-    const DynamicList<coeffType>& coeffsList
-) const
-{
-    scalar gamma = 0.0;
-    scalar gammaSum = 0.0;
-
-    forAll(coeffsList, stencilI)
-    {
-        const auto& coeffs = coeffsList[stencilI];
-        
-        const scalar smoothInd = trans(coeffs) * (WENOBase_.B()[cellI]*coeffs);
-
-        // Calculate gamma for central and sectorial stencils
-
-        if (stencilI == 0)
-        {
-            gamma = dm_/(intPow(epsilon_ + smoothInd,p_));
-        }
-        else
-        {
-            gamma = 1.0/(intPow(epsilon_ + smoothInd,p_));
-        }
-
-        gammaSum += gamma;
-
-        forAllU(coeffs, coeffI)
-        {
-            coeffsWeightedI[coeffI] += coeffs[coeffI]*gamma;
-        }
-    }
-
-    forAll(coeffsWeightedI, coeffI)
-    {
-        coeffsWeightedI[coeffI] /= gammaSum;
-    }       
-}
-
-
-
-template<class Type>
-void Foam::WENOCoeff<Type>::calcWeight
-(
-    Field<Type>& coeffsWeightedI,
-    const label cellI,
-    const GeometricField<Type, fvPatchField, volMesh>& vf,
-    const DynamicList<coeffType>& coeffsList
-) const 
-{
-    scalar gamma = 0.0;
-
-    for (label compI = 0; compI < vf[0].size(); compI++)
-    {
-        scalar gammaSum = 0.0;
-
-        forAll(coeffsList, stencilI)
-        {
-            const auto& coeffs = coeffsList[stencilI];
-
-            // Get smoothness indicator
-
-            scalar smoothInd = 0.0;
-            auto sumB =  WENOBase_.B()[cellI] * coeffs;
-            forAllU(coeffs, coeffP)
-            {
-                smoothInd += coeffs[coeffP][compI]*sumB[coeffP][compI];
-            }
-
-            // Calculate gamma for central and sectorial stencils
-
-            if (stencilI == 0)
-            {
-                gamma = dm_/(intPow(epsilon_ + smoothInd,p_));
-            }
-            else
-            {
-                gamma = 1.0/(intPow(epsilon_ + smoothInd,p_));
-            }
-
-            gammaSum += gamma;
-
-            forAllU(coeffs, coeffI)
-            {
-                coeffsWeightedI[coeffI][compI] += coeffs[coeffI][compI]*gamma;
-            }
-        }
-
-        forAll(coeffsWeightedI, coeffI)
-        {
-            coeffsWeightedI[coeffI][compI] /= gammaSum;
-        }
-        
-    }
 }
 
 

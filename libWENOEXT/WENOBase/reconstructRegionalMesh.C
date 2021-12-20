@@ -1,25 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                 
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
@@ -27,7 +28,7 @@ Author
 \*---------------------------------------------------------------------------*/
 
 #include "reconstructRegionalMesh.H"
-
+#include "masterUncollatedFileOperation.H"
 
 Foam::fileName Foam::reconstructRegionalMesh::localPath
 (
@@ -35,9 +36,21 @@ Foam::fileName Foam::reconstructRegionalMesh::localPath
     const label proci,
     const fileName file
 )
-{
-    // Get total path
-    return localMesh.time().path().path()/fileName("processor" + name(proci))/file;
+{        
+    // Create start time value
+    const scalar startTimeValue = (localMesh.time().startTime()).value();
+
+    // Fist check if a mesh is present in the time directory
+    fileName pathToTimeDir = localMesh.time().path().path()
+          / fileName("processor" + name(proci) + "/" + localMesh.time().timeName(startTimeValue) + "/" + polyMesh::meshSubDir)
+          / file;
+
+    if (exists(pathToTimeDir))
+        return pathToTimeDir;
+
+    return  localMesh.time().path().path()
+          / fileName("processor" + name(proci) + "/constant/" + polyMesh::meshSubDir)
+          / file;
 }
 
 
@@ -47,6 +60,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
     const fvMesh& localMesh
 )
 {
+    fileHandlerControl myFileHandler;
+    myFileHandler.setUncollated();
+
+
     word regionName = polyMesh::defaultRegion;
     word regionDir = word::null;
 
@@ -72,7 +89,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 IOobject
                 (
                     regionName,
-                    localMesh.time().timeName(),
+                    localMesh.time().constant(),
                     localMesh.time(),
                     IOobject::NO_READ,
                     IOobject::NO_WRITE,
@@ -109,7 +126,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("points")
+                "points"
             )
         );
 
@@ -119,7 +136,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("faces")
+                "faces"
             )
         );
         
@@ -129,7 +146,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("owner")
+                "owner"
             )
         );
 
@@ -139,17 +156,16 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             (
                 localMesh,
                 processorList[proci],
-                fileName("constant/" + polyMesh::meshSubDir)/fileName("neighbour")
+                "neighbour"
             )
         );
-        
-            
+
         fvMesh meshToAdd
         (
             IOobject
             (
                 regionName,
-                localMesh.time().timeName(),
+                localMesh.time().constant(),
                 localMesh.time(),
                 IOobject::NO_READ,
                 IOobject::NO_WRITE,
@@ -174,31 +190,27 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         
         // Read polyPatchList
         const polyBoundaryMesh& polyMeshRef = meshToAdd.boundaryMesh();
-         autoPtr<ISstream> isPtr = fileHandler().readStream
-         (
-            const_cast<polyBoundaryMesh&>(polyMeshRef),
-            localPath(localMesh,processorList[proci],fileName("constant/polyMesh/boundary")),
-            "polyBoundaryMesh"
-        );
- 
-        ISstream& is = isPtr();
- 
-         PtrList<entry> patchEntries(is);
+
+        IFstream is(localPath(localMesh,processorList[proci],"boundary"));
+        readHeader(is);
+        PtrList<entry> patchEntries(is);
          
-         List<polyPatch*> patches(patchEntries.size());
+        List<polyPatch*> patches(patchEntries.size());
  
-         forAll(patches, patchi)
-         {
-             patches[patchi] = 
-                (polyPatch::New
+        forAll(patches, patchi)
+        {
+            patches[patchi] = 
                 (
-                   "patch",
-                    patchEntries[patchi].keyword(),
-                    patchEntries[patchi].dict(),
-                    patchi,
-                    polyMeshRef
-                )).ptr();
-         }
+                    polyPatch::New
+                    (
+                        "patch",
+                        patchEntries[patchi].keyword(),
+                        patchEntries[patchi].dict(),
+                        patchi,
+                        polyMeshRef
+                    )
+                ).ptr();
+        }
 
         meshToAdd.addPatches(patches,false);
 
@@ -224,7 +236,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         );
         
     }
-    
+
     return autoPtr<fvMesh>(masterMesh);
 }
 
@@ -273,7 +285,7 @@ Foam::boundBox Foam::reconstructRegionalMesh::procBounds
         (
             readField<point>
             (
-                localPath(localMesh,processorList[proci],fileName("constant/"+polyMesh::meshSubDir+"/points"))
+                localPath(localMesh,processorList[proci],"points")
             )
         );
 
@@ -308,12 +320,12 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
      {
          dictionary headerDict(is);
  
-         #if (OPENFOAM_COM >= 1912 && OPENFOAM_COM < 2006)
+         #if (OF_FORK_VERSION >= 1912 && OF_FORK_VERSION < 2006)
             is.version(headerDict.lookup("version"));
             is.format(headerDict.get<word>("format"));
             const word headerClassName = headerDict.get<word>("class");
             const word headerObject(headerDict.get<word>("object"));
-         #elif (OPENFOAM_COM >= 2006 )
+         #elif (OF_FORK_VERSION >= 2006 )
             is.version(headerDict.get<token>("version"));
             is.format(headerDict.get<word>("format"));
             const word headerClassName = headerDict.get<word>("class");
@@ -361,7 +373,6 @@ void Foam::reconstructRegionalMesh::readHeader(Istream& is)
              << " of file " << is.name()    
              << exit(FatalIOError);
      }
-
 }
 
 
@@ -402,4 +413,40 @@ Foam::List<Foam::face> Foam::reconstructRegionalMesh::readFaceList
     }
     else
         return List<face>(is);
+}
+
+void Foam::reconstructRegionalMesh::fileHandlerControl::setUncollated()
+{
+    // Store old file handler type
+    if (isA<fileOperations::masterUncollatedFileOperation>(fileHandler()))
+        oldFileHandlerType = "collated";
+    else
+        oldFileHandlerType = "uncollated";
+
+    // For the generation of the partial mesh the uncollated file opteration 
+    // has to be used, as otherwise the MPI gets stuck calling an allGather()
+    fileOperation::fileHandlerPtr_ = fileOperation::New("uncollated",false);
+    #if (OF_FORK_VERSION >= 2006 )
+        fileHandler(std::move(fileOperation::fileHandlerPtr_));
+    #else
+        fileHandler(fileOperation::fileHandlerPtr_);
+    #endif
+}
+
+
+void Foam::reconstructRegionalMesh::fileHandlerControl::reset()
+{
+    // Reset file handler to default
+    fileOperation::fileHandlerPtr_ = fileOperation::New(oldFileHandlerType,false);
+    #if (OF_FORK_VERSION >= 2006 )
+        fileHandler(std::move(fileOperation::fileHandlerPtr_));
+    #else
+        fileHandler(fileOperation::fileHandlerPtr_);
+    #endif
+}
+
+Foam::reconstructRegionalMesh::fileHandlerControl::~fileHandlerControl()
+{
+    // call reset before destruction
+    reset();
 }

@@ -1,4 +1,4 @@
-FROM jgaertner2/openfoam:5.x
+FROM jgaertner2/openfoam:v2012
 
 CMD [ "/bin/sh" ]
 

@@ -1,26 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                     
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
 
@@ -358,7 +358,7 @@ void Foam::matrixDB::write(Ostream& os) const
 
 void Foam::matrixDB::read(Istream& is)
 {
-    blaze::DynamicMatrix<double> matrix;
+    geometryWENO::DynamicMatrix matrix;
     keyType key;
     
     int DBSize;
@@ -376,7 +376,7 @@ void Foam::matrixDB::read(Istream& is)
             is >> matrix;
             DB_.insert
             (
-                std::pair<keyType,blaze::DynamicMatrix<double>>(key,matrix)
+                std::pair<keyType,geometryWENO::DynamicMatrix>(key,matrix)
             );
             i++;
         }
@@ -425,67 +425,5 @@ Foam::Istream& Foam::operator >>(Istream& is, matrixDB& matrixDB_)
 Foam::Ostream& Foam::operator <<(Ostream& os,const matrixDB& matrixDB_)
 {
     matrixDB_.write(os);
-    return os;
-}
-
-
-Foam::Istream& Foam::operator >>(Istream& is, blaze::DynamicMatrix<double>& M)
-{
-    // Frist write out the size 
-    unsigned int rows;
-    unsigned int columns;
-    
-    is >> rows;
-    is >> columns;
-    
-    M.resize(rows,columns);
-    
-    if (is.format() == IOstream::ASCII)
-    {
-        for (unsigned int i=0; i<M.rows(); i++)
-        {
-            for (unsigned int j=0; j<M.columns(); j++)
-            {
-                is >> M(i,j);
-            }
-        }
-    }
-    else
-    {
-        unsigned int spacing;
-        is >> spacing;
-        is.read(reinterpret_cast<char*>(M.data()),rows*spacing*sizeof(double));
-    }
-    
-    return is;
-}
-
-
-Foam::Ostream& Foam::operator <<(Ostream& os,const blaze::DynamicMatrix<double>& M)
-{
-    // Frist write out the size 
-    os << M.rows() << endl;
-    os << M.columns() << endl;
-    
-    if (os.format() == IOstream::ASCII)
-    {
-        for (unsigned int i=0; i<M.rows(); i++)
-        {
-            for (unsigned int j=0; j<M.columns(); j++)
-            {
-                os << M(i,j)<<" ";
-            }
-            os << endl;
-        }
-    }
-    else
-    {
-        // Matrix can be padded for alignment. Rows and columns does not give 
-        // the spacing
-        os << M.spacing()<<endl;
-        os.write(reinterpret_cast<const char*>(M.data()),(M.spacing()*M.rows()* sizeof(double)));
-        os.flush();
-    }
-    
     return os;
 }

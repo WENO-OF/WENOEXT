@@ -22,36 +22,71 @@ License
     You should have received a copy of the GNU General Public License
     along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
+
+Application
+    mathFunctionsWENO-Test
+
 Description
-    Write vector to file for gnuplot to read
+    Test the math functions
     
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de>
 
 \*---------------------------------------------------------------------------*/
 
-#include <fstream>
-#include <vector>
-#include <string>
+#include "catch.hpp"
 
-#ifndef writeToFile_H
-#define writeToFile_H
+#include "mathFunctionsWENO.H"
 
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-
-template<class T>
-void writeToFile(const std::vector<T> data)
+TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
 {
-    std::ofstream file("PLOT/results.dat",std::ofstream::app);
-    
-    const std::string SEP = "\t";
-    
-    for (unsigned int i = 0; i < (data.size() -1);i++)
+    SECTION("determinant of 3x3 matrix")
     {
-        file << data.at(i) << SEP;
+        // Check the determinante of 3x3 matrix
+        const geometryWENO::scalarSquareMatrix A
+        {
+            {2,-5,3},
+            {0,7,-2},
+            {-1,4,1}
+        };
+        REQUIRE(mathFunctionsWENO::det(A) == 41);
     }
-    file << (*--data.end())<< "\n";
-    file.close();
-};
 
-#endif
+    // Check the eigen values 
+    SECTION("eigenvalues of 3x3 matrix")
+    {
+        // Check the determinante of 3x3 matrix
+        const geometryWENO::scalarSquareMatrix A
+        {
+            { 5, 2, 0},
+            { 2, 5, 0},
+            {-3, 4, 6}
+        };
+
+        blaze::DynamicVector<double,blaze::columnVector> eigVal{7,3,6};
+
+        REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
+    }
+
+    SECTION("inverse of 3x3 matrix")
+    {
+        const geometryWENO::scalarSquareMatrix A
+        {
+            { 0,-3,-2},
+            { 1,-4,-2},
+            {-3, 4, 1}
+        };
+
+        const geometryWENO::scalarSquareMatrix AInv
+        {
+            { 4,-5,-2},
+            { 5,-6,-2},
+            {-8, 9, 3}
+        };
+
+        REQUIRE(mathFunctionsWENO::inv(A) == AInv); 
+    }
+}
+

@@ -8,6 +8,7 @@ add_subdirectory(vtkWriter)
 add_executable(WENO_TEST 
     main.C
     geometryWENO-BasicFunc-Test.C
+    mathFunctionsWENO-Test.C
     matrixDB-Test.C
     WENOUpwindFit-Test.C
     WENOUpwindFit-Test-parallel.C

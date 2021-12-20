@@ -1,25 +1,26 @@
 /*---------------------------------------------------------------------------*\
-  =========                 |
-  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2013 OpenFOAM Foundation
-     \\/     M anipulation  |
--------------------------------------------------------------------------------
+       ██╗    ██╗███████╗███╗   ██╗ ██████╗     ███████╗██╗  ██╗████████╗
+       ██║    ██║██╔════╝████╗  ██║██╔═══██╗    ██╔════╝╚██╗██╔╝╚══██╔══╝
+       ██║ █╗ ██║█████╗  ██╔██╗ ██║██║   ██║    █████╗   ╚███╔╝    ██║   
+       ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
+       ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
+        ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
+-------------------------------------------------------------------------------                                                                                                                                                    
 License
-    This file is part of OpenFOAM.
+    This file is part of WENO Ext.
 
-    OpenFOAM is free software: you can redistribute it and/or modify it
+    WENO Ext is free software: you can redistribute it and/or modify it
     under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    WENO Ext is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
     FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
     for more details.
 
     You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+    along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020.
@@ -36,11 +37,15 @@ Foam::WENO::globalfvMesh::globalfvMesh(const fvMesh& mesh)
     neighborProcessor_(neighborProcessorList(mesh)),
     sendToProcessor_(sendToProcessorList(mesh)),
     globalMeshPtr_(createGlobalMesh(mesh)),
+    localMeshPtr_(createLocalMesh(mesh)),
     globalMesh_
     (   
         globalMeshPtr_.valid() ? globalMeshPtr_() : mesh
     ),
-    localMesh_(mesh),
+    localMesh_
+    (   
+        localMeshPtr_.valid() ? localMeshPtr_() : mesh
+    ),
     procList_(),
     localToGlobalCellID_(localToGlobalCellIDList()),
     globalToLocalCellID_(globalToLocalCellIDList())
@@ -119,24 +124,50 @@ Foam::labelList Foam::WENO::globalfvMesh::neighborProcessorList(const fvMesh& me
         Pstream::scatterList(allNeighbours);
 
         // Get the neighbour and second neighbour list for your processor
-        labelList secondNeighborList;
-        forAll(myNeighbourProc,procI)
+        labelListList secondNeighbourList(myNeighbourProc.size()-1);
+        
+        // Jump first entry as it is its own processor
+        for (label procI = 1; procI < myNeighbourProc.size(); ++procI)
         {
             const label neighbourProcI = myNeighbourProc[procI];
-            secondNeighborList.append(allNeighbours[neighbourProcI]);
+            secondNeighbourList[procI-1] = allNeighbours[neighbourProcI];
         }
         
-        forAll(secondNeighborList,i)
+        forAll(secondNeighbourList,procI)
         {
-            if ( addedProcessor.find(secondNeighborList[i]) == addedProcessor.end())
+            forAll(secondNeighbourList[procI],i)
             {
-                myNeighbourProc.append(secondNeighborList[i]);
-                addedProcessor.insert(secondNeighborList[i]);
+                if ( addedProcessor.find(secondNeighbourList[procI][i]) == addedProcessor.end())
+                {
+                    // Get processor list of this neighbour 
+                    const labelList& procsSecNeighbour = allNeighbours[secondNeighbourList[procI][i]];
+
+                    // Get list of direct neighbours of own processor
+                    const labelList& directNeighbour = allNeighbours[Pstream::myProcNo()];
+
+                    // count the number of common processor interfaces
+                    label commonProcessorInterfaces = 0;
+                    forAll(procsSecNeighbour,k)
+                    {
+                        forAll(directNeighbour,m)
+                        {
+                            if (procsSecNeighbour[k] == directNeighbour[m])
+                                commonProcessorInterfaces++;
+                        }
+                    }
+                    
+                    // Only add to list if it connects with at least 1 other direct neighbour 
+                    if (commonProcessorInterfaces > 1)
+                    {
+                        myNeighbourProc.append(secondNeighbourList[procI][i]);
+                        addedProcessor.insert(secondNeighbourList[procI][i]);
+                    }
+                }
             }
         }
         
         #ifdef FULLDEBUG
-            Pout << "Number of neighbour processor: "<<myNeighbourProc<<endl;
+            Pout << "Number of neighbour processor: "<<myNeighbourProc.size()<<endl;
         #endif
         return myNeighbourProc;
     }
@@ -193,18 +224,37 @@ Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createGlobalMesh(const fvM
     }
     return autoPtr<fvMesh>(nullptr);
 }
+
+Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createLocalMesh(const fvMesh& mesh)
+{
+    if (mesh.topoChanging())
+        FatalErrorInFunction << "Mesh cannot change topology if used with WENO scheme"
+                             << exit(FatalError);
+    if (mesh.moving())
+    {
+        // If the mesh is moving it needs to be constructed from the same time field the 
+        // global mesh is constructed from. 
+        if (Pstream::parRun())
+        {
+            labelList list(1);
+            list[0] = Pstream::myProcNo();
+            return reconstructRegionalMesh::reconstruct(list,mesh);
+        }
+    }
+
+    return autoPtr<fvMesh>(nullptr);
+}
+
+
         
 Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
 {
-
     // Fill cellID list
     labelList localToGlobalCellID(localMesh_.nCells(),-1);
        
     if (Pstream::parRun())
     {
         const vectorField& localCellCenters  = localMesh_.C();
-        
-        const vectorField& globalCellCenters = globalMesh_.C();
 
         meshSearch mSearch(globalMesh_);
 
@@ -223,11 +273,14 @@ Foam::labelList Foam::WENO::globalfvMesh::localToGlobalCellIDList()
             if (globalCellIndex >= 0)
                 localToGlobalCellID[cellI] = globalCellIndex;
             else
-                FatalError << "localToGlobalCellID: Local point not found in global mesh" <<nl
-                           << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCenters[cellI])<<nl
-                           << "For cell location: " << localCellCenters[cellI] << " at processor "<<Pstream::myProcNo() << nl 
-                           << "Found cell index " << globalCellIndex << " at cell location: " << globalCellCenters[globalCellIndex] <<nl 
-                           << exit(FatalError);
+            {
+                globalMesh_.write();
+                FatalErrorInFunction << "Could not find local cell in global mesh" <<nl
+                                     << "Local cellID: "<<cellI<<"  position: "<< localCellCenters[cellI] << nl
+                                     << "Global cell Index: "<<globalCellIndex<<nl
+                                     << "Writing out global mesh" 
+                                     << exit(FatalError);
+            }
         }
     }
     // If it is running in serial
@@ -283,8 +336,6 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                 cellCentersList[procI] = localMesh_.C();
             }
         }
-
-        const vectorField& globalCellCenters = globalMesh_.C();
         
         meshSearch mSearch(globalMesh_);
         
@@ -310,8 +361,11 @@ Foam::labelList Foam::WENO::globalfvMesh::globalToLocalCellIDList()
                     procList_[globalCellIndex] = neighborProcessor_[procI];
                 }
                 else
-                    FatalError << "Local point not found in global mesh" <<nl
-                               << "Maximum distance is: "<< mag(globalCellCenters[globalCellIndex]-localCellCentersI[cellI])
+                    FatalErrorInFunction << "Processor local point not found in global mesh" <<nl
+                               << "For local cell "<<localCellCentersI[cellI]
+                               << " of processor "<<procI
+                               << " for global mesh of processor "
+                               <<Pstream::myProcNo()<<nl
                                << exit(FatalError);
             }
         }

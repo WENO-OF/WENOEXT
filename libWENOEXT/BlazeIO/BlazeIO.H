@@ -5,7 +5,7 @@
        ██║███╗██║██╔══╝  ██║╚██╗██║██║   ██║    ██╔══╝   ██╔██╗    ██║   
        ╚███╔███╔╝███████╗██║ ╚████║╚██████╔╝    ███████╗██╔╝ ██╗   ██║   
         ╚══╝╚══╝ ╚══════╝╚═╝  ╚═══╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   
--------------------------------------------------------------------------------                                                                                                                                                         
+-------------------------------------------------------------------------------                                                                                                                                                  
 License
     This file is part of WENO Ext.
 
@@ -22,36 +22,52 @@ License
     You should have received a copy of the GNU General Public License
     along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
+Class
+    Foam::BlazeIO
+
 Description
-    Write vector to file for gnuplot to read
-    
+    Functions to use OpenFOAM stream objects with Blaze matrices 
+
+SourceFiles
+    BlazeIO.C
+
 Author
-    Jan Wilhelm Gärtner <jan.gaertner@outlook.de>
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2020
 
 \*---------------------------------------------------------------------------*/
 
-#include <fstream>
-#include <vector>
-#include <string>
-
-#ifndef writeToFile_H
-#define writeToFile_H
 
 
+#ifndef BlazeIO_H
+#define BlazeIO_H
 
-template<class T>
-void writeToFile(const std::vector<T> data)
+#include "linear.H"
+#include "Ostream.H"
+#include "blaze/Math.h"
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+namespace Foam
 {
-    std::ofstream file("PLOT/results.dat",std::ofstream::app);
-    
-    const std::string SEP = "\t";
-    
-    for (unsigned int i = 0; i < (data.size() -1);i++)
-    {
-        file << data.at(i) << SEP;
-    }
-    file << (*--data.end())<< "\n";
-    file.close();
-};
+// Read operators for blaze matrix
+Istream& operator >> (Istream&, blaze::DynamicMatrix<double,blaze::rowMajor>&);
+Istream& operator >> (Istream&, blaze::DynamicMatrix<double,blaze::columnMajor>&);
+
+// Write operators for blaze matr
+Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::rowMajor>&);
+Ostream& operator << (Ostream&, const blaze::DynamicMatrix<double,blaze::columnMajor>&);
+
+Ostream& operator << (Ostream&, const blaze::StaticMatrix<double,3UL,3UL,blaze::rowMajor>&);
+Ostream& operator << (Ostream&, const blaze::StaticMatrix<double,3UL,3UL,blaze::columnMajor>&);
+
+// Write operators for blaze vector
+Ostream& operator << (Ostream&, const blaze::DynamicVector<double,blaze::columnVector>&);
+Ostream& operator << (Ostream&, const blaze::DynamicVector<double,blaze::rowVector>&);
+
+} // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #endif
+
+// ************************************************************************* //
