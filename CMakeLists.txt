@@ -107,6 +107,13 @@ string(REGEX REPLACE "^([0-9]+)\\..*" "\\1" VERSION_MAJOR "${GIT_TAG}")
 string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${GIT_TAG}")
 string(REGEX REPLACE "^[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_SHA1 "${GIT_TAG}")
 
+if ("${VERSION_MINOR}" STREQUAL "")
+    set(VERSION_MINOR "0")
+endif()
+if ("${VERSION_MAJOR}" STREQUAL "")
+    set(VERSION_MAJOR "0")
+endif()
+
 set(WENOEXT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR})
 
 configure_file(
