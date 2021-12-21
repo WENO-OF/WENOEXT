@@ -35,6 +35,7 @@ Author
 #define mathFunctions_H
 
 #include "geometryWENO.H"
+#include <math.h>
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -154,9 +155,13 @@ Foam::mathFunctionsWENO::det2
     // with det2 = a*d - c*b
     // see also: https://pharr.org/matt/blog/2019/11/03/difference-of-floats
     double cb = c * b;
-    float err = std::fma(-c, b, cb);
-    float dop = std::fma(a, d, -cb);
-    return dop + err;
+    #ifdef FP_FAST_FMA
+        double err = std::fma(-c, b, cb);
+        double dop = std::fma(a, d, -cb);
+        return dop + err;
+    #else
+        return (a*d) - cb;
+    #endif
 }
 
 
