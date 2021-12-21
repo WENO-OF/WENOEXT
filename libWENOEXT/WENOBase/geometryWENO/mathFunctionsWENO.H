@@ -37,6 +37,13 @@ Author
 #include "geometryWENO.H"
 #include <math.h>
 
+#ifdef USE_FMA
+#if !defined(FP_FAST_FMA) && defined(__AVX2__)
+    #define FP_FAST_FMA
+#endif
+#endif
+
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
