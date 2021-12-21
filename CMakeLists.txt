@@ -75,6 +75,9 @@ option (MARCH_NATIVE "If enabled, uses -march=native" ON)
 # Default: OFF
 option (USE_LAPACK "If enabled, uses LAPACK for matrix operations" OFF)
 
+# If AVX support is enabled set the FP_FAST_FMA flag to use
+# std::fma instead of (a*b) + c for the mathFunctionsWENO::det2() function 
+option (USE_FMA "If enabled, uses fused multiply and add std::FMA" ON)
 
 #===============================================================================
 #   Create Version File
@@ -198,9 +201,13 @@ add_compile_options(
     )
 
 if (${MARCH_NATIVE})
-add_compile_options(
-    -march=native
+    add_compile_options(
+        -march=native
     )
+endif()
+
+if (${USE_FMA})
+    add_definitions( -DUSE_FMA )
 endif()
 
 set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
