@@ -36,17 +36,22 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
+#include <catch2/catch_session.hpp> 
+#include <catch2/catch_test_macros.hpp> 
+#include <catch2/catch_approx.hpp>          // Catch::Approx is needed when floats are compared
+
 #include "fvCFD.H"
 #include "globalfvMesh.H"
 
+#include "globalFoamArgs.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
-int main(int argc, char *argv[])
-{
 
-    #include "setRootCase.H"
+TEST_CASE("globalFvMesh Test","[parallel]")
+{
+    Foam::argList& args = getFoamArgs();
     #include "createTime.H"
     #include "createMesh.H"
     
@@ -121,17 +126,13 @@ int main(int argc, char *argv[])
                     break;
                 }
             }
-            if (found == false)
-                FatalError << "Did not find correct cell center location:"<<nl
-                           << "For point p: "<<globalPoint<<" in processor "<<procID
-                           << exit(FatalError);
             
+            INFO("Did not find correct cell center location:"<<nl
+                 << "For point p: ["<<globalPoint.x()<<","<<globalPoint.y()
+                 << ","<<globalPoint.z()<<"] in processor "<<procID);
+            REQUIRE(found == true);            
         }
     }
-    
-    
-    Info << "END RUN 2"<<endl;
-    return 0;
 }
 
 

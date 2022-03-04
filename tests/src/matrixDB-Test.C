@@ -33,7 +33,9 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
-#include "catch.hpp"
+#include <catch2/catch_session.hpp> 
+#include <catch2/catch_test_macros.hpp> 
+#include <catch2/catch_approx.hpp>          // Catch::Approx is needed when floats are compared
 
 #include "fvCFD.H"
 #include "matrixDB.H"
@@ -41,17 +43,14 @@ Author
 #include "IFstream.H"
 #include "blaze/Math.h"
 
+#include "globalFoamArgs.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 TEST_CASE("matrixDB Test Case","[2DMesh][singleCore]")
 {
-    // Replace setRootCase.H for Catch2   
-    int argc = 1;
-    char **argv = static_cast<char**>(malloc(sizeof(char*)));
-    char executable[] = {'m','a','i','n'};
-    argv[0] = executable;
-    Foam::argList args(argc, argv,false,false,false);
-        
+    Foam::argList& args = getFoamArgs();
+    
     // create the mesh from case file
     #include "createTime.H"
     #include "createMesh.H"

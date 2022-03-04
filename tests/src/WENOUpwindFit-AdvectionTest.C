@@ -37,21 +37,23 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
-#include "catch.hpp"
+#include <catch2/catch_session.hpp> 
+#include <catch2/catch_test_macros.hpp> 
+#include <catch2/catch_approx.hpp>          // Catch::Approx is needed when floats are compared
+
 #include "WENOBase.H"
 #include "fvCFD.H"
 #include "EulerDdtScheme.H"
 #include "backwardDdtScheme.H"
+
+#include "globalFoamArgs.H"
+
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 TEST_CASE("WENOUpwindFit 2D Advection Test","[Advection]")
 {
     // Replace setRootCase.H for Catch2   
-    int argc = 1;
-    char **argv = static_cast<char**>(malloc(sizeof(char*)));
-    char executable[] = {'m','a','i','n'};
-    argv[0] = executable;
-    Foam::argList args(argc, argv,false,false,false);
+    Foam::argList& args = getFoamArgs();
     #include "createTime.H"        // create the time object
     #include "createMesh.H"        // create the mesh object
 
