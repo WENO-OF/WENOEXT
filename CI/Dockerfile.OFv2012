@@ -12,6 +12,9 @@ WORKDIR /home/gitlab/build
 # Bundle lib source
 COPY --chown=gitlab:gitlab . .
 
+# Update git submodules
+RUN git submodule init && git submodule update
+
 # First compile the code
 RUN . $foamDotFile && ./Allwclean && ./Allwmake -f -j
 
