@@ -33,11 +33,15 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
-#include "catch.hpp"
+#include <catch2/catch_session.hpp> 
+#include <catch2/catch_test_macros.hpp> 
+#include <catch2/catch_approx.hpp>          // Catch::Approx is needed when floats are compared
+
 #include "WENOBase.H"
 #include "fvCFD.H"
 #include <chrono>
 
+#include "globalFoamArgs.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -90,7 +94,7 @@ void checkVolIntegral(const geometryWENO::volIntegralType& L1, const geometryWEN
         {
             for (int n = 0; n < L1.sizeZ(); ++n)
             {
-                REQUIRE(Approx(L1(l,m,n)) == L2(l,m,n));
+                REQUIRE(Catch::Approx(L1(l,m,n)) == L2(l,m,n));
             }
         }
     }
@@ -112,12 +116,7 @@ TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
     // ------------------------------------------------------------------------
     //                          OpenFOAM Start-Up 
     // ------------------------------------------------------------------------
-    // Replace setRootCase.H for Catch2   
-    int argc = 1;
-    char **argv = static_cast<char**>(malloc(sizeof(char*)));
-    char executable[] = {'m','a','i','n'};
-    argv[0] = executable;
-    Foam::argList args(argc, argv,false,false,false);
+    Foam::argList& args = getFoamArgs();
     #include "createTime.H"        // create the time object
     #include "createMesh.H"        // create the mesh object
 
@@ -166,15 +165,15 @@ TEST_CASE("WENOBase IO Test","[2DMesh][singleCore][IOTest]")
     checkList(sendProcList,WENO.sendProcList());
     INFO("Check sendHaloCellIDList ...");
     checkList(sendHaloCellIDList,WENO.sendHaloCellIDList());
-    INFO("Check B List ...")
+    INFO("Check B List ...");
     checkList(B,WENO.B());
-    INFO("Check intBasTrans ...")
+    INFO("Check intBasTrans ...");
     checkList(intBasTrans,WENO.intBasTrans());
     INFO("Check refFacAr ...");
     checkList(refFacAr,WENO.refFacAr());
-    INFO("Check dimList ...")
+    INFO("Check dimList ...");
     checkList(dimList,WENO.dimList());
-    INFO("Check LSMatrix ...")
+    INFO("Check LSMatrix ...");
     forAll(LSMatrix,cellI)
     {
         forAll(LSMatrix[cellI],stencilI)

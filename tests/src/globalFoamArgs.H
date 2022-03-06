@@ -22,73 +22,43 @@ License
     You should have received a copy of the GNU General Public License
     along with  WENO Ext.  If not, see <http://www.gnu.org/licenses/>.
 
-
-Application
-    mathFunctionsWENO-Test
-
 Description
-    Test the math functions
-    
+    Global Foam::argList pointer 
+
 Author
-    Jan Wilhelm Gärtner <jan.gaertner@outlook.de>
+    Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2022
 
 \*---------------------------------------------------------------------------*/
 
-#include <catch2/catch_session.hpp> 
-#include <catch2/catch_test_macros.hpp> 
-#include <catch2/catch_approx.hpp>          // Catch::Approx is needed when floats are compared
 
-#include "mathFunctionsWENO.H"
 
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
+// Create the global Foam args variable
+
+#ifndef GLOBALARGFOAM_H
+#define GLOBALARGFOAM_H
+
+#include "fvCFD.H"
+
+
+extern Foam::argList* argsPtr;
+
+inline Foam::argList& getFoamArgs()
 {
-    SECTION("determinant of 3x3 matrix")
+    return *argsPtr;
+}
+
+inline void setFoamArgs(int argc, char* argv[])
+{
+    argsPtr = new Foam::argList(argc,argv);    
+    if (!argsPtr->checkRootCase())
     {
-        // Check the determinante of 3x3 matrix
-        const geometryWENO::scalarSquareMatrix A
-        {
-            {2,-5,3},
-            {0,7,-2},
-            {-1,4,1}
-        };
-        REQUIRE(mathFunctionsWENO::det(A) == 41);
-    }
-
-    // Check the eigen values 
-    SECTION("eigenvalues of 3x3 matrix")
-    {
-        // Check the determinante of 3x3 matrix
-        const geometryWENO::scalarSquareMatrix A
-        {
-            { 5, 2, 0},
-            { 2, 5, 0},
-            {-3, 4, 6}
-        };
-
-        blaze::DynamicVector<double,blaze::columnVector> eigVal{7,3,6};
-
-        REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
-    }
-
-    SECTION("inverse of 3x3 matrix")
-    {
-        const geometryWENO::scalarSquareMatrix A
-        {
-            { 0,-3,-2},
-            { 1,-4,-2},
-            {-3, 4, 1}
-        };
-
-        const geometryWENO::scalarSquareMatrix AInv
-        {
-            { 4,-5,-2},
-            { 5,-6,-2},
-            {-8, 9, 3}
-        };
-
-        REQUIRE(mathFunctionsWENO::inv(A) == AInv); 
+        Foam::FatalError.exit();
     }
 }
 
+inline void clearFoamArgs()
+{
+    delete argsPtr;
+}
+#endif
