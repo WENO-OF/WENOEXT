@@ -80,7 +80,8 @@ int main(int argc, char* argv[])
     char executable[] = {'p','a','r','a','l','l','e','l','T','e','s','t'};
     char flags[] = "-parallel";
     argvOF[0] = executable;
-    argvOF[1] = flags;
+    if (parallelRun)
+        argvOF[1] = flags;
     setFoamArgs(argcOF, argvOF);
 
     // Start the session

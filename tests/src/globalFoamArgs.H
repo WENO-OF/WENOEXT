@@ -50,7 +50,11 @@ inline Foam::argList& getFoamArgs()
 
 inline void setFoamArgs(int argc, char* argv[])
 {
-    argsPtr = new Foam::argList(argc,argv);
+    argsPtr = new Foam::argList(argc,argv);    
+    if (!argsPtr->checkRootCase())
+    {
+        Foam::FatalError.exit();
+    }
 }
 
 inline void clearFoamArgs()
