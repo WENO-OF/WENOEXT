@@ -121,7 +121,7 @@ if [[ ${FORCE} != "YES" ]]; then
     checkRepoStatus
 fi
 
-cmake .. ${POSITIONAL}
+cmake .. ${POSITIONAL[@]}
 if [[ ${PARALLEL} == "YES" ]]; then
     make -j ${NUM_CORES}
 else

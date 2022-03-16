@@ -62,7 +62,7 @@ on the master branch.
 By default the `march=native` compiler flag is activated. For some cases it is 
 necessary to deactive this flag. To deactivate this flag use:
 `./Allwmake -DMARCH_NATIVE=OFF`
-
+Use this flag if you get an "illegal instruction error" during execution.
 
 To compute the eigenvalues of a matrix and the Jacobi inverse matrices own
 functions defined in mathFunctionsWENO are used. It is possible to switch on 
@@ -70,6 +70,10 @@ the usage of LAPACK libraries by setting
 `./Allwmake -DUSE_LAPACK=ON`
 If switched on, check with the [WENO-PerformanceTests](https://github.com/WENO-OF/WENO-PerformanceTests)
 if the performance improves or decreases.
+
+For debugging the debug build can be activated by using
+`./Allwmake -DCMAKE_BUILD_TYPE=DEBUG`.
+The different options can also be combined and used together.
 
 ### Note to GNU compiler:
 
