@@ -56,7 +56,7 @@ namespace Foam
 namespace mathFunctionsWENO
 {
     //- Calculate eigen values of 3x3 matrix
-    //  see: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3%C3%973_matrices
+    //- see: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3%C3%973_matrices
     blaze::DynamicVector<double,blaze::columnVector> eigen
     (
         const geometryWENO::scalarSquareMatrix& A
@@ -65,10 +65,10 @@ namespace mathFunctionsWENO
     // Calculate the 3x3 determinant
     double det(const blaze::DynamicMatrix<double>& A);
     
-    // Calculate the 2x2 determinant
-    // solves the system A = a b
-    //                       c d 
-    // with det2 = a*d - c*b
+    //- Calculate the 2x2 determinant
+    //  solves the system A = a b
+    //                        c d 
+    //  with det2 = a*d - c*b
     double det2 (
         const double a, 
         const double d,
@@ -76,9 +76,10 @@ namespace mathFunctionsWENO
         const double b
     );
 
-    // Stablize a 3x3 matrix by calculating the pivoted matrix A' = P*A
+    //- Stablize a 3x3 matrix by calculating the pivoted matrix A' = P*A
     void pivot(geometryWENO::scalarSquareMatrix& A);
 
+    //- Invert a 3x3 matrix
     geometryWENO::scalarSquareMatrix inv(const geometryWENO::scalarSquareMatrix& A);
 
 } // End namespace mathFunctionsWENO 
@@ -244,21 +245,30 @@ void Foam::mathFunctionsWENO::pivot(geometryWENO::scalarSquareMatrix& A)
 Foam::geometryWENO::scalarSquareMatrix 
 Foam::mathFunctionsWENO::inv(const geometryWENO::scalarSquareMatrix& A)
 {
-    const double invDet = 1.0/det(A);
-
+    // Based on blaze::invertGeneral3x3
     geometryWENO::scalarSquareMatrix AInv;
+    
+    AInv(0, 0) = det2(A(1, 1),A(2, 2),A(2, 1),A(1, 2));
+    AInv(1, 0) = det2(A(1, 2),A(2, 0),A(1, 0),A(2, 2));
+    AInv(2, 0) = det2(A(1, 0),A(2, 1),A(2, 0),A(1, 1));
+    
+    const double Det = A(0,0)*AInv(0,0) + A(0,1)*AInv(1,0) + A(0,2)*AInv(2,0);
+    
+    #ifdef FULLDEBUG
+        if (Det == 0)
+            FatalErrorInFunction 
+                << "Determinant is zero! Division by zero occurs"
+                << exit(FatalError);
+    #endif
 
-    AInv(0, 0) = det2(A(1, 1),A(2, 2),A(2, 1),A(1, 2)) * invDet;
-    AInv(0, 1) = det2(A(0, 2),A(2, 1),A(0, 1),A(2, 2)) * invDet;
-    AInv(0, 2) = det2(A(0, 1),A(1, 2),A(0, 2),A(1, 1)) * invDet;
-    AInv(1, 0) = det2(A(1, 2),A(2, 0),A(1, 0),A(2, 2)) * invDet;
-    AInv(1, 1) = det2(A(0, 0),A(2, 2),A(0, 2),A(2, 0)) * invDet;
-    AInv(1, 2) = det2(A(1, 0),A(0, 2),A(0, 0),A(1, 2)) * invDet;
-    AInv(2, 0) = det2(A(1, 0),A(2, 1),A(2, 0),A(1, 1)) * invDet;
-    AInv(2, 1) = det2(A(2, 0),A(0, 1),A(0, 0),A(2, 1)) * invDet;
-    AInv(2, 2) = det2(A(0, 0),A(1, 1),A(1, 0),A(0, 1)) * invDet;
+    AInv(0, 1) = det2(A(0, 2),A(2, 1),A(0, 1),A(2, 2));
+    AInv(0, 2) = det2(A(0, 1),A(1, 2),A(0, 2),A(1, 1));
+    AInv(1, 1) = det2(A(0, 0),A(2, 2),A(0, 2),A(2, 0));
+    AInv(1, 2) = det2(A(1, 0),A(0, 2),A(0, 0),A(1, 2));
+    AInv(2, 1) = det2(A(2, 0),A(0, 1),A(0, 0),A(2, 1));
+    AInv(2, 2) = det2(A(0, 0),A(1, 1),A(1, 0),A(0, 1));
 
-    return AInv;
+    return AInv/Det;
 }
 
 
