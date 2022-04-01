@@ -35,6 +35,8 @@ Author
 #define mathFunctions_H
 
 #include "geometryWENO.H"
+#include "cubicEqn.H"
+#include "mathematicalConstants.H"
 #include <math.h>
 
 #ifdef USE_FMA
@@ -94,45 +96,53 @@ namespace mathFunctionsWENO
 blaze::DynamicVector<double,blaze::columnVector> 
 Foam::mathFunctionsWENO::eigen(const geometryWENO::scalarSquareMatrix& A)
 {
-    // Create blaze vector with three entries
-    blaze::DynamicVector<double,blaze::columnVector> eig(3);
-
-    // Create identity matrix
-    geometryWENO::scalarSquareMatrix I;
-    I = blaze::declid(I);
+    // Eigen values are computed in the same manner as OpenFOAM 
+    // tensor.C does for eigenValues()
     
-    const double p1 = A(0,1)*A(0,1) + A(0,2)*A(0,2) + A(1,2)*A(1,2);
-    if (p1 == 0)
-    {
-        eig[0] = A(0,0);
-        eig[1] = A(1,1);
-        eig[2] = A(2,2);
-    }
-    else
-    {
-        const double q  = blaze::trace(A)/3.0;
-        const double p2 =   std::pow((A(0,0) - q),2)
-                          + std::pow((A(1,1) - q),2)
-                          + std::pow((A(2,2) - q),2)
-                          + 2.*p1;
-        const double p  = sqrt(p2/6.0);
-        const auto   B  = (A - (q*I))/p;
-        const double r  = 0.5*det(B);
-        // In exact arithmetic for a symmetric matrix  -1 <= r <= 1
-        // but computation error can leave it slightly outside this range
-        double phi;
-        if (r <= -1)
-            phi = M_PI/3.0;
-        else if (r >= 1)
-            phi = 0;
-        else
-            phi = std::acos(r)/3.0;
-
-        eig[0] = q + 2.0*p*std::cos(phi);
-        eig[1] = q + 2.0*p*std::cos(phi + (2.0*M_PI/3.0));
-        eig[2] = 3*q - eig[0] - eig[1];
-    }
-    return eig;
+    // Create blaze vector with three entries
+    blaze::DynamicVector<double,blaze::columnVector> lambda(3); 
+	
+	// Coefficients of the characteristic cubic polynomial (a = 1)
+    const scalar b =
+       - A(0,0) - A(1,1) - A(2,2);
+    const scalar c =
+         A(0,0)*A(1,1) + A(0,0)*A(2,2) + A(1,1)*A(2,2)
+       - A(0,1)*A(1,0) - A(1,2)*A(2,1) - A(2,0)*A(0,2);
+    const scalar d =
+       - A(0,0)*A(1,1)*A(2,2)
+       - A(0,1)*A(1,2)*A(2,0) - A(0,2)*A(2,1)*A(1,0)
+       + A(0,0)*A(1,2)*A(2,1) + A(1,1)*A(2,0)*A(0,2) + A(2,2)*A(0,1)*A(1,0);
+ 
+     // Solve
+     Roots<3> roots = cubicEqn(1, b, c, d).roots();
+ 
+     // Check the root types
+     forAll(roots, i)
+     {
+         switch (roots.type(i))
+         {
+             case roots::real:
+                 lambda[i] = roots[i];
+                 break;
+             case roots::complex:
+                 WarningInFunction
+                     << "Complex eigenvalues detected for tensor: " << endl;
+                 lambda[i] = 0;
+                 break;
+             case roots::posInf:
+                 lambda[i] = 1E+15;
+                 break;
+             case roots::negInf:
+                 lambda[i] = -1E+15;
+                 break;
+             case roots::nan:
+                 FatalErrorInFunction
+                     << "Eigenvalue calculation failed for tensor: " 
+                     << exit(FatalError);
+         }
+     }
+     
+     return lambda;
 }
 
 
