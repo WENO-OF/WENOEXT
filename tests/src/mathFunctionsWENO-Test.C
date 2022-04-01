@@ -67,9 +67,23 @@ TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
             {-3, 4, 6}
         };
 
-        blaze::DynamicVector<double,blaze::columnVector> eigVal{7,3,6};
+        blaze::DynamicVector<double,blaze::columnVector> eigVal{7,6,3};
 
-        REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
+        CHECK(mathFunctionsWENO::eigen(A) == eigVal);
+        
+        
+        // Check for a badly conditioned matrix system
+        const geometryWENO::scalarSquareMatrix B
+        {
+            { 1, 1, 0.1},
+            { 0, 2, 0},
+            { 1, 0, 0.1}
+        };
+
+        blaze::DynamicVector<double,blaze::columnVector> eigVal2{2,1.1,0};
+
+        REQUIRE(mathFunctionsWENO::eigen(B) == eigVal2);
+        
     }
 
     SECTION("inverse of 3x3 matrix")
