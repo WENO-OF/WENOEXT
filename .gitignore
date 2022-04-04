@@ -69,7 +69,9 @@ tests/Cases/performanceTest/Case/performanceRun.log
 tests/Cases/performanceTest/Case/plotPerformance.dat
 tests/Cases/2DMesh-cyclic/PLOT/results.dat
 
+# ignore test case executable
+tests/src/WENO_TEST
+
 # ignore WENO directories
 tests/**/WENOBase*
 
-tests/src/WENO_TEST

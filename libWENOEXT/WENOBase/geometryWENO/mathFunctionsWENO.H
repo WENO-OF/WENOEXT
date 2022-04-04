@@ -125,8 +125,6 @@ Foam::mathFunctionsWENO::eigen(const geometryWENO::scalarSquareMatrix& A)
                  lambda[i] = roots[i];
                  break;
              case roots::complex:
-                 WarningInFunction
-                     << "Complex eigenvalues detected for tensor: " << endl;
                  lambda[i] = 0;
                  break;
              case roots::posInf:
