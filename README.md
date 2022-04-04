@@ -52,28 +52,27 @@ When using this work please cite:
 
 Parallel compilation can be activated with:
 `./Allwmake -j <# of cores>`
-if the number of cores is omitted then the number of cores is determined
-automatically.
+if the number of cores is omitted, it is determined automatically.
 
 On the master branch only clean git commits can be compiled. 
 If a dirty git state shall be compiled the `-f|--force` option has to be used
 on the master branch. 
 
-By default the `march=native` compiler flag is activated. For some cases it is 
-necessary to deactive this flag. To deactivate this flag use:
-`./Allwmake -DMARCH_NATIVE=OFF`
-Use this flag if you get an "illegal instruction error" during execution.
+### CMake Options
 
-To compute the eigenvalues of a matrix and the Jacobi inverse matrices own
-functions defined in mathFunctionsWENO are used. It is possible to switch on 
-the usage of LAPACK libraries by setting 
-`./Allwmake -DUSE_LAPACK=ON`
-If switched on, check with the [WENO-PerformanceTests](https://github.com/WENO-OF/WENO-PerformanceTests)
-if the performance improves or decreases.
+Several options can be set over CMake commands with,
+```bash
+./Allwmake -D<CMAKE_OPTION>
+```
 
-For debugging the debug build can be activated by using
-`./Allwmake -DCMAKE_BUILD_TYPE=DEBUG`.
-The different options can also be combined and used together.
+|Cmake Command |Options| Description |
+|:-----------------------|:---------|:----------------|
+|MARCH_NATIVE    |ON/OFF | Activates `march=native` flag. Default ON </br> Use this flag if you get an "illegal instruction error" during execution.|
+|USE_LAPACK        |ON/OFF| Use LAPACK library for matrix operations such as eigen values</br>If switched on, check with the [WENO-PerformanceTests](https://github.com/WENO-OF/WENO-PerformanceTests) if the performance improves or decreases.|
+|USE_FMA|ON/OFF|Use std::fma for WENO math functions. Default ON|
+|CMAKE_BUILD_TYPE|Release/Debug/None|When the debug option is selected the OpenFOAM FULLDEBUG flag is activated|
+
+Commands not listed in the table are forwarded to cmake, allowing to use all standard CMake commands.
 
 ### Note to GNU compiler:
 
