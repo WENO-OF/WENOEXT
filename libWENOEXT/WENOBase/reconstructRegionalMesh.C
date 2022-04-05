@@ -50,12 +50,12 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         processorList,sendToProcessorList,localMesh);
 
 
-    List<wordList> allPatchTypes;
+    List<wordList> allPatchNames;
     List<labelList> allPatchSize;
     List<labelList> allStart;
     List<labelList> allIndex;
     
-    getPatchInformation(allPatchTypes,allPatchSize,allStart,allIndex,
+    getPatchInformation(allPatchNames,allPatchSize,allStart,allIndex,
         processorList,sendToProcessorList,localMesh);
 
     // Get the dimensions of the current processor domain and calculate the 
@@ -136,14 +136,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         // Now add the boundaries by creating a polyPatch with a type patch 
         // for generic value
 
-        // Read polyPatchList
+        // // Access to boundary mesh
         const polyBoundaryMesh& polyMeshRef = meshToAdd.boundaryMesh();
 
-        IFstream is(localPath(localMesh,procI,"boundary"));
-        readHeader(is);
-        PtrList<entry> patchEntries(is);
-         
-        List<polyPatch*> patches(patchEntries.size());
+        List<polyPatch*> patches(allPatchNames[procI].size());
  
         forAll(patches, patchi)
         {
@@ -151,47 +147,17 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 (
                     polyPatch::New
                     (
-                        "patch",
-                        patchEntries[patchi].keyword(),
-                        patchEntries[patchi].dict(),
-                        patchi,
+                        "patch",        // use generic patch instead of patchType
+                        allPatchNames[procI][patchi],   // Important that the names match
+                        allPatchSize[procI][patchi],
+                        allStart[procI][patchi],
+                        allIndex[procI][patchi],
                         polyMeshRef
                     )
                 ).ptr();
         }
 
         meshToAdd.addPatches(patches,false);
-
-
-
-
-
-
-
-
-        // // Access to boundary mesh
-        // const polyBoundaryMesh& polyMeshRef = meshToAdd.boundaryMesh();
-
-        // List<polyPatch*> patches(allPatchTypes[procI].size());
- 
-        // forAll(patches, patchi)
-        // {
-        //     Pout << "patchi: "<<patchi<<"  index "<<allIndex[procI][patchi]<<endl;
-        //     patches[patchi] = 
-        //         (
-        //             polyPatch::New
-        //             (
-        //                 "patch",        // use generic patch instead of patchType
-        //                 "patchName",
-        //                 allPatchSize[procI][patchi],
-        //                 allStart[procI][patchi],
-        //                 allIndex[procI][patchi],
-        //                 polyMeshRef
-        //             )
-        //         ).ptr();
-        // }
-
-        // meshToAdd.addPatches(patches,false);
 
 
         // Find geometrically shared points/faces.
@@ -322,7 +288,7 @@ void Foam::reconstructRegionalMesh::getMeshInformation
 
 void Foam::reconstructRegionalMesh::getPatchInformation
 (
-    List<wordList>& allPatchTypes,
+    List<wordList>& allPatchNames,
     List<labelList>& allPatchSize,
     List<labelList>& allStart,
     List<labelList>& allIndex,
@@ -332,7 +298,7 @@ void Foam::reconstructRegionalMesh::getPatchInformation
 )
 {
     // Add points and faces for own processor
-    allPatchTypes.resize(Pstream::nProcs());
+    allPatchNames.resize(Pstream::nProcs());
     allPatchSize.resize(Pstream::nProcs());
     allStart.resize(Pstream::nProcs());
     allIndex.resize(Pstream::nProcs());
@@ -340,7 +306,7 @@ void Foam::reconstructRegionalMesh::getPatchInformation
     // Get local boundary mesh
     const polyBoundaryMesh& bMesh = mesh.boundaryMesh();
 
-    allPatchTypes[Pstream::myProcNo()].resize(bMesh.size());
+    allPatchNames[Pstream::myProcNo()].resize(bMesh.size());
     allPatchSize[Pstream::myProcNo()].resize(bMesh.size());
     allStart[Pstream::myProcNo()].resize(bMesh.size());
     allIndex[Pstream::myProcNo()].resize(bMesh.size());
@@ -349,7 +315,7 @@ void Foam::reconstructRegionalMesh::getPatchInformation
     forAll(bMesh,i)
     {
         const polyPatch& patch = bMesh[i];
-        allPatchTypes[Pstream::myProcNo()][i] = patch.type();
+        allPatchNames[Pstream::myProcNo()][i] = patch.name();
         allPatchSize[Pstream::myProcNo()][i] = patch.size();
         allStart[Pstream::myProcNo()][i] = patch.start();
         allIndex[Pstream::myProcNo()][i] = patch.index();
@@ -365,7 +331,7 @@ void Foam::reconstructRegionalMesh::getPatchInformation
 
         UOPstream send(procI,pBufs);
 
-        send << allPatchTypes[Pstream::myProcNo()];
+        send << allPatchNames[Pstream::myProcNo()];
         send << allPatchSize[Pstream::myProcNo()];
         send << allStart[Pstream::myProcNo()];
         send << allIndex[Pstream::myProcNo()];
@@ -381,7 +347,7 @@ void Foam::reconstructRegionalMesh::getPatchInformation
         UIPstream recv(procI,pBufs);
 
         // Create temporary lists
-        recv >> allPatchTypes[procI];
+        recv >> allPatchNames[procI];
         recv >> allPatchSize[procI];
         recv >> allStart[procI];
         recv >> allIndex[procI];

@@ -88,7 +88,7 @@ namespace reconstructRegionalMesh
 
     //- Get the patch type, size, start index etc
     void getPatchInformation(
-        List<wordList>& allPatchTypes,
+        List<wordList>& allPatchNames,
         List<labelList>& allPatchSize,
         List<labelList>& allStart,
         List<labelList>& allIndex,
