@@ -30,51 +30,44 @@ Author
 #include "reconstructRegionalMesh.H"
 #include "masterUncollatedFileOperation.H"
 
-Foam::fileName Foam::reconstructRegionalMesh::localPath
-(
-    const fvMesh& localMesh,
-    const label proci,
-    const fileName file
-)
-{        
-    // Create start time value
-    const scalar startTimeValue = (localMesh.time().startTime()).value();
-
-    // Fist check if a mesh is present in the time directory
-    fileName pathToTimeDir = localMesh.time().path().path()
-          / fileName("processor" + name(proci) + "/" + localMesh.time().timeName(startTimeValue) + "/" + polyMesh::meshSubDir)
-          / file;
-
-    if (exists(pathToTimeDir))
-        return pathToTimeDir;
-
-    return  localMesh.time().path().path()
-          / fileName("processor" + name(proci) + "/constant/" + polyMesh::meshSubDir)
-          / file;
-}
 
 
 Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
 (
-    const labelList processorList,
+    const labelList& processorList,
+    const labelList& sendToProcessorList,
     const fvMesh& localMesh
 )
 {
-    fileHandlerControl myFileHandler;
-    myFileHandler.setUncollated();
+    // Get points, faces, neighbour, owner lists from processors 
+    List<faceList>   allFaces(Pstream::nProcs());
+    List<pointField> allPoints(Pstream::nProcs());
+    List<labelList>  allOwners(Pstream::nProcs());
+    List<labelList>  allNeighbours(Pstream::nProcs());
 
 
+    getMeshInformation(allFaces,allPoints,allOwners,allNeighbours,
+        processorList,sendToProcessorList,localMesh);
+
+
+    List<wordList> allPatchTypes;
+    List<labelList> allPatchSize;
+    List<labelList> allStart;
+    List<labelList> allIndex;
+    
+    getPatchInformation(allPatchTypes,allPatchSize,allStart,allIndex,
+        processorList,sendToProcessorList,localMesh);
+
+    // Get the dimensions of the current processor domain and calculate the 
+    // merging tolerance
     word regionName = polyMesh::defaultRegion;
     word regionDir = word::null;
 
     scalar mergeTol = 1E-7;
     
-    label nProcs = processorList.size();
-    
-    
     // Read point on individual processors to determine merge tolerance
     // (otherwise single cell domains might give problems)
-    const boundBox bb = procBounds(processorList,localMesh);
+    const boundBox bb = procBounds(processorList,allPoints);
     const scalar mergeDist = mergeTol*bb.mag();
 
     //Info<< "Overall mesh bounding box  : " << bb << nl
@@ -109,56 +102,11 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             )
         );
 
-    for (label proci=0; proci<nProcs; proci++)
-    {
-        #ifdef FULLDEBUG
-            Pout << "Reading processor mesh: "<<processorList[proci]
-                 <<"  ("<<proci<<" of "<<nProcs-1<<")"<<endl;
-        #endif
-        
+    for (label procI : processorList)
+    {        
         // Mesh cannot be constructed with boundaries as this calls the 
         // updateMesh() function of coupled processors and causes an MPI error
         // --> Solution construct without boundary
-        
-        pointField points = readField<point>
-        (
-            localPath
-            (
-                localMesh,
-                processorList[proci],
-                "points"
-            )
-        );
-
-        faceList faces = readFaceList
-        (
-            localPath
-            (
-                localMesh,
-                processorList[proci],
-                "faces"
-            )
-        );
-        
-        labelList owner = readList<label>
-        (
-            localPath
-            (
-                localMesh,
-                processorList[proci],
-                "owner"
-            )
-        );
-
-        labelList neighbour = readList<label>
-        (
-            localPath
-            (
-                localMesh,
-                processorList[proci],
-                "neighbour"
-            )
-        );
 
         fvMesh meshToAdd
         (
@@ -172,26 +120,26 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 false
             ),
             #ifdef FOAM_MOVE_CONSTRUCTOR
-                std::move(points),
-                std::move(faces),
-                std::move(owner),
-                std::move(neighbour),
+                std::move(allPoints[procI]),
+                std::move(allFaces[procI]),
+                std::move(allOwners[procI]),
+                std::move(allNeighbours[procI]),
             #else
-                xferMove(points),
-                xferMove(faces),
-                xferMove(owner),
-                xferMove(neighbour),
+                xferMove(allPoints[procI]),
+                xferMove(allFaces[procI]),
+                xferMove(allOwners[procI]),
+                xferMove(allNeighbours[procI]),
             #endif
             false // Do not synchronize --> in polyMesh() bounds_ calls an mpirecv 
         );
 
         // Now add the boundaries by creating a polyPatch with a type patch 
         // for generic value
-        
+
         // Read polyPatchList
         const polyBoundaryMesh& polyMeshRef = meshToAdd.boundaryMesh();
 
-        IFstream is(localPath(localMesh,processorList[proci],"boundary"));
+        IFstream is(localPath(localMesh,procI,"boundary"));
         readHeader(is);
         PtrList<entry> patchEntries(is);
          
@@ -213,6 +161,38 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         }
 
         meshToAdd.addPatches(patches,false);
+
+
+
+
+
+
+
+
+        // // Access to boundary mesh
+        // const polyBoundaryMesh& polyMeshRef = meshToAdd.boundaryMesh();
+
+        // List<polyPatch*> patches(allPatchTypes[procI].size());
+ 
+        // forAll(patches, patchi)
+        // {
+        //     Pout << "patchi: "<<patchi<<"  index "<<allIndex[procI][patchi]<<endl;
+        //     patches[patchi] = 
+        //         (
+        //             polyPatch::New
+        //             (
+        //                 "patch",        // use generic patch instead of patchType
+        //                 "patchName",
+        //                 allPatchSize[procI][patchi],
+        //                 allStart[procI][patchi],
+        //                 allIndex[procI][patchi],
+        //                 polyMeshRef
+        //             )
+        //         ).ptr();
+        // }
+
+        // meshToAdd.addPatches(patches,false);
+
 
         // Find geometrically shared points/faces.
         autoPtr<faceCoupleInfo> couples
@@ -274,28 +254,164 @@ Foam::autoPtr<Foam::mapAddedPolyMesh> Foam::reconstructRegionalMesh::add
 Foam::boundBox Foam::reconstructRegionalMesh::procBounds
 (
     const labelList processorList,
-    const fvMesh& localMesh
+    const List<pointField>& allPoints
 )
 {
     boundBox bb = boundBox::invertedBox;
 
-    forAll(processorList, proci)
+    forAll(processorList, procI)
     {
-        pointField points
-        (
-            readField<point>
-            (
-                localPath(localMesh,processorList[proci],"points")
-            )
-        );
-
-        boundBox domainBb(points, false);
+        boundBox domainBb(allPoints[processorList[procI]], false);
 
         bb.min() = min(bb.min(), domainBb.min());
         bb.max() = max(bb.max(), domainBb.max());
     }
 
     return bb;
+}
+
+
+void Foam::reconstructRegionalMesh::getMeshInformation
+(
+    List<faceList>& allFaces,
+    List<pointField>& allPoints,
+    List<labelList>& allOwner,
+    List<labelList>& allNeighbours,
+    const labelList& processorList,
+    const labelList& sendToProcessorList,
+    const fvMesh& mesh
+)
+{
+    // Add points and faces for own processor
+    allFaces[Pstream::myProcNo()] = mesh.faces();
+    allPoints[Pstream::myProcNo()] = mesh.points();
+    allOwner[Pstream::myProcNo()] = mesh.faceOwner();
+    allNeighbours[Pstream::myProcNo()] = mesh.faceNeighbour();
+
+    PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+
+    for (label procI : sendToProcessorList)
+    {
+        // Check for own processor ID as sendToProcessor contains its own procI
+        if (procI == Pstream::myProcNo())
+            continue;
+
+        UOPstream send(procI,pBufs);
+        send << allFaces[Pstream::myProcNo()];
+        send << allPoints[Pstream::myProcNo()];
+        send << allOwner[Pstream::myProcNo()];
+        send << allNeighbours[Pstream::myProcNo()];
+    }
+
+    pBufs.finishedSends();
+
+    for (label procI : processorList)
+    {
+        if (procI == Pstream::myProcNo())
+            continue;
+        
+        UIPstream recv(procI,pBufs);
+        recv >> allFaces[procI];
+        recv >> allPoints[procI];
+        recv >> allOwner[procI];
+        recv >> allNeighbours[procI];
+    }
+}
+
+
+
+void Foam::reconstructRegionalMesh::getPatchInformation
+(
+    List<wordList>& allPatchTypes,
+    List<labelList>& allPatchSize,
+    List<labelList>& allStart,
+    List<labelList>& allIndex,
+    const labelList& processorList,
+    const labelList& sendToProcessorList,
+    const fvMesh& mesh  
+)
+{
+    // Add points and faces for own processor
+    allPatchTypes.resize(Pstream::nProcs());
+    allPatchSize.resize(Pstream::nProcs());
+    allStart.resize(Pstream::nProcs());
+    allIndex.resize(Pstream::nProcs());
+
+    // Get local boundary mesh
+    const polyBoundaryMesh& bMesh = mesh.boundaryMesh();
+
+    allPatchTypes[Pstream::myProcNo()].resize(bMesh.size());
+    allPatchSize[Pstream::myProcNo()].resize(bMesh.size());
+    allStart[Pstream::myProcNo()].resize(bMesh.size());
+    allIndex[Pstream::myProcNo()].resize(bMesh.size());
+
+    // Loop over all patches
+    forAll(bMesh,i)
+    {
+        const polyPatch& patch = bMesh[i];
+        allPatchTypes[Pstream::myProcNo()][i] = patch.type();
+        allPatchSize[Pstream::myProcNo()][i] = patch.size();
+        allStart[Pstream::myProcNo()][i] = patch.start();
+        allIndex[Pstream::myProcNo()][i] = patch.index();
+    }
+
+    PstreamBuffers pBufs(Pstream::commsTypes::nonBlocking);
+
+    for (label procI : sendToProcessorList)
+    {
+        // Check for own processor ID as sendToProcessor contains its own procI
+        if (procI == Pstream::myProcNo())
+            continue;
+
+        UOPstream send(procI,pBufs);
+
+        send << allPatchTypes[Pstream::myProcNo()];
+        send << allPatchSize[Pstream::myProcNo()];
+        send << allStart[Pstream::myProcNo()];
+        send << allIndex[Pstream::myProcNo()];
+    }
+
+    pBufs.finishedSends();
+
+    for (label procI : processorList)
+    {
+        if (procI == Pstream::myProcNo())
+            continue;
+        
+        UIPstream recv(procI,pBufs);
+
+        // Create temporary lists
+        recv >> allPatchTypes[procI];
+        recv >> allPatchSize[procI];
+        recv >> allStart[procI];
+        recv >> allIndex[procI];
+    }
+}
+
+
+// * * * * * * * * * * * Depricated Functions * * * * * * * * * * * * * * * * *
+
+Foam::fileName Foam::reconstructRegionalMesh::localPath
+(
+    const fvMesh& localMesh,
+    const label proci,
+    const fileName file
+)
+{        
+    // Create start time value
+    const scalar startTimeValue = (localMesh.time().startTime()).value();
+
+    // Fist check if a mesh is present in the time directory
+    fileName pathToTimeDir = localMesh.time().path().path()
+          / fileName("processor" + name(proci) + "/" + localMesh.time().timeName(startTimeValue) + "/" + polyMesh::meshSubDir)
+          / file;
+
+    if (exists(pathToTimeDir))
+        return pathToTimeDir;
+
+    return  localMesh.time().path().path()
+          / fileName("processor" + name(proci) + "/constant/" + polyMesh::meshSubDir)
+          / file;
 }
 
 

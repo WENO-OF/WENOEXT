@@ -64,8 +64,7 @@ class globalfvMesh
         //- List of neighbour processors
         const labelList neighborProcessor_;
         
-        //- List of processors that require my cells 
-        //  e.g.: that have this processor as neighbour
+        //- List of processors to whom this processor is a neighbour
         const labelList sendToProcessor_;
 
         //- Pointer to the global mesh
