@@ -24,6 +24,7 @@ License
 
 Description
     Calculation of eigen values of a non symmetric real matrix A
+    Based on Numerical Recipes 3rd edition 
 
 Author
     Jan Wilhelm Gärtner <jan.gaertner@outlook.de> Copyright (C) 2022
@@ -64,7 +65,7 @@ class realEigenValues
         geometryWENO::scalarSquareMatrix a;
         
         //- Eigen values
-        complexVector wri;
+        complexVector sigma;
 
     // Private member functions
      
@@ -88,7 +89,7 @@ class realEigenValues
         //- Constructor with given matrix 
         realEigenValues(const geometryWENO::scalarSquareMatrix& aa) 
         :
-            n(aa.rows()), a(aa), wri(n)
+            n(aa.rows()), a(aa), sigma(n)
         {
             // Balance matrix
             balance();
@@ -104,7 +105,16 @@ class realEigenValues
         }
         
         //- Return the eigenvalues
-        inline const complexVector& eig() {return wri;}
+        inline const complexVector& eig() {return sigma;}
+
+        //- Return the condition of the matrix 
+        inline scalar cond() 
+        {
+            if (min(abs(sigma)) < ROOTVSMALL)
+                return GREAT;
+            
+            return max(abs(sigma))/min(abs(sigma));
+        }
 };
 
 } // End of mathFunctionsWENO
@@ -239,7 +249,7 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 			
             if (l == nn) 
             {
-				wri[nn--]=x+t;
+				sigma[nn--]=x+t;
 			} 
             else 
             {
@@ -254,14 +264,14 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 					if (q >= 0.0) 
                     {
 						z= p + sign(z,p);
-						wri[nn-1] = wri[nn] = x+z;
+						sigma[nn-1] = sigma[nn] = x+z;
 						if (z != 0.0) 
-                            wri[nn] = x-w/z;
+                            sigma[nn] = x-w/z;
 					} 
                     else 
                     {
-						wri[nn] = blaze::complex<double>(x+p,-z);
-						wri[nn-1]=conj(wri[nn]);
+						sigma[nn] = blaze::complex<double>(x+p,-z);
+						sigma[nn-1]=conj(sigma[nn]);
 					}
 					nn -= 2;
 				} 
@@ -401,7 +411,7 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 			//}
 			//x=a[nn][nn];
 			//if (l == nn) {
-				//wri[nn]=a[nn][nn]=x+t;
+				//sigma[nn]=a[nn][nn]=x+t;
 				//nn--;
 			//} else {
 				//y=a[nn-1][nn-1];
@@ -415,8 +425,8 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 					//a[nn-1][nn-1]=y+t;
 					//if (q >= 0.0) {
 						//z=p+SIGN(z,p);
-						//wri[nn-1]=wri[nn]=x+z;
-						//if (z != 0.0) wri[nn]=x-w/z;
+						//sigma[nn-1]=sigma[nn]=x+z;
+						//if (z != 0.0) sigma[nn]=x-w/z;
 						//x=a[nn][nn-1];
 						//s=abs(x)+abs(z);
 						//p=x/s;
@@ -440,8 +450,8 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 							//zz[i][nn]=q*zz[i][nn]-p*z;
 						//}
 					//} else {
-						//wri[nn]=Complex(x+p,-z);
-						//wri[nn-1]=conj(wri[nn]);
+						//sigma[nn]=Complex(x+p,-z);
+						//sigma[nn-1]=conj(sigma[nn]);
 					//}
 					//nn -= 2;
 				//} else {
@@ -534,8 +544,8 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 	//}
 	//if (anorm != 0.0) {
 		//for (nn=n-1;nn>=0;nn--) {
-			//p=real(wri[nn]);
-			//q=imag(wri[nn]);
+			//p=real(sigma[nn]);
+			//q=imag(sigma[nn]);
 			//na=nn-1;
 			//if (q == 0.0) {
 				//m=nn;
@@ -545,13 +555,13 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 					//r=0.0;
 					//for (j=m;j<=nn;j++)
 						//r += a[i][j]*a[j][nn];
-					//if (imag(wri[i]) < 0.0) {
+					//if (imag(sigma[i]) < 0.0) {
 						//z=w;
 						//s=r;
 					//} else {
 						//m=i;
 						
-						//if (imag(wri[i]) == 0.0) {
+						//if (imag(sigma[i]) == 0.0) {
 							//t=w;
 							//if (t == 0.0)
 								//t=EPS*anorm;
@@ -559,7 +569,7 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 						//} else {
 							//x=a[i][i+1];
 							//y=a[i+1][i];
-							//q=SQR(real(wri[i])-p)+SQR(imag(wri[i]));
+							//q=SQR(real(sigma[i])-p)+SQR(imag(sigma[i]));
 							//t=(x*s-z*r)/q;
 							//a[i][nn]=t;
 							//if (abs(x) > abs(z))
@@ -592,21 +602,21 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 						//ra += a[i][j]*a[j][na];
 						//sa += a[i][j]*a[j][nn];
 					//}
-					//if (imag(wri[i]) < 0.0) {
+					//if (imag(sigma[i]) < 0.0) {
 						//z=w;
 						//r=ra;
 						//s=sa;
 					//} else {
 						//m=i;
-						//if (imag(wri[i]) == 0.0) {
+						//if (imag(sigma[i]) == 0.0) {
 							//Complex temp = Complex(-ra,-sa)/Complex(w,q);
 							//a[i][na]=real(temp);
 							//a[i][nn]=imag(temp);
 						//} else {
 							//x=a[i][i+1];
 							//y=a[i+1][i];
-							//vr=SQR(real(wri[i])-p)+SQR(imag(wri[i]))-q*q;
-							//vi=2.0*q*(real(wri[i])-p);
+							//vr=SQR(real(sigma[i])-p)+SQR(imag(sigma[i]))-q*q;
+							//vi=2.0*q*(real(sigma[i])-p);
 							//if (vr == 0.0 && vi == 0.0)
 								//vr=EPS*anorm*(abs(w)+abs(q)+abs(x)+abs(y)+abs(z));
 							//Complex temp=Complex(x*r-z*ra+q*sa,x*s-z*sa-q*ra)/
@@ -650,14 +660,14 @@ void Foam::mathFunctionsWENO::realEigenValues::sort()
 	int i;
 	for (int j=1; j<n; j++) 
     {
-		blaze::complex<double> x = wri[j];
+		blaze::complex<double> x = sigma[j];
 		for (i=j-1; i>=0; i--) 
         {
-			if (real(wri[i]) >= real(x)) 
+			if (real(sigma[i]) >= real(x)) 
                 break;
-			wri[i+1]=wri[i];
+			sigma[i+1]=sigma[i];
 		}
-		wri[i+1]=x;
+		sigma[i+1]=x;
 	}
 }
 
