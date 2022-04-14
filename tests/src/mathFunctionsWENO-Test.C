@@ -59,31 +59,55 @@ TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
     // Check the eigen values 
     SECTION("eigenvalues of 3x3 matrix")
     {
-        // Check the determinante of 3x3 matrix
-        const geometryWENO::scalarSquareMatrix A
         {
-            { 5, 2, 0},
-            { 2, 5, 0},
-            {-3, 4, 6}
-        };
+            INFO("With valid eigen values");
+            // Check the determinante of 3x3 matrix
+            const geometryWENO::scalarSquareMatrix A
+            {
+                { 5, 2, 0},
+                { 2, 5, 0},
+                {-3, 4, 6}
+            };
 
-        blaze::DynamicVector<double,blaze::columnVector> eigVal{7,6,3};
+            blaze::DynamicVector<double,blaze::columnVector> eigVal{7,6,3};
 
-        CHECK(mathFunctionsWENO::eigen(A) == eigVal);
+            REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
+        }
         
-        
-        // Check for a badly conditioned matrix system
-        const geometryWENO::scalarSquareMatrix B
         {
-            { 1, 1, 0.1},
-            { 0, 2, 0},
-            { 1, 0, 0.1}
-        };
+            INFO("With one zero entry");
+            // Check for a badly conditioned matrix system
+            const geometryWENO::scalarSquareMatrix B
+            {
+                { 1, 1, 0.1},
+                { 0, 2, 0},
+                { 1, 0, 0.1}
+            };
 
-        blaze::DynamicVector<double,blaze::columnVector> eigVal2{2,1.1,0};
+            blaze::DynamicVector<double,blaze::columnVector> eigVal2{2,1.1,0};
 
-        REQUIRE(mathFunctionsWENO::eigen(B) == eigVal2);
+            REQUIRE(mathFunctionsWENO::eigen(B) == eigVal2);
+        }
         
+        {
+            INFO("With two zero eigen values");
+            // Check the determinante of 3x3 matrix
+            const geometryWENO::scalarSquareMatrix A
+            {
+                {-5.6555245e-05,  5.6558097e-05, 2.873191e-05},
+                { 4.92445437e-05, -4.9247027e-05, 3.27478754e-05},
+                { 0     ,  0     ,-3.46944695e-18}
+            };
+            
+            blaze::DynamicVector<double,blaze::columnVector> eigVal
+            {
+                1.70008e-14,
+                -3.46945e-18,
+                -0.000105802
+            };
+
+            REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
+        }
     }
 
     SECTION("inverse of 3x3 matrix")

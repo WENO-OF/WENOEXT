@@ -37,6 +37,7 @@ Author
 #include "geometryWENO.H"
 #include "cubicEqn.H"
 #include "mathematicalConstants.H"
+#include "realEigenValues.H"
 #include <math.h>
 
 #ifdef USE_FMA
@@ -58,7 +59,7 @@ namespace Foam
 namespace mathFunctionsWENO
 {
     //- Calculate eigen values of 3x3 matrix
-    //- see: https://en.wikipedia.org/wiki/Eigenvalue_algorithm#3%C3%973_matrices
+    //  Based on Numerical Recipes 3rd Edition Chapter 11.6
     blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> eigen
     (
         const geometryWENO::scalarSquareMatrix& A
@@ -96,62 +97,9 @@ namespace mathFunctionsWENO
 blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> 
 Foam::mathFunctionsWENO::eigen(const geometryWENO::scalarSquareMatrix& A)
 {
-    // Eigen values are computed in the same manner as OpenFOAM 
-    // tensor.C does for eigenValues()
-    
-    // Create blaze vector with three entries
-    blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> lambda(3); 
-	
-	// Coefficients of the characteristic cubic polynomial (a = 1)
-    const scalar b =
-       - A(0,0) - A(1,1) - A(2,2);
-    const scalar c =
-         A(0,0)*A(1,1) + A(0,0)*A(2,2) + A(1,1)*A(2,2)
-       - A(0,1)*A(1,0) - A(1,2)*A(2,1) - A(2,0)*A(0,2);
-    const scalar d =
-       - A(0,0)*A(1,1)*A(2,2)
-       - A(0,1)*A(1,2)*A(2,0) - A(0,2)*A(2,1)*A(1,0)
-       + A(0,0)*A(1,2)*A(2,1) + A(1,1)*A(2,0)*A(0,2) + A(2,2)*A(0,1)*A(1,0);
- 
-     // Solve
-     Roots<3> roots = cubicEqn(1, b, c, d).roots();
- 
-    // Check if a complex root is present
-    bool complexRoot = false;
-    forAll(roots, i)
-    {
-        switch (roots.type(i))
-        {
-            case roots::real:
-                break;
-            case roots::complex:
-                complexRoot = true;
-                break;
-            case roots::posInf:
-                break;
-            case roots::negInf:
-                break;
-            case roots::nan:
-                FatalErrorInFunction
-                    << "Eigenvalue calculation failed for tensor: " 
-                    << A
-                    << exit(FatalError);
-        }
-    }
+    realEigenValues eigenVal(A);
 
-    if (complexRoot)
-    {
-        lambda[0] = blaze::complex<double>(roots[0],0);
-        lambda[1] = blaze::complex<double>(roots[1], roots[2]);
-        lambda[2] = blaze::complex<double>(roots[1],-roots[2]);
-    }
-    else
-    {
-        lambda[0] = blaze::complex<double>(roots[0],0);
-        lambda[1] = blaze::complex<double>(roots[1],0);
-        lambda[2] = blaze::complex<double>(roots[2],0);
-    }
-     return lambda;
+    return eigenVal.eig();
 }
 
 
