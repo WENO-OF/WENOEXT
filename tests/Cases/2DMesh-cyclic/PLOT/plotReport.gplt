@@ -31,12 +31,12 @@ set boxwidth 0.25
 
 set output "meanError-WENO.png"
 
-plot "results.dat" every 2::0 using ($0+0.24):3 with boxes ls 2 notitle,\
-     "results.dat" every 2::1 using ($0+0.51):3 with boxes ls 3 title 'best cond.'
+plot "results.dat" every 2::0::2 using ($0+0.24):3 with boxes ls 2 notitle,\
+     "results.dat" every ::3 using ($0+0.51):3 with boxes ls 3 title 'best cond.'
 
 
 set ylabel "Max Error";
 set output "maxError-WENO.png"
-plot "results.dat" every 2::0 using ($0+0.24):6 with boxes ls 2 notitle,\
-     "results.dat" every 2::1 using ($0+0.51):6 with boxes ls 3 title 'best cond.'
+plot "results.dat" every 2::0::2 using ($0+0.24):6 with boxes ls 2 notitle,\
+     "results.dat" every ::3 using ($0+0.51):6 with boxes ls 3 title 'best cond.'
 
