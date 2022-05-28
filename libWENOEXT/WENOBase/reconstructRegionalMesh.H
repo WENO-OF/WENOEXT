@@ -51,71 +51,22 @@ namespace Foam
 
 namespace reconstructRegionalMesh
 {
-    // Class to set the correct fileHandler
-    class fileHandlerControl
-    {
-        private:
-            word oldFileHandlerType;
-
-        public:
-
-            fileHandlerControl() = default;
-            
-            ~fileHandlerControl();
-            
-            // Set the file hander to uncollated
-            void setUncollated();
-
-            // Reset the file handler to the old type
-            void reset();
-    };
-
     //- Reconsturct mesh depending on processor list
     autoPtr<fvMesh> reconstruct
     (
-        const labelList processorList,
+        const labelList& processorList,
+        const labelList& sendToProcessorList,
         const fvMesh& localMesh
     );
     
+    //- Get the bounds of the current domain 
     boundBox procBounds
     (
         const labelList processorList,
-        const fvMesh& localMesh
+        const List<pointField>& allPoints
     );
     
-    fileName localPath
-    (
-        const fvMesh& localMesh, 
-        const label proci,
-        const fileName file
-    );
-    
-    void readHeader(Istream& is);
-    
-    List<face> readFaceList
-    (
-        const fileName path
-    );
-    
-    template<class Type>
-    Field<Type> readField(const fileName path)
-    {
-        // Create an IFStream object
-        IFstream is(path);      
-        readHeader(is);
-        return Field<Type>(is);
-    }
-    
-    template<class Type>
-    List<Type> readList(const fileName path)
-    {
-        // Create an IFStream object
-        IFstream is(path);
-        readHeader(is);
-        
-        return List<Type>(is);
-    }
-    
+    //- Add two mesh objects together 
     autoPtr<mapAddedPolyMesh> add
     (
         fvMesh& mesh0,
@@ -123,7 +74,91 @@ namespace reconstructRegionalMesh
         const faceCoupleInfo& coupleInfo,
         const bool validBoundary
     );
+ 
+    //- Get the points and faces of neighbouring processor meshes
+    void getMeshInformation(
+        List<faceList>& allFaces,
+        List<pointField>& allPoints,
+        List<labelList>& allOwner,
+        List<labelList>& allNeighbours,
+        const labelList& processorList,
+        const labelList& sendToProcessorList,
+        const fvMesh& mesh
+    );
+
+    //- Get the patch type, size, start index etc
+    void getPatchInformation(
+        List<wordList>& allPatchNames,
+        List<labelList>& allPatchSize,
+        List<labelList>& allStart,
+        List<labelList>& allIndex,
+        const labelList& processorList,
+        const labelList& sendToProcessorList,
+        const fvMesh& mesh
+    );
+ 
+    // ------------------------------------------------------------------------
+    // Depricated functions 
+    // Required to read processor mesh from hard drive
     
+        //- Constructs the local path to the file of processor proci
+        fileName localPath
+        (
+            const fvMesh& localMesh, 
+            const label proci,
+            const fileName file
+        );
+        
+        //- Read the header of a IO file
+        void readHeader(Istream& is);
+
+        //- Read face lists 
+        //  Requires special handling in this case 
+        List<face> readFaceList
+        (
+            const fileName path
+        );
+
+        //- Read a Field<Type> from a local path
+        template<class Type>
+        Field<Type> readField(const fileName path)
+        {
+            // Create an IFStream object
+            IFstream is(path);      
+            readHeader(is);
+            return Field<Type>(is);
+        }
+        
+        //- Read a list from a local path
+        template<class Type>
+        List<Type> readList(const fileName path)
+        {
+            // Create an IFStream object
+            IFstream is(path);
+            readHeader(is);
+            
+            return List<Type>(is);
+        }
+            
+        // Class to set the correct fileHandler
+        class fileHandlerControl
+        {
+            private:
+                word oldFileHandlerType;
+
+            public:
+
+                fileHandlerControl() = default;
+                
+                ~fileHandlerControl();
+                
+                // Set the file hander to uncollated
+                void setUncollated();
+
+                // Reset the file handler to the old type
+                void reset();
+        };
+        
 }
 
 }

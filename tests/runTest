@@ -34,7 +34,7 @@ function runAll {
     #                      Run Test Cases - Single Processor
     # ---------------------------------------------------------------------------
 
-    cd ${currDir}/Cases/2DMesh
+    cd ${currDir}/Cases/2DMesh-cyclic
     blockMesh > /dev/null
     ../../src/WENO_TEST [baseTest]
     
@@ -75,12 +75,6 @@ function runAll {
 
     cd PLOT/ && gnuplot plotReport.gplt
     
-    cd ${currDir}/Cases/2DMesh-cyclic
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [upwindFitTest]
-
-    cd ${currDir}/Cases/2DMesh-cyclicAMI
-    sed -i "s/^nCells.*/nCells 100;/" system/blockMeshDict && blockMesh > /dev/null && ../../src/WENO_TEST [upwindFitTest]
-
 
     cd ${currDir}/Cases/advectionCase
     blockMesh > /dev/null 
@@ -91,9 +85,9 @@ function runAll {
     # ---------------------------------------------------------------------------
     #                      Run Test Cases - MPI Processor
     # ---------------------------------------------------------------------------
-    cd ${currDir}/Cases/globalFvMeshTestCase/case-3D
+    cd ${currDir}/Cases/globalFvMeshTestCase/
     blockMesh > /dev/null && decomposePar -force > /dev/null 
-    mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
+    mpirun -np 8 ../../src/WENO_TEST [parallel] --parallel 
 }
 
 
@@ -125,9 +119,9 @@ function runSimple {
     # ---------------------------------------------------------------------------
     #                      Run Test Cases - MPI Processor
     # ---------------------------------------------------------------------------
-    cd ${currDir}/Cases/globalFvMeshTestCase/case-3D
+    cd ${currDir}/Cases/globalFvMeshTestCase/
     blockMesh > /dev/null && decomposePar -force > /dev/null 
-    mpirun -np 8 ../src/globalFvMeshTest.exe -parallel 
+    mpirun -np 8 ../../src/WENO_TEST [parallel] --parallel 
 }
 # ---------------------------------------------------------------------------
 #                           Compile Libray

@@ -11,10 +11,10 @@ add_executable(WENO_TEST
     mathFunctionsWENO-Test.C
     matrixDB-Test.C
     WENOUpwindFit-Test.C
-    WENOUpwindFit-Test-parallel.C
     WENOUpwindFit-AdvectionTest.C 
     WENOBaseIO-Test.C
     List3D-Test.C
+    globalFvMesh-Test.C
 )
 
 
@@ -24,11 +24,11 @@ target_include_directories(WENO_TEST PUBLIC
     WENOEXT
     KDTree
     vtkWriter
-    ./Catch2SingleHeader
     $ENV{FOAM_SRC}/sampling/lnInclude
 )
 
 target_link_libraries(WENO_TEST PUBLIC
+ Catch2::Catch2
  WENOEXT
  KDTree
  vtkWriter

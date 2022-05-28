@@ -34,7 +34,9 @@ Author
 
 \*---------------------------------------------------------------------------*/
 
-#include "catch.hpp"
+#include <catch2/catch_session.hpp> 
+#include <catch2/catch_test_macros.hpp> 
+#include <catch2/catch_approx.hpp>          // Catch::Approx is needed when floats are compared
 
 #include "fvCFD.H"
 #include "geometryWENO.H"
@@ -75,9 +77,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
             for (unsigned int j = 0; j < J.columns(); j++)
             {
                 if (i==j)
-                    REQUIRE(Approx(J(i,j)) == i+1);
+                    REQUIRE(Catch::Approx(J(i,j)) == i+1);
                 else
-                    REQUIRE(Approx(J(i,j)) == 0);
+                    REQUIRE(Catch::Approx(J(i,j)) == 0);
             }
         }
     }
@@ -100,9 +102,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
             for (unsigned int j = 0; j < J.columns(); j++)
             {
                 if (i==j)
-                    REQUIRE(Approx(J(i,j)) == i+1);
+                    REQUIRE(Catch::Approx(J(i,j)) == i+1);
                 else
-                    REQUIRE(Approx(J(i,j)) == 0);
+                    REQUIRE(Catch::Approx(J(i,j)) == 0);
             }
         }
         
@@ -120,9 +122,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
                         for (unsigned int j = 0; j < J.columns(); j++)
                         {
                             if (i==j)
-                                REQUIRE(Approx(JInv(i,j)*J(i,j)) == 1.0);
+                                REQUIRE(Catch::Approx(JInv(i,j)*J(i,j)) == 1.0);
                             else
-                                REQUIRE(Approx(JInv(i,j)) == 0);
+                                REQUIRE(Catch::Approx(JInv(i,j)) == 0);
                         }
                     }
                     THEN("Check geometryWENO::transformPoint")
@@ -132,9 +134,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
                         const point xp(2,2,3);
                         const point res = geometryWENO::transformPoint(JInv,xp,x0);
                         
-                        REQUIRE(Approx(res[0])==1);
-                        REQUIRE(Approx(res[1])==1);
-                        REQUIRE(Approx(res[2])==1);
+                        REQUIRE(Catch::Approx(res[0])==1);
+                        REQUIRE(Catch::Approx(res[1])==1);
+                        REQUIRE(Catch::Approx(res[2])==1);
                     }
                 }
             }
@@ -174,7 +176,7 @@ TEST_CASE("geometryWENO: Quadrature","[baseTest]")
             scalar Int = geometryWENO::gaussQuad(1,1,1,p0,v0,v1,v2);
             
             // The result to check is obtained from matlab
-            REQUIRE(Approx(Int) == 0.0277777);
+            REQUIRE(Catch::Approx(Int) == 0.0277777);
             
         }
     }
@@ -194,7 +196,7 @@ TEST_CASE("geometryWENO: Quadrature","[baseTest]")
             scalar Int = geometryWENO::gaussQuad(1,2,4,p0,v0,v1,v2);
             
             // The result to check is obtained from old commit 
-            REQUIRE(Approx(Int) == 0.0039776813);
+            REQUIRE(Catch::Approx(Int) == 0.0039776813);
         }
     }
     
@@ -249,13 +251,13 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
                 for (int n = 0; n < volIntegrals.sizeZ(); ++n)
                 {
                     if (n==0 && m==0 && l==0)
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0);
                     else if (   (n==2 && m == 0 && l == 0)
                         || (n==0 && m == 2 && l == 0)
                         || (n==0 && m == 0 && l == 2))
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/12.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0/12.0);
                     else 
-                        REQUIRE(Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
+                        REQUIRE(Catch::Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
@@ -285,13 +287,13 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
                 for (int n = 0; n < transVolMom.sizeZ(); ++n)
                 {
                     if (n==0 && m==0 && l==0)
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0);
                     else if (   (n==2 && m == 0 && l == 0)
                         || (n==0 && m == 2 && l == 0)
                         || (n==0 && m == 0 && l == 2))
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/12.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0/12.0);
                     else 
-                        REQUIRE(Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
+                        REQUIRE(Catch::Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
@@ -302,7 +304,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         // for the inverse volume if the cell is rectengular
         // E.g.: V' = det(JInv) * V
         // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
-        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);        
+        REQUIRE(Catch::Approx(mag(blaze::det(JInvI)))==1E+05);        
     }
     
     
@@ -327,13 +329,13 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
                 for (int n = 0; n < volIntegrals.sizeZ(); ++n)
                 {
                     if (n==0 && m==0 && l==0)
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0);
                     else if (   (n==2 && m == 0 && l == 0)
                         || (n==0 && m == 2 && l == 0)
                         || (n==0 && m == 0 && l == 2))
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/12.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0/12.0);
                     else 
-                        REQUIRE(Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
+                        REQUIRE(Catch::Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
@@ -362,13 +364,13 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
                 for (int n = 0; n < transVolMom.sizeZ(); ++n)
                 {
                     if (n==0 && m==0 && l==0)
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0);
                     else if (   (n==2 && m == 0 && l == 0)
                         || (n==0 && m == 2 && l == 0)
                         || (n==0 && m == 0 && l == 2))
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/12.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0/12.0);
                     else 
-                        REQUIRE(Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
+                        REQUIRE(Catch::Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
@@ -379,7 +381,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         // for the inverse volume if the cell is rectengular
         // E.g.: V' = det(JInv) * V
         // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
-        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);
+        REQUIRE(Catch::Approx(mag(blaze::det(JInvI)))==1E+05);
     }
     
     
@@ -403,21 +405,21 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
                 for (int n = 0; n < volIntegrals.sizeZ(); ++n)
                 {
                     if (n==0 && m==0 && l==0)
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0);
                     else if (   (n==2 && m == 0 && l == 0)
                         || (n==0 && m == 2 && l == 0)
                         || (n==0 && m == 0 && l == 2))
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/12.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0/12.0);
                     else if (   (n==2 && m == 2 && l == 0)
                         || (n==0 && m == 2 && l == 2)
                         || (n==2 && m == 0 && l == 2))
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/144.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0/144.0);
                     else if (   (n==4 && m == 0 && l == 0)
                         || (n==0 && m == 4 && l == 0)
                         || (n==0 && m == 0 && l == 4))
-                        REQUIRE(Approx(volIntegrals(l,m,n)) == 1.0/80.0);
+                        REQUIRE(Catch::Approx(volIntegrals(l,m,n)) == 1.0/80.0);
                     else 
-                        REQUIRE(Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
+                        REQUIRE(Catch::Approx(mag(volIntegrals(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
@@ -446,21 +448,21 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
                 for (int n = 0; n < transVolMom.sizeZ(); ++n)
                 {
                     if (n==0 && m==0 && l==0)
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0);
                     else if (   (n==2 && m == 0 && l == 0)
                         || (n==0 && m == 2 && l == 0)
                         || (n==0 && m == 0 && l == 2))
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/12.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0/12.0);
                     else if (   (n==2 && m == 2 && l == 0)
                         || (n==0 && m == 2 && l == 2)
                         || (n==2 && m == 0 && l == 2))
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/144.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0/144.0);
                     else if (   (n==4 && m == 0 && l == 0)
                         || (n==0 && m == 4 && l == 0)
                         || (n==0 && m == 0 && l == 4))
-                        REQUIRE(Approx(transVolMom(l,m,n)) == 1.0/80.0);
+                        REQUIRE(Catch::Approx(transVolMom(l,m,n)) == 1.0/80.0);
                     else 
-                        REQUIRE(Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
+                        REQUIRE(Catch::Approx(mag(transVolMom(l,m,n))).margin(1E-9) == 0);
                 }
             }
         }
@@ -470,7 +472,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         // for the inverse volume if the cell is rectengular
         // E.g.: V' = det(JInv) * V
         // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
-        REQUIRE(Approx(mag(blaze::det(JInvI)))==1E+05);
+        REQUIRE(Catch::Approx(mag(blaze::det(JInvI)))==1E+05);
     }
     
 }

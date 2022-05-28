@@ -220,7 +220,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createGlobalMesh(const fvM
 {
     if (Pstream::parRun())
     {
-        return reconstructRegionalMesh::reconstruct(neighborProcessor_,mesh);
+        return reconstructRegionalMesh::reconstruct(neighborProcessor_,sendToProcessor_,mesh);
     }
     return autoPtr<fvMesh>(nullptr);
 }
@@ -238,7 +238,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createLocalMesh(const fvMe
         {
             labelList list(1);
             list[0] = Pstream::myProcNo();
-            return reconstructRegionalMesh::reconstruct(list,mesh);
+            return reconstructRegionalMesh::reconstruct(list,list,mesh);
         }
     }
 
