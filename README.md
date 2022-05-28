@@ -2,7 +2,8 @@
 
 ![OpenFOAM Org](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-ofORG.yml/badge.svg) 
 ![OpenFOAM ESI](https://github.com/WENO-OF/WENOEXT/actions/workflows/c-ofESI.yml/badge.svg)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4704734.svg)](https://doi.org/10.5281/zenodo.4704734)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6589686.svg)](https://doi.org/10.5281/zenodo.6589686)
+
 
 
 # WENO framework
