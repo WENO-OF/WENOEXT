@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: WENOEXT
+message: 'If you use this software, please cite it as below'
+type: software
+authors:
+  - given-names: Jan Wilhelm
+    family-names: Gärtner
+    email: jan-wilhelm.gaertner@itv.uni-stuttgart.de
+    affiliation: 'University of Stuttgart '
+  - given-names: Andreas
+    family-names: Kronenburg
+    email: andreas.kronenburg@itv.uni-stuttgart.de
+    affiliation: University of Stuttgart
+  - given-names: Tobias
+    family-names: Martin
+  - given-names: Ivan
+    family-names: Shevchuk

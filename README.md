@@ -40,6 +40,8 @@ When using this work please cite:
 
 > T. Martin, and I. Shevchuk, “SoftwareX Efficient WENO library for OpenFOAM,” Computation, vol. 6(6), 2018, doi: 10.3390/computation6010006.
 
+Alternatively, a citation *.cff file is given. 
+
 ## Installation
 
 1. Clone the directory with
