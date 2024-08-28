@@ -509,7 +509,7 @@ void Foam::reconstructRegionalMesh::fileHandlerControl::setUncollated()
     // has to be used, as otherwise the MPI gets stuck calling an allGather()
     fileOperation::fileHandlerPtr_ = fileOperation::New("uncollated",false);
     #if (OF_FORK_VERSION >= 2006 )
-        fileHandler(std::move(fileOperation::fileHandlerPtr_));
+        fileOperation::fileHandler(std::move(fileOperation::fileHandlerPtr_));
     #else
         fileHandler(fileOperation::fileHandlerPtr_);
     #endif
@@ -521,7 +521,7 @@ void Foam::reconstructRegionalMesh::fileHandlerControl::reset()
     // Reset file handler to default
     fileOperation::fileHandlerPtr_ = fileOperation::New(oldFileHandlerType,false);
     #if (OF_FORK_VERSION >= 2006 )
-        fileHandler(std::move(fileOperation::fileHandlerPtr_));
+        fileOperation::fileHandler(std::move(fileOperation::fileHandlerPtr_));
     #else
         fileHandler(fileOperation::fileHandlerPtr_);
     #endif
