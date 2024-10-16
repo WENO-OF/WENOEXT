@@ -44,7 +44,7 @@ When using this work please cite:
 ## Installation
 
 1. Clone the directory with
-    `git clone https://github.com/WENO-OF/WENOEXT.git`
+    `git clone --recursive https://github.com/WENO-OF/WENOEXT.git`
 
 2. Execute `Allwmake` to build the library
    The compilation of the library uses cmake instead of wmake files!

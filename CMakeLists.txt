@@ -226,16 +226,14 @@ add_subdirectory(blaze-3.8)
 add_subdirectory(libWENOEXT)
 add_subdirectory(utilities)
 
-
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 
 message("\n-------------------------------------------------------------------") 
 message("\tBuild State")
 message("-------------------------------------------------------------------")
-if (CMAKE_BUILD_TYPE)
-    message("Built state is: ${CMAKE_BUILD_TYPE}")
-else()
-    message("Built state is: unspecified")
-endif()
+message("Build state is: ${CMAKE_BUILD_TYPE}")
 # Build only tests if activated
 # As strequal is a case sensitive comparison and the cmake build type can be 
 # specified case insensitive it has to be first converted
@@ -244,8 +242,16 @@ if (build_type_upper STREQUAL "RELEASE")
     message("Tests are NOT build for the release type")
 else()
     message("Building tests")
-    message("This can be deactivated by using CMAKE_BUILD_TYPE=Release")
-    add_subdirectory(tests)
+
+    # Check if the Catch2 library is loaded
+    if( NOT EXISTS "tests/Catch2/.git" )
+        message( SEND_ERROR "The git submodules are not available. Please run
+        git submodule update --init --recursive"
+        )
+    else()
+        message("This can be deactivated by using CMAKE_BUILD_TYPE=Release")
+        add_subdirectory(tests)
+    endif()
 endif()
 message("-------------------------------------------------------------------\n")
 
