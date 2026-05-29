@@ -210,8 +210,9 @@ if (${USE_FMA})
     add_definitions( -DUSE_FMA )
 endif()
 
-set(CMAKE_SHARED_LINKER_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
-
+if(NOT APPLE)
+    set_target_properties(writeWENOStats PROPERTIES LINK_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
+endif()
 
 add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LABEL_SIZE=$ENV{WM_LABEL_SIZE} -DNoRepository)
 

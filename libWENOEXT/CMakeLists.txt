@@ -61,22 +61,37 @@ target_include_directories(WENOEXT PUBLIC
 )
 
 
+# Set OpenFOAM library directory
+set(FOAM_LIBBIN $ENV{FOAM_LIBBIN})
 
+# Find all required OpenFOAM libraries
+find_library(LIB_DYNAMIC_MESH dynamicMesh PATHS ${FOAM_LIBBIN} NO_DEFAULT_PATH)
+find_library(LIB_FINITE_VOLUME finiteVolume PATHS ${FOAM_LIBBIN} NO_DEFAULT_PATH)
+find_library(LIB_MESH_TOOLS meshTools PATHS ${FOAM_LIBBIN} NO_DEFAULT_PATH)
+find_library(LIB_SPECIE specie PATHS ${FOAM_LIBBIN} NO_DEFAULT_PATH)
+find_library(LIB_SURF_MESH surfMesh PATHS ${FOAM_LIBBIN} NO_DEFAULT_PATH)
+find_library(LIB_FILE_FORMATS fileFormats PATHS ${FOAM_LIBBIN} NO_DEFAULT_PATH)
+find_library(LIB_OPENFOAM OpenFOAM PATHS ${FOAM_LIBBIN} NO_DEFAULT_PATH)
+find_library(LIB_PSTREAM Pstream PATHS ${FOAM_LIBBIN}/dummy NO_DEFAULT_PATH)
+
+# Check if libraries were found
+if(NOT LIB_OPENFOAM)
+    message(FATAL_ERROR "OpenFOAM libraries not found in ${FOAM_LIBBIN}")
+endif()
+
+# Link libraries
 target_link_libraries(WENOEXT PUBLIC
- Blaze
- -L$ENV{FOAM_LIBBIN}
- -ldynamicMesh 
- -lfiniteVolume 
- -lmeshTools
- -lspecie
- -lsurfMesh
- -lfileFormats
- -lOpenFOAM
- ${TRISURFACE_LIB}
+    Blaze
+    ${LIB_DYNAMIC_MESH}
+    ${LIB_FINITE_VOLUME}
+    ${LIB_MESH_TOOLS}
+    ${LIB_SPECIE}
+    ${LIB_SURF_MESH}
+    ${LIB_FILE_FORMATS}
+    ${LIB_OPENFOAM}
+    ${LIB_PSTREAM}
+    ${TRISURFACE_LIB}
 )
-
-target_link_libraries(WENOEXT INTERFACE Blaze)
-
 
 target_compile_definitions(WENOEXT PRIVATE
     $<$<CONFIG:Debug>:

@@ -17,7 +17,9 @@ target_link_libraries(writeWENOStats PUBLIC
  -L$ENV{FOAM_LIBBIN}
 )
 
-set_target_properties(writeWENOStats PROPERTIES LINK_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
+if(NOT APPLE)
+    set_target_properties(writeWENOStats PROPERTIES LINK_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
+endif()
 
 install(
     TARGETS writeWENOStats 

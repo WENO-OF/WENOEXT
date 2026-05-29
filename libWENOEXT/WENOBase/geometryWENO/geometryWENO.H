@@ -70,7 +70,7 @@ namespace geometryWENO
     //- For static matrices a custom allocator is required when dynamic
     //  allocation is used. OpenFOAM does not provide an option for an 
     //  allocator with a list. 
-    using blazeList = std::vector<geometryWENO::scalarSquareMatrix,blaze::AlignedAllocator<scalar>>;
+    using blazeList = std::vector<blaze::StaticMatrix<double, 3, 3>>;
     
     // Member Functions
 
