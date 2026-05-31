@@ -121,7 +121,7 @@ Foam::labelList Foam::WENO::globalfvMesh::neighborProcessorList(const fvMesh& me
 
         Pstream::gatherList(allNeighbours);
         
-        Pstream::scatterList(allNeighbours);
+        Pstream::broadcastList(allNeighbours);
 
         // Get the neighbour and second neighbour list for your processor
         labelListList secondNeighbourList(myNeighbourProc.size()-1);
@@ -190,7 +190,7 @@ Foam::labelList Foam::WENO::globalfvMesh::sendToProcessorList(const fvMesh& mesh
 
         Pstream::gatherList(allValues);
         
-        Pstream::scatterList(allValues);
+        Pstream::broadcastList(allValues);
 
         forAll(allValues,procI)
         {

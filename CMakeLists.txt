@@ -40,9 +40,9 @@ cmake_minimum_required (VERSION 3.10)
 include(GNUInstallDirs)
 
 
-# Enforce C++ 14 standard
-# C++ 14 is required for blaze
-set(CMAKE_CXX_STANDARD 14)
+# Enforce C++ 17 standard
+# C++ 17 is required for OpenFOAM-v2312+
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set minimum gnu compiler version
 set(GNU_MIN_VERSION 7.5.0)
@@ -195,7 +195,7 @@ endif()
 
 # Set c++ flags
 add_compile_options(
-    -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated
+    -Wall -Wextra -Wold-style-cast -Wnon-virtual-dtor -Wno-unused-parameter -Wno-invalid-offsetof -Wno-deprecated -Wno-overloaded-virtual -Wno-dangling-reference
     -ftemplate-depth-100
     -O3
     )

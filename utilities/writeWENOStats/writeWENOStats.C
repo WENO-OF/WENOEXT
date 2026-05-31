@@ -18,7 +18,7 @@ int main(int argc, char *argv[])   // start main loop
     
     
     label polOrder = 3;
-    args.optionReadIfPresent("polOrder", polOrder);
+    args.readIfPresent("polOrder", polOrder);
     
     const WENOBase& WENO = WENOBase::instance(mesh,polOrder);
     

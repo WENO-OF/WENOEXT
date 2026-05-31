@@ -1,0 +1,44 @@
+FROM ubuntu:22.04
+
+CMD [ "/bin/sh" ]
+
+# Install base dependencies
+RUN export DEBIAN_FRONTEND=noninteractive \
+ && apt-get update \
+ && apt-get install -y \
+        curl ca-certificates git cmake \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install OpenFOAM v2506 from official ESI repository
+RUN curl -s https://dl.openfoam.com/add-debian-repo.sh | bash \
+ && export DEBIAN_FRONTEND=noninteractive \
+ && apt-get update \
+ && apt-get install -y openfoam2506-dev \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV foamDotFile=/usr/lib/openfoam/openfoam2506/etc/bashrc
+
+# Required so that sourcing the OpenFOAM bashrc works correctly
+RUN rm -f /bin/sh && ln -sT /bin/bash /bin/sh
+
+# Create gitlab user (required for GitLab CI)
+RUN groupadd -g 999 gitlab \
+ && useradd -m -d /home/gitlab -r -u 999 -g gitlab gitlab
+USER gitlab
+
+RUN mkdir -p /home/gitlab/build/
+WORKDIR /home/gitlab/build
+
+# Bundle lib source
+COPY --chown=gitlab:gitlab . .
+
+# Update git submodules
+RUN git submodule init && git submodule update
+
+# Compile the library
+RUN . $foamDotFile && ./Allwclean && ./Allwmake -f -j
+
+# Run all unit tests
+RUN . $foamDotFile && cd tests && ./runTest

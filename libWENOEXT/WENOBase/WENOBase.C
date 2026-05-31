@@ -343,7 +343,7 @@ void Foam::WENOBase::distributeStencils
 
     Pstream::gatherList(allValues);
     
-    Pstream::scatterList(allValues);
+    Pstream::broadcastList(allValues);
 
     // Clear old list and fill with -1
     sendProcList_.setSize(Pstream::nProcs());
@@ -524,8 +524,8 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
         addCoeffs(A,cellJ,polOrder_,dimList_[localCellI],volIntegralsIJ);
     }
 
-    svdCurrPtr.set(new SVD(A, maxCondition_));
-    
+    svdCurrPtr.reset(new SVD(A, maxCondition_));
+
     if (bestConditioned_)
     {
         for (nCells = nDvt_+1 ; nCells < stencilSize; nCells++)
@@ -534,7 +534,7 @@ Foam::scalarRectangularMatrix Foam::WENOBase::calcMatrix
             
             // Returning pseudoinverse using SVD
             svdCurrPtr.clear();
-            svdCurrPtr.set(new SVD(A, maxCondition_));
+            svdCurrPtr.reset(new SVD(A, maxCondition_));
             
             if (svdCurrPtr->converged())
             {
