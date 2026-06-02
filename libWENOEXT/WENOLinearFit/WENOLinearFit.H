@@ -34,17 +34,21 @@ Description
 
     Usage:
 
-    div(phi,U)  Gauss WENOLinear Fit 3 1 1;
+    div(phi,U)  Gauss WENOLinear Fit 3 0.8 1;
     
-    First number is the polynomial order -- here 3
-    Second number is the limiting factor. If it is set to 0, it 
-    is essentially a linear scheme, if it is set to 1, it uses the 
-    WENO weights. E.g., if it is set to 0.9 it means that the WENO weight
-    must differ by more than 10% to the linear weight to be used. Otherwise
-    the central differencing (linear scheme) weights are used.
 
-    Third number is a boolean. If it is 1, the explicit correction is 
-    limited by the cell center values.
+    First index -- here 3:
+        Sets the polynomial order
+    Second index -- here 0.8:
+        If it is set to 0, it is essentially a linear scheme, if it is set
+        to 1, it uses the WENO weights. E.g., if it is set to 0.9 it means 
+        that the WENO weight must differ by more than 10% to the linear 
+        weight to be used. Otherwise the central differencing 
+        (linear scheme) weights are used.
+    Third index -- here 1:
+        Boolean value to select if the explicit correction is used
+        If it is used, the explicit correcion uses a cell limited 
+        approach
 
 SourceFiles
     WENOLinearFit.C
@@ -100,8 +104,8 @@ class WENOLinearFit
         //  - +1: limited -- use only WENO weights
         const scalar limFac_;
 
-        //- Cell limited explicit correction
-        const bool cellLimited_;
+        //- Use explicit correction for upwind terms
+        const bool explicitCorrection_;
 
         //- Reference to WENOCoeff class
         WENOCoeff<Type> WENOCoeff_;
@@ -199,7 +203,7 @@ public:
             faceFlux_(zeroFlux()),
             polOrder_(polOrder),
             limFac_(1.0),
-            cellLimited_(true),
+            explicitCorrection_(false),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
@@ -221,7 +225,7 @@ public:
             ) ,
             polOrder_(readScalar(is)),
             limFac_(readScalar(is)),
-            cellLimited_(readBool(is)),
+            explicitCorrection_(readBool(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
@@ -238,7 +242,7 @@ public:
             faceFlux_(faceFlux),
             polOrder_(readScalar(is)),
             limFac_(readScalar(is)),
-            cellLimited_(readBool(is)),
+            explicitCorrection_(readBool(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
@@ -261,7 +265,7 @@ public:
         //- Return true if this scheme uses an explicit correction
         virtual bool corrected() const override
         {
-            return true;
+            return explicitCorrection_;
         }
 
         //- Return the explicit correction to the face-interpolate

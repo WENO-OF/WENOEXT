@@ -363,11 +363,12 @@ Foam::tmp<surfaceScalarField> Foam::WENOLinearFit<Type>::weights
             tsfP[faceI] = pTraits<Type>::zero;
         }
     }
-    
-    coupledRiemannSolver(mesh, tsfP, vf, coeffsWeighted);
 
-    if (cellLimited_)
+    if (explicitCorrection_)
+    {
+        coupledRiemannSolver(mesh, tsfP, vf, coeffsWeighted);
         cellLimitedCorrection(mesh,vf,coeffsWeighted,tsfP);
+    }
 
     return WENOWeightsTmp;
 }
@@ -382,36 +383,26 @@ Foam::scalar Foam::WENOLinearFit<Type>::calcWeight
 ) const
 {
     // Set the weight to upwind -- psi_f = (w*psi + (1-w)*psiN)
-    Type weight;
-    scalar meanWeight = 0.0;
+    scalar maxWeight = 0;
 
     // Loop over the components
     const label nComp = pTraits<Type>::nComponents;
+    label n = 0;
     for (label cI=0; cI < nComp; cI++)
     {
         const scalar delta = component(psiN - psi,cI);
 
         if (mag(delta) < 1E-20 || (component(corr,cI)/delta) < SMALL)
-        {
-            setComponent(weight,cI) = -1.0;
             continue;
-        }
 
-        setComponent(weight,cI) = max(1.0 - component(corr,cI)/delta,0.0);
-        meanWeight += component(weight,cI);
-    }
-
-    label n = 0;
-    for (label cI=0; cI < nComp; cI++)
-    {
-        if (component(weight,cI) != -1)
-            n++;
+        maxWeight = max(max(1.0 - component(corr,cI)/delta,0.0),maxWeight);
+        n++;
     }
 
     if (n==0)
         return 1.0;
 
-    return meanWeight/n;
+    return maxWeight;
 }
 
 
