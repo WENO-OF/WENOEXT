@@ -390,12 +390,12 @@ Foam::scalar Foam::WENOLinearFit<Type>::calcWeight
     label n = 0;
     for (label cI=0; cI < nComp; cI++)
     {
-        const scalar delta = component(psiN - psi,cI);
+        const Type delta = psiN - psi;
 
-        if (mag(delta) < 1E-20 || (component(corr,cI)/delta) < SMALL)
+        if (mag(delta) < 1E-20 || (component(corr,cI)/component(delta,cI)) < SMALL)
             continue;
 
-        maxWeight = max(max(1.0 - component(corr,cI)/delta,0.0),maxWeight);
+        maxWeight = max(max(1.0 - component(corr,cI)/component(delta,cI),0.0),maxWeight);
         n++;
     }
 
