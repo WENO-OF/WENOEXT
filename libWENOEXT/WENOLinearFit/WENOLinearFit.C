@@ -35,6 +35,181 @@ Author
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
+
+template<class Type>
+void Foam::WENOLinearFit<Type>::cellLimitedCorrection
+(
+    const fvMesh& mesh,
+    const GeometricField<Type, fvPatchField, volMesh>& vf,
+    const Field<Field<Type> >& coeffsWeighted,
+    GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP
+) const
+{
+    // Limit the explicit correction if the polynome at the face would exceed
+    // the cell center values. This is similar to cellLimited schemes of 
+    // OpenFOAM
+    // If the face values are calculated with the polynome p,
+    // p = psi + \sum{alpha_k * Omega_k}
+    // where \sum{alpha_k * Omega_k} is here the field 'tsfP'.
+    // Then psi is the implicit part of the upwind scheme and only tsfP is 
+    // limited. 
+
+    const labelUList& P = mesh.owner();
+    const labelUList& N = mesh.neighbour();
+
+    const label nComp = pTraits<Type>::nComponents;
+
+
+    // --------------- Calculate theta ----------------------------------------
+    // ------------------------------------------------------------------------
+    
+    GeometricField<Type, fvsPatchField, surfaceMesh> theta
+    (
+        IOobject
+        (
+            "theta",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            false
+        ),
+        mesh,
+        dimensioned<Type>(vf.name(), vf.dimensions(), pTraits<Type>::zero)
+    );
+
+    // Calculate theta for internal field
+    forAll(P,faceI)
+    {
+        // Get the cell center value of this polynome
+        // called psi, the neighbour one is called psiN
+        Type psi;
+        Type psiN;
+        if (faceFlux_[faceI] > 0)
+        {
+            psi  = vf[P[faceI]];
+            psiN = vf[N[faceI]];
+        }
+        else
+        {
+            psi = vf[N[faceI]];
+            psiN = vf[P[faceI]];
+        }
+        
+        // Loop over all components
+        for (label cI = 0; cI < nComp; cI++)
+        {
+            // Check that psi is not larger than the difference of psi to psiN
+            if (mag(component(tsfP[faceI],cI)) > mag(component(psi-psiN,cI)))
+                setComponent(theta[faceI],cI) = 
+                    min(mag(component(psi-psiN,cI))/mag(component(tsfP[faceI],cI)),1.0);
+            else
+                setComponent(theta[faceI],cI) = 1.0;
+        }
+    }
+
+    // Calculate theta for boundary:
+    typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+    #ifdef FOAM_NEW_GEOMFIELD_RULES
+        Boundary& btheta = theta.boundaryFieldRef();
+    #else 
+        GeometricBoundaryField& btheta = theta.boundaryField();
+    #endif
+
+    forAll(btheta, patchI)
+    {
+        if ((btheta[patchI]).coupled())
+        {
+            const scalarField& pFaceFlux =
+                faceFlux_.boundaryField()[patchI];
+
+            const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+
+            const fvsPatchField<Type>& pbtsfP = tsfP.boundaryField()[patchI];
+
+            // Get patch neighbour field
+            const Field<Type>& vfN = (vf.boundaryField()[patchI].patchNeighbourField())();
+
+            fvsPatchField<Type>& pbtheta = btheta[patchI];
+
+            forAll(pOwner, faceI)
+            {
+                label own = pOwner[faceI];
+
+                // Get the cell center value of this polynome
+                // called psi, the neighbour one is called psiN
+                Type psi;
+                Type psiN;
+                if (pFaceFlux[faceI] > 0)
+                {
+                    psi  = vf[own];
+                    psiN = vfN[faceI];
+                }
+                else
+                {
+                    psi = vfN[faceI];
+                    psiN = vf[own];
+                }
+                
+                // Loop over all components
+                for (label cI = 0; cI < nComp; cI++)
+                {
+                    // Check that psi is not larger than the difference of psi to psiN
+                    if (mag(component(pbtsfP[faceI],cI)) > mag(component(psi-psiN,cI)))
+                        setComponent(pbtheta[faceI],cI) = 
+                            min(mag(component(psi-psiN,cI))/mag(component(pbtsfP[faceI],cI)),1.0);
+                    else
+                        setComponent(pbtheta[faceI],cI) = 1.0;
+                }
+            }
+        }
+    }
+
+    // ---------------------- Adjust tsfP field -------------------------------
+    // ------------------------------------------------------------------------
+    
+    // Evaluate the limited internal fluxes
+
+    forAll(P, faceI)
+    {
+        for (label cI = 0; cI < nComp; cI++)
+        {
+            setComponent(tsfP[faceI],cI) =
+                component(theta[faceI],cI) * component(tsfP[faceI],cI);
+        }
+    }
+
+    // Adjust boundary
+    forAll(tsfP.boundaryField(), patchI)
+    {
+        const fvPatchList& patches = mesh.boundary();
+
+        fvsPatchField<Type>& pbtsfP =
+        #ifdef FOAM_NEW_GEOMFIELD_RULES
+            tsfP.boundaryFieldRef()[patchI];
+        #else 
+            tsfP.boundaryField()[patchI];
+        #endif
+        
+        const fvsPatchField<Type>& pbtheta = theta.boundaryField()[patchI];
+        
+        if (isA<processorFvPatch>(patches[patchI]))
+        {
+            const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+            
+            forAll(pOwner, faceI)
+            {
+                for (label cI = 0; cI < nComp; cI++)
+                {
+                    setComponent(pbtsfP[faceI],cI) =
+                        component(pbtheta[faceI],cI) * component(pbtsfP[faceI],cI);
+                }
+            }
+        }
+    }
+}
+
+
 template<class Type>
 Foam::tmp<Foam::GeometricField<Type, Foam::fvsPatchField, Foam::surfaceMesh> >
 Foam::WENOLinearFit<Type>::correction
@@ -47,19 +222,6 @@ Foam::WENOLinearFit<Type>::correction
         FatalError << "Explicit correction in WENO was not calculated"
                    << exit(FatalError);
 
-
-    auto& tsfP = tsfCorrP_.ref();
-    // Loop over the correction vector and set the values
-    forAll(requireExplicitCorrection_(),faceI)
-    {
-        // If it does not require a correction, it is set to zero
-        if (requireExplicitCorrection_()[faceI] == 0.0)
-        {
-            tsfP[faceI] = pTraits<Type>::zero;
-        }
-    }
-    // Reset to nullptr to trigger if correction is used before weights is called
-    requireExplicitCorrection_.reset(nullptr);
     tmp<GeometricField<Type, fvsPatchField, surfaceMesh>> tsfCorrTmp(tsfCorrP_.release());
     return tsfCorrTmp;
 }
@@ -111,26 +273,6 @@ Foam::tmp<surfaceScalarField> Foam::WENOLinearFit<Type>::weights
     const labelUList& P = mesh.owner();
     const labelUList& N = mesh.neighbour();
 
-    requireExplicitCorrection_.reset
-    (
-        new GeometricField<scalar, fvsPatchField, surfaceMesh>
-        (
-            IOobject
-            (
-                "requireExplicitCorrection_"+vf.name(),
-                mesh.time().timeName(),
-                mesh,
-                IOobject::NO_READ,
-                IOobject::NO_WRITE,
-                false
-            ),
-            mesh,
-            dimensioned<scalar>(vf.name(), dimless, 0.0)
-        )
-    );
-
-    auto& requireExplicitCorrectionRef = requireExplicitCorrection_.ref();
-
     tsfCorrP_.reset
     (
         new GeometricField<Type, fvsPatchField, surfaceMesh>
@@ -173,13 +315,18 @@ Foam::tmp<surfaceScalarField> Foam::WENOLinearFit<Type>::weights
             psiN = vf[N[faceI]];
 
             WENOWeights[faceI] = calcWeight(tsfP[faceI],psi,psiN);
-            if (WENOWeights[faceI] == 1.0)
-                requireExplicitCorrectionRef[faceI] = 1.0;
 
             // If the WENO weight only differs limFac_ fraction 
             // -- set to linear weight
             if (mag(WENOWeights[faceI]-linearWeights[faceI]) < (1.0-limFac_))
                 WENOWeights[faceI] = linearWeights[faceI];
+            
+            // Only use explicit correction if it is fully upwind!
+            // If WENOWeights[faceI] is anything but 1.0, it is not fully upwind
+            if (WENOWeights[faceI] < 0.99)
+                tsfP[faceI] = pTraits<Type>::zero;
+            else
+                WENOWeights[faceI] = 1.0;
         }
         else if (faceFlux_[faceI] < 0)
         {
@@ -197,13 +344,19 @@ Foam::tmp<surfaceScalarField> Foam::WENOLinearFit<Type>::weights
 
             // Note: Here a weight of 0 denotes the weighting to the upstream
             WENOWeights[faceI] = 1.0-calcWeight(tsfP[faceI],psi,psiN);
-            if (WENOWeights[faceI] == 0.0)
-                requireExplicitCorrectionRef[faceI] = 1.0;
 
             // If the WENO weight only differs limFac_ fraction 
             // -- set to linear weight
             if (mag(WENOWeights[faceI]-linearWeights[faceI]) < (1.0-limFac_))
                 WENOWeights[faceI] = linearWeights[faceI];
+
+            // Only use explicit correction if it is fully upwind!
+            // If WENOWeights[faceI] is anything but 0.0, it is not fully upwind
+            // Note that here the flux is negative, thus the weight should be 0.0
+            if (WENOWeights[faceI] > 0.01)
+                tsfP[faceI] = pTraits<Type>::zero;
+            else
+                WENOWeights[faceI] = 0.0;
         }
         else
         {
@@ -212,6 +365,9 @@ Foam::tmp<surfaceScalarField> Foam::WENOLinearFit<Type>::weights
     }
     
     coupledRiemannSolver(mesh, tsfP, vf, coeffsWeighted);
+
+    if (cellLimited_)
+        cellLimitedCorrection(mesh,vf,coeffsWeighted,tsfP);
 
     return WENOWeightsTmp;
 }
@@ -226,7 +382,7 @@ Foam::scalar Foam::WENOLinearFit<Type>::calcWeight
 ) const
 {
     // Set the weight to upwind -- psi_f = (w*psi + (1-w)*psiN)
-    Type weight = pTraits<Type>::one;
+    Type weight;
     scalar meanWeight = 0.0;
 
     // Loop over the components
@@ -234,24 +390,28 @@ Foam::scalar Foam::WENOLinearFit<Type>::calcWeight
     for (label cI=0; cI < nComp; cI++)
     {
         const scalar delta = component(psiN - psi,cI);
-        if (delta < SMALL)
-            continue;
 
-        setComponent(weight,cI) = 1.0 - component(corr,cI)/delta;
+        if (mag(delta) < 1E-20 || (component(corr,cI)/delta) < SMALL)
+        {
+            setComponent(weight,cI) = -1.0;
+            continue;
+        }
+
+        setComponent(weight,cI) = max(1.0 - component(corr,cI)/delta,0.0);
         meanWeight += component(weight,cI);
     }
 
+    label n = 0;
     for (label cI=0; cI < nComp; cI++)
     {
-        // If the mean weight differs more by 10% set return 1.0 for fully upwind
-        // and use explicit correction
-        if 
-        (
-            meanWeight/component(weight,cI) > 1.1
-         || meanWeight/component(weight,cI) < 0.9
-        ) return 1.0;
+        if (component(weight,cI) != -1)
+            n++;
     }
-    return max(min(meanWeight,1.0),0.0);
+
+    if (n==0)
+        return 1.0;
+
+    return meanWeight/n;
 }
 
 
@@ -265,12 +425,11 @@ Foam::scalar Foam::WENOLinearFit<Foam::scalar>::calcWeight
 ) const
 {
     // Set the weight to upwind -- psi_f = (w*psi + (1-w)*psiN)
-    scalar weight = 1.0;
     const scalar delta = psiN - psi;
-    if (delta < SMALL)
+    if (mag(delta) < 1E-20 || (corr/delta) < SMALL)
         return 1.0;
 
-    return max(min(1.0 - corr/delta,1.0),0.0);
+    return max(1.0 - corr/delta,0.0);
 }
 
 

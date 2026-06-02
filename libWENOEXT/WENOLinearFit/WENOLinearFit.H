@@ -32,6 +32,20 @@ Description
     Essentially this scheme is similar to limitedLinear, utilizing the 
     WENO polynoms as limiter function. 
 
+    Usage:
+
+    div(phi,U)  Gauss WENOLinear Fit 3 1 1;
+    
+    First number is the polynomial order -- here 3
+    Second number is the limiting factor. If it is set to 0, it 
+    is essentially a linear scheme, if it is set to 1, it uses the 
+    WENO weights. E.g., if it is set to 0.9 it means that the WENO weight
+    must differ by more than 10% to the linear weight to be used. Otherwise
+    the central differencing (linear scheme) weights are used.
+
+    Third number is a boolean. If it is 1, the explicit correction is 
+    limited by the cell center values.
+
 SourceFiles
     WENOLinearFit.C
 
@@ -73,10 +87,6 @@ class WENOLinearFit
         //- SurfaceScalarField of U() & Sf()
         const surfaceScalarField& faceFlux_;
 
-        //- Store a boolean field to check if an explicit correction is required
-        //  Note: Boolean fields are not supported -- therefore we use a label field
-        mutable autoPtr<GeometricField<scalar, fvsPatchField, surfaceMesh>> requireExplicitCorrection_;
-
         //- Store the correction value to avoid recomputation
         mutable autoPtr<GeometricField<Type, fvsPatchField, surfaceMesh>> tsfCorrP_;
 
@@ -87,8 +97,11 @@ class WENOLinearFit
         //- Limiting factor
         //  User defined:
         //  -  0: not limited -- fully linear scheme
-        //  - +1: limited
+        //  - +1: limited -- use only WENO weights
         const scalar limFac_;
+
+        //- Cell limited explicit correction
+        const bool cellLimited_;
 
         //- Reference to WENOCoeff class
         WENOCoeff<Type> WENOCoeff_;
@@ -136,6 +149,15 @@ class WENOLinearFit
         ) const;
 
 
+        //- Limit the explicit correction to cell values
+        void cellLimitedCorrection
+        (
+            const fvMesh& mesh,
+            const GeometricField<Type, fvPatchField, volMesh>& vf,
+            const Field<Field<Type> >& coeffsWeighted,
+            GeometricField<Type, fvsPatchField, surfaceMesh>& tsfP
+        ) const;
+
         //- Return a zero surfaceScalarField
         //  Required for construct from mesh constructor
         tmp<surfaceScalarField> zeroFlux() const
@@ -177,6 +199,7 @@ public:
             faceFlux_(zeroFlux()),
             polOrder_(polOrder),
             limFac_(1.0),
+            cellLimited_(true),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
@@ -198,6 +221,7 @@ public:
             ) ,
             polOrder_(readScalar(is)),
             limFac_(readScalar(is)),
+            cellLimited_(readBool(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
@@ -214,6 +238,7 @@ public:
             faceFlux_(faceFlux),
             polOrder_(readScalar(is)),
             limFac_(readScalar(is)),
+            cellLimited_(readBool(is)),
             WENOCoeff_(mesh,polOrder_),
             WENOBase_(WENOCoeff_.WENOBaseRef())
         {}
