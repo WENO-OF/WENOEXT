@@ -33,10 +33,6 @@ Major development stages of the library are marked by tags and recently also hav
  * OpenFOAM (ESI) v2506-v2512
 
 
-### Porting Notes
-
- * [Ubuntu 26.04 / OpenFOAM v2512 — GCC 15 compatibility patch notes](./PORTING_Ubuntu2604_OF2512.md)
-
 ## Authors
 
  * Tobias Martin <tobias.martin@ntnu.no>
