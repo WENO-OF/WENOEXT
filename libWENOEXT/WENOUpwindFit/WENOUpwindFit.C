@@ -127,7 +127,8 @@ void Foam::WENOUpwindFit<Type>::calcLimiter
             const fvsPatchField<Type>& pbtsfP = tsfP.boundaryField()[patchI];
 
             // Get patch neighbour field
-            const Field<Type>& vfN = (vf.boundaryField()[patchI].patchNeighbourField())();
+            const tmp<Field<Type>> tvfN = vf.boundaryField()[patchI].patchNeighbourField();
+            const Field<Type>& vfN = tvfN();
 
             fvsPatchField<Type>& pbtheta = btheta[patchI];
 

@@ -117,7 +117,7 @@ Foam::matrixDB::similar
         auto& cmpA = it->second;
         
         bool validEntry = true;
-        if (blaze::size(cmpA) == A.size())
+        if (blaze::size(cmpA) == static_cast<std::size_t>(A.size()))
         {
             for (int i = 0; i < A.m(); i++)
             {

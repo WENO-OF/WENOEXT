@@ -219,7 +219,7 @@ void Foam::mathFunctionsWENO::realEigenValues::elmhes()
 void Foam::mathFunctionsWENO::realEigenValues::hqr()
 {
 	int nn,m,l,k,j,its,i,mmin;
-	double z,y,x,w,v,u,t,s,r,q,p,anorm=0.0;
+	double z=0,y=0,x=0,w=0,v=0,u=0,t=0,s=0,r=0,q=0,p=0,anorm=0.0;
 
 	const double EPS = std::numeric_limits<double>::epsilon();
     

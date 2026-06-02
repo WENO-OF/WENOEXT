@@ -58,10 +58,10 @@ TEST_CASE("List3D Test","[baseTest]")
     // Create a 3D vector matrix to compare
     std::vector<std::vector<std::vector<int>>> vecMatrix;
     vecMatrix.resize(10);
-    for (int i = 0; i< vecMatrix.size(); ++i)
+    for (size_t i = 0; i < vecMatrix.size(); ++i)
     {
         vecMatrix[i].resize(9);
-        for (int j=0; j < vecMatrix[i].size(); j++)
+        for (size_t j = 0; j < vecMatrix[i].size(); ++j)
         {
             vecMatrix[i][j].resize(8,0);
         }

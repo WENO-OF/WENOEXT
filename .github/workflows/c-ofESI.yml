@@ -33,3 +33,21 @@ jobs:
     - uses: actions/checkout@v2
     - name: OpenFOAMv2012
       run: make runTestsOFv2012
+
+  build-OF2506:
+    name: OpenFOAM v2506
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: OpenFOAMv2506
+      run: make runTestsOFv2506
+
+  build-OF2512:
+    name: OpenFOAM v2512
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: OpenFOAMv2512
+      run: make runTestsOFv2512

@@ -101,7 +101,7 @@ TEST_CASE("globalFvMesh Test","[parallel]")
 
         Pstream::gatherList(allCellCenters);
         
-        Pstream::scatterList(allCellCenters);
+        Pstream::broadcastList(allCellCenters);
 
         // Loop over reconstructed global mesh and check cell centers
         
