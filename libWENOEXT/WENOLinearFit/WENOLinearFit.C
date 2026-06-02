@@ -251,7 +251,7 @@ Foam::scalar Foam::WENOLinearFit<Type>::calcWeight
          || meanWeight/component(weight,cI) < 0.9
         ) return 1.0;
     }
-    return meanWeight;
+    return max(min(meanWeight,1.0),0.0);
 }
 
 
@@ -270,7 +270,7 @@ Foam::scalar Foam::WENOLinearFit<Foam::scalar>::calcWeight
     if (delta < SMALL)
         return 1.0;
 
-    return 1.0 - corr/delta;
+    return max(min(1.0 - corr/delta,1.0),0.0);
 }
 
 
