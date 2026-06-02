@@ -36,6 +36,7 @@ add_library(WENOEXT SHARED
     WENOBase/matrixDB.C
     WENOBase/reconstructRegionalMesh.C
     WENOUpwindFit/makeWENOUpwindFit.C
+    WENOLinearFit/makeWENOLinearFit.C
     WENOUpwindFit01/makeWENOUpwindFit01.C
 )
 
