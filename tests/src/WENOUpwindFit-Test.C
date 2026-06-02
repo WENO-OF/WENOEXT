@@ -203,8 +203,8 @@ TEST_CASE("WENOUpwindFit Test","[upwindFitTest]")
     
     
     // Get the surface fields
-    surfaceScalarField phi = fvc::flux(U);
-    surfaceScalarField psiSf = fvc::interpolate(psi,phi,"interpolate(psiLinear)");
+    surfaceScalarField phi(fvc::flux(U));
+    surfaceScalarField psiSf(fvc::interpolate(psi,phi,"interpolate(psiLinear)"));
     
     
     // Correct surface fields with analytical solution
@@ -250,7 +250,7 @@ TEST_CASE("WENOUpwindFit Test","[upwindFitTest]")
         // ---------------------------------------------------------------------
         // Test the surface interpolation scheme
         surfaceScalarField interpWENO("interpWENO",fvc::interpolate(psi,phi,"interpolate(psiWENO)"));
-        surfaceScalarField interpLinear = fvc::interpolate(psi,phi,"interpolate(psiLinear)");
+        surfaceScalarField interpLinear(fvc::interpolate(psi,phi,"interpolate(psiLinear)"));
 
 
         dimensionedScalar dimSmall("dimSmall",dimless,SMALL);
@@ -326,9 +326,9 @@ TEST_CASE("WENOUpwindFit Test","[upwindFitTest]")
         divLinear.write();
         divLimitedLinear.write();
         
-        volScalarField errorWENO = (divWENO-analSolu);
-        volScalarField errorLinear = (divLinear-analSolu);
-        volScalarField errorLimitedLinear = (divLimitedLinear-analSolu);
+        volScalarField errorWENO(divWENO-analSolu);
+        volScalarField errorLinear(divLinear-analSolu);
+        volScalarField errorLimitedLinear(divLimitedLinear-analSolu);
         
         double meanErrorWENO = 0;
         double meanErrorLinear = 0;

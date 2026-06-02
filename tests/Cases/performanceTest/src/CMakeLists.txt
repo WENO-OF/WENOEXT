@@ -22,7 +22,10 @@ target_link_libraries(performanceRun.exe PUBLIC
  -lm 
 )
 
+
+if (NOT APPLE)
 set_target_properties(performanceRun.exe PROPERTIES LINK_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
+endif()
 
 install(
     TARGETS performanceRun.exe 

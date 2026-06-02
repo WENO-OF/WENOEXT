@@ -144,7 +144,7 @@ int main()
     U.write();
     
     // Get the surface fields
-    surfaceScalarField phi = fvc::flux(U);
+    surfaceScalarField phi(fvc::flux(U));
 
 
     auto t1 = std::chrono::high_resolution_clock::now();

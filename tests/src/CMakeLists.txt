@@ -38,7 +38,16 @@ target_link_libraries(WENO_TEST PUBLIC
  -lm 
 )
 
+
+if (APPLE)
+    set_target_properties(WENO_TEST PROPERTIES
+        MACOSX_RPATH ON
+        BUILD_RPATH "${CMAKE_BINARY_DIR}/lib;${CMAKE_BINARY_DIR}"
+        INSTALL_RPATH "@executable_path/../lib;@loader_path/../lib"
+    )
+else()
 set_target_properties(WENO_TEST PROPERTIES LINK_FLAGS "-fPIC -Xlinker --add-needed -Xlinker --no-as-needed")
+endif()
 
 install(
     TARGETS WENO_TEST 

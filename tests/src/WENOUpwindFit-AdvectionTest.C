@@ -162,7 +162,7 @@ TEST_CASE("WENOUpwindFit 2D Advection Test","[Advection]")
     U.write();
     
     // Get the surface fields
-    surfaceScalarField phi = fvc::flux(U);
+    surfaceScalarField phi(fvc::flux(U));
     
     auto surfCenters = phi.mesh().Cf();
     auto Sf = phi.mesh().Sf();
