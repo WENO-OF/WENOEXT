@@ -43,51 +43,85 @@ message("\tSet blaze cache size")
 message("-------------------------------------------------------------------")
 message("Cache size is automatically set if not provided by the user with")
 message("\tcmake ../ -DBLAZE_CACHE_SIZE=<Cache Size>")
-if(NOT BLAZE_CACHE_SIZE)
-    set(BLAZE_CACHE_SIZE "auto")
+
+set(_blaze_default_cache_kib 3072)
+
+if(NOT BLAZE_CACHE_SIZE OR BLAZE_CACHE_SIZE STREQUAL "auto")
+  message("Automatic Cache Size Configuration")
+  set(_best_level 0)
+  set(_best_kib "")
+
+  # Pick the highest-level data/unified cache of cpu0 by reading level/type/size,
+  # instead of assuming index3 == L3 (index1 is usually the L1 *instruction* cache).
+  file(GLOB _cache_dirs "/sys/devices/system/cpu/cpu0/cache/index*")
+  foreach(_dir IN LISTS _cache_dirs)
+    if(EXISTS "${_dir}/level" AND EXISTS "${_dir}/type" AND EXISTS "${_dir}/size")
+      file(READ "${_dir}/level" _lvl)
+      file(READ "${_dir}/type"  _type)
+      file(READ "${_dir}/size"  _size)
+      string(STRIP "${_lvl}"  _lvl)
+      string(STRIP "${_type}" _type)
+      string(STRIP "${_size}" _size)
+      if(_type STREQUAL "Instruction")
+        continue()
+      endif()
+      if(_size MATCHES "^([0-9]+)([KMG]?)$")
+        set(_kib ${CMAKE_MATCH_1})
+        if(CMAKE_MATCH_2 STREQUAL "M")
+          math(EXPR _kib "${_kib} * 1024")
+        elseif(CMAKE_MATCH_2 STREQUAL "G")
+          math(EXPR _kib "${_kib} * 1024 * 1024")
+        elseif(CMAKE_MATCH_2 STREQUAL "")
+          math(EXPR _kib "${_kib} / 1024")
+        endif()
+        if(_lvl GREATER _best_level AND _kib GREATER 0)
+          set(_best_level ${_lvl})
+          set(_best_kib ${_kib})
+        endif()
+      endif()
+    endif()
+  endforeach()
+
+  # Fallback: glibc's getconf (returns bytes, may be 0/empty)
+  if(NOT _best_kib)
+    foreach(_lv 3 2 1)
+      execute_process(COMMAND getconf LEVEL${_lv}_CACHE_SIZE
+                      OUTPUT_VARIABLE _bytes OUTPUT_STRIP_TRAILING_WHITESPACE
+                      RESULT_VARIABLE _rc ERROR_QUIET)
+      if(_rc EQUAL 0 AND _bytes MATCHES "^[0-9]+$" AND _bytes GREATER 0)
+        math(EXPR _best_kib "${_bytes} / 1024")
+        set(_best_level ${_lv})
+        break()
+      endif()
+    endforeach()
+  endif()
+
+  if(NOT _best_kib)
+    message(WARNING "Cache size not found automatically. Using default value as cache size.")
+    set(_best_kib ${_blaze_default_cache_kib})
+  else()
+    message("Detected L${_best_level} cache: ${_best_kib} KiB")
+  endif()
+
+  math(EXPR _bytes "${_best_kib} * 1024")
+  # Blaze (system/CacheSize.h) asserts 100000 < cacheSize < 100000000 bytes
+  if(_bytes GREATER_EQUAL 100000000)
+    message("Detected cache exceeds Blaze's upper limit, clamping to 99999744 bytes")
+    set(_bytes 99999744)   # largest multiple of 1024 below 1e8
+  elseif(_bytes LESS_EQUAL 100000)
+    message("Detected cache below Blaze's lower limit, clamping to 102400 bytes")
+    set(_bytes 102400)
+  endif()
+  target_compile_definitions(Blaze INTERFACE BLAZE_CACHE_SIZE=${_bytes}UL)
+  message("Configuring Cache Size : ${_bytes}UL")
+
+elseif(BLAZE_CACHE_SIZE MATCHES "^([0-9]+)(UL)?$")
+  message("Blaze Cache Size manually set")
+  target_compile_definitions(Blaze INTERFACE BLAZE_CACHE_SIZE=${CMAKE_MATCH_1}UL)
+  message("Configuring Cache Size : ${CMAKE_MATCH_1}UL")
+else()
+  message(WARNING "Invalid BLAZE_CACHE_SIZE='${BLAZE_CACHE_SIZE}' (expected bytes). Using Blaze's built-in default.")
 endif()
-
-
-    if ("${BLAZE_CACHE_SIZE}" STREQUAL "auto")
-        message("Automatic Cache Size Configuration")
-        set(flag 1)
-
-        execute_process(COMMAND cat /sys/devices/system/cpu/cpu0/cache/index3/size
-                   OUTPUT_VARIABLE tmp
-                   RESULT_VARIABLE flag
-                   ERROR_QUIET)
-        if (flag)
-            execute_process(COMMAND cat /sys/devices/system/cpu/cpu0/cache/index2/size
-                     OUTPUT_VARIABLE tmp
-                     RESULT_VARIABLE flag
-                     ERROR_QUIET)
-        endif (flag)
-        if (flag)
-            execute_process(COMMAND cat /sys/devices/system/cpu/cpu0/cache/index1/size
-                     OUTPUT_VARIABLE tmp
-                     RESULT_VARIABLE flag
-                     ERROR_QUIET)
-        endif (flag)
-
-         
-
-        if (flag)
-           message(WARNING "Cache size not found automatically. Using default value as cache size.")
-           set(tmp "3072")
-        endif (flag)
-
-        string(REGEX MATCH "([0-9][0-9]+)" tmp ${tmp}) # Get a number containing at least 2 digits in the string tmp
-        math(EXPR BLAZE_CACHE_SIZE ${tmp}*1024) # Convert to bytes (assuming that the value is given in kibibytes)
-        set(BLAZE_CACHE_SIZE "${BLAZE_CACHE_SIZE}UL")
-        target_compile_definitions( Blaze INTERFACE BLAZE_CACHE_SIZE=${BLAZE_CACHE_SIZE} )
-        message("Configuring Cache Size : ${BLAZE_CACHE_SIZE}")
-    elseif(${BLAZE_CACHE_SIZE})
-        message("Blaze Cache Size manually set")
-        target_compile_definitions( Blaze INTERFACE BLAZE_CACHE_SIZE=${Blaze_CACHE_SIZE} )
-        message("Configuring Cache Size : ${BLAZE_CACHE_SIZE}")
-    else()
-        message("Using default Cache Size.")
-    endif ()
 
 message("-------------------------------------------------------------------")
 unset(BLAZE_CACHE_SIZE CACHE)
