@@ -42,12 +42,13 @@ Author
 #ifndef geometryWENO_H
 #define geometryWENO_H
 
+// Include Eigen before OpenFOAM headers to avoid macro clashes
+#include <Eigen/Dense>
+#include "EigenIO.H"
 #include "triSurface.H"
 #include "polyMeshTetDecomposition.H"
 #include "fvMesh.H"
 #include "fvCFD.H"
-#include "blaze/Math.h"
-#include "BlazeIO.H"
 #include "List3D.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -64,13 +65,15 @@ namespace geometryWENO
 
     //- Typedef for 3D scalar matrix
     using volIntegralType = List3D<scalar>;
-    using scalarSquareMatrix = blaze::StaticMatrix<scalar,3UL,3UL,blaze::rowMajor>;
-    using DynamicMatrix = blaze::DynamicMatrix<scalar>;
-    
-    //- For static matrices a custom allocator is required when dynamic
-    //  allocation is used. OpenFOAM does not provide an option for an 
-    //  allocator with a list. 
-    using blazeList = std::vector<blaze::StaticMatrix<double, 3, 3>>;
+    using scalarSquareMatrix = Eigen::Matrix<scalar,3,3,Eigen::RowMajor>;
+    using DynamicMatrix =
+        Eigen::Matrix<scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor>;
+
+    //- List of 3x3 matrices
+    //  A 3x3 double matrix is not a fixed-size vectorizable Eigen type
+    //  (size is not a multiple of 16 bytes), hence no aligned allocator
+    //  is required.
+    using matrixList = std::vector<scalarSquareMatrix>;
     
     // Member Functions
 
@@ -155,7 +158,7 @@ namespace geometryWENO
             const fvMesh& mesh,
             const label polOrder,
             const List<volIntegralType>& volIntegralsList,
-            const blazeList& JInv,
+            const matrixList& JInv,
             const List<point>& refPoint,
             List<Pair<volIntegralType> >& intBasTrans,
             List<scalar>& refFacAr

@@ -60,13 +60,13 @@ namespace mathFunctionsWENO
 {
     //- Calculate eigen values of 3x3 matrix
     //  Based on Numerical Recipes 3rd Edition Chapter 11.6
-    blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> eigen
+    Eigen::VectorXcd eigen
     (
         const geometryWENO::scalarSquareMatrix& A
     );
 
     // Calculate the 3x3 determinant
-    double det(const blaze::DynamicMatrix<double>& A);
+    double det(const geometryWENO::scalarSquareMatrix& A);
     
     //- Calculate the 2x2 determinant
     //  solves the system A = a b
@@ -94,7 +94,7 @@ namespace mathFunctionsWENO
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-blaze::DynamicVector<blaze::complex<double>,blaze::columnVector> 
+Eigen::VectorXcd
 Foam::mathFunctionsWENO::eigen(const geometryWENO::scalarSquareMatrix& A)
 {
     realEigenValues eigenVal(A);
@@ -104,7 +104,7 @@ Foam::mathFunctionsWENO::eigen(const geometryWENO::scalarSquareMatrix& A)
 
 
 double
-Foam::mathFunctionsWENO::det(const blaze::DynamicMatrix<double>& A)
+Foam::mathFunctionsWENO::det(const geometryWENO::scalarSquareMatrix& A)
 {
     return   det2
              (
@@ -143,12 +143,8 @@ Foam::mathFunctionsWENO::det2
 void Foam::mathFunctionsWENO::pivot(geometryWENO::scalarSquareMatrix& A)
 {
     // create the identity matrix
-    constexpr geometryWENO::scalarSquareMatrix I
-    {
-        {1,0,0},
-        {0,1,0},
-        {0,0,1}
-    };
+    const geometryWENO::scalarSquareMatrix I =
+        geometryWENO::scalarSquareMatrix::Identity();
 
     // Find the largest element in the first column
     int maxRowIndex = 0;
@@ -164,12 +160,8 @@ void Foam::mathFunctionsWENO::pivot(geometryWENO::scalarSquareMatrix& A)
 
     // create pivot matrix
     geometryWENO::scalarSquareMatrix P1 = I;
-    // create a copy of the first row
-    blaze::DynamicVector<double,blaze::rowVector> row0;
-    row0 = blaze::row<0>(P1);
-    auto rowI = blaze::row(P1,maxRowIndex);
-    row(P1,0) = rowI;
-    row(P1,maxRowIndex) = row0;
+    // swap the first row with the row of the largest element
+    P1.row(0).swap(P1.row(maxRowIndex));
 
     geometryWENO::scalarSquareMatrix PA = P1*A;
 
@@ -195,11 +187,7 @@ void Foam::mathFunctionsWENO::pivot(geometryWENO::scalarSquareMatrix& A)
     if (maxRowIndex != 1)
     {
         geometryWENO::scalarSquareMatrix P2 = I;
-        blaze::DynamicVector<double,blaze::rowVector> row1;
-        row1 = blaze::row<1>(P2);
-        auto row2 = blaze::row<2>(P2);
-        row(P2,1) = row2;
-        row(P2,2) = row1;
+        P2.row(1).swap(P2.row(2));
 
         P1 = P2*P1;
     }
@@ -212,7 +200,7 @@ void Foam::mathFunctionsWENO::pivot(geometryWENO::scalarSquareMatrix& A)
 Foam::geometryWENO::scalarSquareMatrix 
 Foam::mathFunctionsWENO::inv(const geometryWENO::scalarSquareMatrix& A)
 {
-    // Based on blaze::invertGeneral3x3
+    // Based on the cofactor (adjugate) formula of a 3x3 matrix
     geometryWENO::scalarSquareMatrix AInv;
     
     AInv(0, 0) = det2(A(1, 1),A(2, 2),A(2, 1),A(1, 2));

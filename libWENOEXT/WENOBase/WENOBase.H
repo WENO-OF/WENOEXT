@@ -151,7 +151,7 @@ class WENOBase
         List<scalar> refFacAr_;
 
         //- Lists of inverse Jacobians for each cell
-        geometryWENO::blazeList JInv_;
+        geometryWENO::matrixList JInv_;
 
         //- Lists of determinants of inverse Jacobian for each cell
         List<scalar> refDet_;

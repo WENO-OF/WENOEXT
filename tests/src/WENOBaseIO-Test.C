@@ -76,9 +76,11 @@ void checkList(const List<scalar>& L1, const List<scalar>& L2)
 template<>
 void checkList(const geometryWENO::DynamicMatrix& M1, const geometryWENO::DynamicMatrix& M2)
 {
-    for (unsigned int i=0; i<M1.rows(); i++)
+    REQUIRE(M1.rows() == M2.rows());
+    REQUIRE(M1.cols() == M2.cols());
+    for (Eigen::Index i=0; i<M1.rows(); i++)
     {
-        for (unsigned int j=0; j<M1.columns(); j++)
+        for (Eigen::Index j=0; j<M1.cols(); j++)
         {
             REQUIRE(M1(i,j) == M2(i,j));
         }

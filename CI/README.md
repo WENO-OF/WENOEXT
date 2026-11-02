@@ -1,22 +1,15 @@
 # Dockerfiles for Contineous Integration
 
-Dockerfiles to generate the dockerimage to execute the unit tests with,
+Dockerfiles to generate the docker image to compile the library and execute 
+the unit tests with,
 
- * OpenFOAM v5.x
- * OpenFOAM v7
- * OpenFOAM v8
- * OpenFOAM v1912
- * OpenFOAM v2012
+ * OpenFOAM v2406 (ESI) on Ubuntu 24.04 with Eigen 3.4
 
+The image is self-contained: OpenFOAM is installed from the precompiled
+openfoam.com Debian packages and Eigen from the Ubuntu package `libeigen3-dev`.
 
-## Error Handling
+Build the image and run the tests with `make runTestsOFv2406` from the 
+root directory.
 
-If you cannot pull the required docker images for testing you can also
-build the docker image yourself by using the provided template Dockerfile.
-
-For generating ESI OpenFOAM docker images adapt the OpenFOAM version in the 
-Dockerfile.createOFContainer file. For non ESI images the git clone paths 
-need also to be updated.
-
-The created docker images are also suitable for GitLab CI which is why a gitlab user
-and goup are created. 
+For other ESI versions adapt the package name `openfoam2406-dev` and the 
+`foamDotFile` path in `Dockerfile.OFv2406`.

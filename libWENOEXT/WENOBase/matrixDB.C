@@ -48,7 +48,7 @@ void Foam::matrixDB::MatrixPtr::add
 }
 
 
-const blaze::DynamicMatrix<double>& 
+const Foam::matrixDB::DynamicMatrix&
 Foam::matrixDB::MatrixPtr::operator()() const
 {
     #ifdef FULLDEBUG
@@ -82,7 +82,7 @@ Foam::matrixDB::similar
     
     if (DB_.size() == 0)
     {
-        auto it = DB_.emplace(key,convertToBlaze(A));
+        auto it = DB_.emplace(key,convertToEigen(A));
         return it;
     }
     
@@ -117,7 +117,7 @@ Foam::matrixDB::similar
         auto& cmpA = it->second;
         
         bool validEntry = true;
-        if (blaze::size(cmpA) == A.size())
+        if (cmpA.size() == A.size())
         {
             for (int i = 0; i < A.m(); i++)
             {
@@ -145,14 +145,15 @@ Foam::matrixDB::similar
 
     return DB_.insert
     (
-        std::pair<keyType,blaze::DynamicMatrix<double>>(key,convertToBlaze(A))
+        std::pair<keyType,DynamicMatrix>(key,convertToEigen(A))
     );   
 }
 
 
-blaze::DynamicMatrix<double> Foam::matrixDB::convertToBlaze(const scalarRectangularMatrix& A)
+Foam::matrixDB::DynamicMatrix
+Foam::matrixDB::convertToEigen(const scalarRectangularMatrix& A)
 {
-    blaze::DynamicMatrix<double> M(A.m(),A.n());
+    DynamicMatrix M(A.m(),A.n());
     for (int i=0; i<A.m(); i++)
     {
         for (int j=0; j<A.n(); j++)
@@ -329,13 +330,13 @@ void Foam::matrixDB::write(Ostream& os) const
             )
             {
                 auto& cmpA = posIt->second;
-                if (blaze::size(cmpA) != blaze::size(A))
+                if (cmpA.size() != A.size())
                     continue;
                     
                 valid = true;
-                for (unsigned int i = 0; i < A.rows(); i++)
+                for (Eigen::Index i = 0; i < A.rows(); i++)
                 {
-                    for (unsigned int j = 0; j < A.columns(); j++)
+                    for (Eigen::Index j = 0; j < A.cols(); j++)
                     {
                         if (mag(A(i,j)-cmpA(i,j))>SMALL)
                             valid = false;

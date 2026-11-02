@@ -45,7 +45,6 @@ Author
 
 #include "DynamicField.H"
 #include "WENOBase.H"
-#include "blaze/Math.h"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -69,8 +68,9 @@ protected:
         //  This is used for Jacobian matrix
         using scalarSquareMatrix = SquareMatrix<scalar>;
         
-        //- Typedef for coefficient type with blaze object
-        using coeffType = blaze::DynamicMatrix<scalar,blaze::columnMajor>;
+        //- Typedef for coefficient type with Eigen object
+        //  Column major as calcWeight() accesses the matrix column wise
+        using coeffType = Eigen::MatrixXd;
 
 
     // Private Data
@@ -106,7 +106,7 @@ protected:
         mutable List<List<Type> > sendHaloData_;
 
         //- Storage for bJ matrix needed in calcCoeff
-        mutable blaze::DynamicMatrix<scalar,blaze::columnMajor> bJ_;
+        mutable coeffType bJ_;
 
         //- Outstanding request
         mutable labelList outstandingRecvRequest_;

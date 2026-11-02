@@ -29,7 +29,7 @@
 # ===========================================================================
 
 add_library(WENOEXT SHARED 
-    BlazeIO/BlazeIO.C
+    EigenIO/EigenIO.C
     WENOBase/geometryWENO/geometryWENO.C
     WENOBase/WENOBase.C
     WENOBase/globalfvMesh.C
@@ -51,14 +51,12 @@ target_include_directories(WENOEXT PUBLIC
   ${TRISURFACE_INC}
   $ENV{FOAM_SRC}/OpenFOAM/lnInclude
   $ENV{FOAM_SRC}/OSspecific/POSIX/lnInclude
-  "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/blaze-3.8>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/WENOBase/geometryWENO>"
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/WENOBase>"
-  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/BlazeIO>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/Blaze>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/EigenIO>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/WENOBase/geometryWENO>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/WENOBase>"
-  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/BlazeIO>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libWENOEXT/EigenIO>"
 )
 
 
@@ -82,7 +80,7 @@ endif()
 
 # Link libraries
 target_link_libraries(WENOEXT PUBLIC
-    Blaze
+    Eigen3::Eigen
     ${LIB_DYNAMIC_MESH}
     ${LIB_FINITE_VOLUME}
     ${LIB_MESH_TOOLS}
@@ -98,6 +96,12 @@ target_compile_definitions(WENOEXT PRIVATE
     $<$<CONFIG:Debug>:
         FULLDEBUG
     >
+)
+
+# Disable Eigen runtime assertions for non debug builds.
+# Public, as the templated WENOCoeff.C is compiled in dependent targets
+target_compile_definitions(WENOEXT PUBLIC
+    $<$<NOT:$<CONFIG:Debug>>:EIGEN_NO_DEBUG>
 )
 
 

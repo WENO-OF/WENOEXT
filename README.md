@@ -28,8 +28,7 @@ Major development stages of the library are marked by tags and recently also hav
 
 ### Supported OpenFOAM Versions:
 
- * OpenFOAM (ORG) v5.x - 8
- * OpenFOAM (ESI) v1912-v2012
+ * OpenFOAM (ESI) v2406 (tested in CI on Ubuntu 24.04)
 
 ## Authors
 
@@ -46,7 +45,10 @@ When using this work please cite:
 1. Clone the directory with
     `git clone https://github.com/WENO-OF/WENOEXT.git`
 
-2. Execute `Allwmake` to build the library
+2. Install the [Eigen](https://eigen.tuxfamily.org) library (version 3.4 or newer),
+   e.g. on Ubuntu with `sudo apt install libeigen3-dev`
+
+3. Execute `Allwmake` to build the library
    The compilation of the library uses cmake instead of wmake files!
 
 ### Options
@@ -69,7 +71,6 @@ Several options can be set over CMake commands with,
 |Cmake Command |Options| Description |
 |:-----------------------|:---------|:----------------|
 |MARCH_NATIVE    |ON/OFF | Activates `march=native` flag. Default ON </br> Use this flag if you get an "illegal instruction error" during execution.|
-|USE_LAPACK        |ON/OFF| Use LAPACK library for matrix operations such as eigen values</br>If switched on, check with the [WENO-PerformanceTests](https://github.com/WENO-OF/WENO-PerformanceTests) if the performance improves or decreases.|
 |USE_FMA|ON/OFF|Use std::fma for WENO math functions. Default ON|
 |CMAKE_BUILD_TYPE|Release/Debug/None|When the debug option is selected the OpenFOAM FULLDEBUG flag is activated|
 
@@ -170,23 +171,18 @@ by executing `./runTest` in the test directory. Further instructions are found i
 
 ## Contineous Integration
 
-To check the code for different OpenFOAM implementations, e.g. OpenFOAM 8,
-OpenFOAM v1912, etc. the code is copied into different docker containers
-created with the Dockerfiles in `CI/`. In the docker container the code is compiled
+To check the code, it is copied into a docker container created with the 
+Dockerfiles in `CI/`. In the docker container the code is compiled
 and unit tests executed. 
 
-Executing the tests is controlled over the Makefile in the root directory. The
-different OpenFOAM versions can be tested with 
+Executing the tests is controlled over the Makefile in the root directory:
 
 ```
 # Just executing make runs all tests
 make
 
-# For OpenFOAM v5.x
-make runTestsOF5
-
-# For OpenFOAM 8
-make runTestsOF8
+# For OpenFOAM v2406
+make runTestsOFv2406
 ```
 
 This implementation allows to have the same testing on the local and remote branch.
@@ -194,12 +190,9 @@ This implementation allows to have the same testing on the local and remote bran
 
 ## License 
 
-This OpenFOAM library is under the GNU General Public License. This library contains the [Blaze](https://bitbucket.org/blaze-lib/blaze/src/master/) library licensed under the BSD license. 
-Redistribution and use of the Blaze source code with or without modification, are permitted provided that the following conditions are met:
-
-  * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-  * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-  * Neither the names of the **Blaze** development group nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+This OpenFOAM library is under the GNU General Public License. 
+The matrix operations use the header-only [Eigen](https://eigen.tuxfamily.org) library, 
+which is licensed under the Mozilla Public License 2.0 (MPL2) and is not distributed with this library.
 
 
 

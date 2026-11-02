@@ -103,7 +103,7 @@ void Foam::WENOBase::splitStencil
                     pts[tri[2]][0], pts[tri[2]][1], pts[tri[2]][2]
                 );
 
-                JacobiInvQ[faceI - exludeFace][i] = blaze::inv(J);
+                JacobiInvQ[faceI - exludeFace][i] = J.inverse();
             }
         }
         else
@@ -915,7 +915,7 @@ Foam::WENOBase::WENOBase
             forAll(LSmatrix_[cellI],stencilI)
             {
                 if (stencilsID_[cellI][stencilI][0] != int(Cell::deleted))
-                    PseudoInverseDimension[cellI] += blaze::size(LSmatrix_[cellI][stencilI]());
+                    PseudoInverseDimension[cellI] += LSmatrix_[cellI][stencilI]().size();
             }
         }
         

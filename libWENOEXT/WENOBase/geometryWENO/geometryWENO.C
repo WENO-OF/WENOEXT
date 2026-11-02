@@ -106,9 +106,9 @@ void Foam::geometryWENO::initIntegrals
     
     calculateInverseJacobi(J,JInvI);
 
-    // Use math functions WENO as blaze::det could be subject
-    // to fatal floating point cancellation: 
-    // see also: https://bitbucket.org/blaze-lib/blaze/issues/425/
+    // Use math functions WENO as a naive determinant calculation could be
+    // subject to fatal floating point cancellation:
+    // see also: https://pharr.org/matt/blog/2019/11/03/difference-of-floats
     refDetI = mathFunctionsWENO::det(JInvI);
     if (mag(refDetI) < SMALL)
     {
@@ -332,12 +332,9 @@ Foam::point Foam::geometryWENO::transformPoint
     const point& x0
 )
 {
-    blaze::StaticVector<scalar,3UL,blaze::columnVector> v;
-    v[0] = xP[0]-x0[0];
-    v[1] = xP[1]-x0[1];
-    v[2] = xP[2]-x0[2];
+    const Eigen::Vector3d v(xP[0]-x0[0], xP[1]-x0[1], xP[2]-x0[2]);
 
-    auto vT = Jinv * v;
+    const Eigen::Vector3d vT = Jinv * v;
 
     return point(vT[0],vT[1],vT[2]);
 }
@@ -596,12 +593,7 @@ Foam::geometryWENO::DynamicMatrix Foam::geometryWENO::getB
     const labelList& dim
 )
 {
-    DynamicMatrix B
-    (
-        nDvt,
-        nDvt,
-        scalar(0.0)
-    );
+    DynamicMatrix B = DynamicMatrix::Zero(nDvt,nDvt);
 
     // Get all necessary volume integrals
     volIntegralType intB;
@@ -715,7 +707,7 @@ void Foam::geometryWENO::surfIntTrans
     const fvMesh& mesh,
     const label polOrder,
     const List<volIntegralType>& volIntegralsList,
-    const blazeList& JInv,
+    const matrixList& JInv,
     const List<point>& refPoint,
     List<Pair<volIntegralType>>& intBasTrans,
     List<scalar>& refFacAr
@@ -926,17 +918,15 @@ Foam::geometryWENO::scalarSquareMatrix Foam::geometryWENO::jacobi
 
 Foam::scalar Foam::geometryWENO::cond(const scalarSquareMatrix& J)
 {
-    #ifdef USE_LAPACK
-    // Calcualte the eigenvalues of the Jacobi matrix 
-        auto sigma = eigen(J);
-    #else
-        auto sigma = mathFunctionsWENO::eigen(J); 
-    #endif
-    
-    if (min(abs(sigma)) < ROOTVSMALL)
+    // Calculate the eigenvalues of the Jacobi matrix
+    const Eigen::VectorXcd sigma = mathFunctionsWENO::eigen(J);
+
+    const scalar minSigma = sigma.cwiseAbs().minCoeff();
+
+    if (minSigma < ROOTVSMALL)
         return GREAT;
-    
-    return max(abs(sigma))/min(abs(sigma));
+
+    return sigma.cwiseAbs().maxCoeff()/minSigma;
 }
 
 
@@ -972,18 +962,8 @@ void Foam::geometryWENO::calculateInverseJacobi
     scalarSquareMatrix& JInvI
 )
 {
-    // Use Blaze functions if LAPACK is available
-    #ifdef USE_LAPACK 
-        blaze::StaticMatrix<scalar,3UL,3UL,blaze::columnMajor> temp = blaze::inv(J);
-       
-        // Use LU decomposition to improve the Jacobi Matrix
-        blaze::DynamicMatrix<double,blaze::columnMajor> L, U, P;
-        lu(temp,L,U,P);
-        JInvI = L*U;
-    #else
-        JInvI = mathFunctionsWENO::inv(J); 
-        mathFunctionsWENO::pivot(JInvI);
-    #endif
+    JInvI = mathFunctionsWENO::inv(J);
+    mathFunctionsWENO::pivot(JInvI);
 }
 
 // ************************************************************************* //

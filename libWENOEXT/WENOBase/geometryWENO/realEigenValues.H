@@ -52,8 +52,7 @@ namespace mathFunctionsWENO
 class realEigenValues 
 {
 
-    using complexVector = 
-        blaze::DynamicVector<blaze::complex<double>,blaze::columnVector>;
+    using complexVector = Eigen::VectorXcd;
 
     private:
     
@@ -110,10 +109,12 @@ class realEigenValues
         //- Return the condition of the matrix 
         inline scalar cond() 
         {
-            if (min(abs(sigma)) < ROOTVSMALL)
+            const scalar minSigma = sigma.cwiseAbs().minCoeff();
+
+            if (minSigma < ROOTVSMALL)
                 return GREAT;
-            
-            return max(abs(sigma))/min(abs(sigma));
+
+            return sigma.cwiseAbs().maxCoeff()/minSigma;
         }
 };
 
@@ -270,7 +271,7 @@ void Foam::mathFunctionsWENO::realEigenValues::hqr()
 					} 
                     else 
                     {
-						sigma[nn] = blaze::complex<double>(x+p,-z);
+						sigma[nn] = std::complex<double>(x+p,-z);
 						sigma[nn-1]=conj(sigma[nn]);
 					}
 					nn -= 2;
@@ -660,7 +661,7 @@ void Foam::mathFunctionsWENO::realEigenValues::sort()
 	int i;
 	for (int j=1; j<n; j++) 
     {
-		blaze::complex<double> x = sigma[j];
+		std::complex<double> x = sigma[j];
 		for (i=j-1; i>=0; i--) 
         {
 			if (real(sigma[i]) >= real(x)) 

@@ -128,9 +128,10 @@ void Foam::WENOCoeff<Type>::calcCoeff
                 WENOBase_.cellToProcMap()[cellI][stencilI];
 
             // Storage for bJ matrix needed in calcCoeff
-            // Note: resize also pre reserves the space by default, see blaze wiki
+            // Note: Eigen resize does not preserve values, hence set to zero
+            // as entries of deleted cells are not set
             const label nComp = pTraits<Type>::nComponents;
-            bJ_.resize(A.columns(),nComp);
+            bJ_.setZero(A.cols(),nComp);
 
             // Calculate degrees of freedom of stencil as a matrix vector product
             // First line is always constraint line
@@ -156,7 +157,7 @@ void Foam::WENOCoeff<Type>::calcCoeff
             }
             
             // calculate coefficients
-            coeffsList[coeffIndex] = A*bJ_;
+            coeffsList[coeffIndex].noalias() = A*bJ_;
             coeffIndex++;
         }
     }
@@ -187,13 +188,14 @@ void Foam::WENOCoeff<Type>::calcWeight
         
         // First multiply B with coefficients
         // See Eq. (6.37)  in [1]
-        auto sumB =  B*coeffs;
+        // Note: Evaluate the product explicitly, otherwise the lazy
+        // product expression would be evaluated for each column access
+        const coeffType sumB = B*coeffs;
         for (label compI=0; compI < nComp; compI++)
         {
             // Get reference to column
-            const auto colCoeff = column(coeffs,compI);
-            const auto colSumB = column(sumB,compI);
-            const scalar smoothInd = trans(colCoeff)*colSumB;
+            const auto colCoeff = coeffs.col(compI);
+            const scalar smoothInd = colCoeff.dot(sumB.col(compI));
             
             if (stencilI == 0)
             {

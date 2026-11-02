@@ -7,29 +7,13 @@ on:
     branches: [ master, development ]
 
 jobs:
-  build-OF1912:
-    name: OpenFOAM v1912
+  build-OF2406:
+    name: OpenFOAM v2406
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: OpenFOAMv1912
-      run: make runTestsOFv1912
-  
-  build-OF2006:
-    name: OpenFOAM v2006
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: OpenFOAMv2006
-      run: make runTestsOFv2006
-  
-  build-OF2012:
-    name: OpenFOAM v2012
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: OpenFOAMv2012
-      run: make runTestsOFv2012
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: OpenFOAMv2406
+      run: make runTestsOFv2406

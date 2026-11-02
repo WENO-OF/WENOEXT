@@ -43,11 +43,10 @@ Author
 #ifndef matrixDB_H
 #define matrixDB_H
 
+#include "geometryWENO.H"
 #include "linear.H"
 #include "Ostream.H"
-#include "blaze/Math.h"
 #include <map>
-#include "geometryWENO.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
@@ -66,7 +65,7 @@ Ostream& operator << (Ostream&, const matrixDB&);
 
 class matrixDB
 {
-    using DynamicMatrix = blaze::DynamicMatrix<double>;
+    using DynamicMatrix = geometryWENO::DynamicMatrix;
     using keyType = int32_t;
     
     using iterType = std::multimap<keyType, DynamicMatrix>::iterator;
@@ -151,8 +150,8 @@ class matrixDB
         //- Create a hash value of a matrix. 
         keyType hashMatrix(const scalarRectangularMatrix& A);
         
-        //- Convert OpenFOAM Matrix to Blaze dynamic matrix
-        DynamicMatrix convertToBlaze(const scalarRectangularMatrix& A);
+        //- Convert OpenFOAM Matrix to Eigen dynamic matrix
+        DynamicMatrix convertToEigen(const scalarRectangularMatrix& A);
 
 public:
 

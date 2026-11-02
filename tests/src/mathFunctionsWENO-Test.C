@@ -42,6 +42,23 @@ Author
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+// Compare complex eigen values with expected real values
+// Uses an absolute tolerance similar to the former relaxed Blaze comparison
+void checkEigenValues
+(
+    const Eigen::VectorXcd& eigVal,
+    const std::vector<double>& expected
+)
+{
+    REQUIRE(eigVal.size() == Eigen::Index(expected.size()));
+    for (Eigen::Index i = 0; i < eigVal.size(); i++)
+    {
+        REQUIRE(eigVal[i].real() == Catch::Approx(expected[i]).margin(1E-8));
+        REQUIRE(eigVal[i].imag() == Catch::Approx(0).margin(1E-8));
+    }
+}
+
+
 TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
 {
     SECTION("determinant of 3x3 matrix")
@@ -69,9 +86,7 @@ TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
                 {-3, 4, 6}
             };
 
-            blaze::DynamicVector<double,blaze::columnVector> eigVal{7,6,3};
-
-            REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
+            checkEigenValues(mathFunctionsWENO::eigen(A), {7,6,3});
         }
         
         {
@@ -84,9 +99,7 @@ TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
                 { 1, 0, 0.1}
             };
 
-            blaze::DynamicVector<double,blaze::columnVector> eigVal2{2,1.1,0};
-
-            REQUIRE(mathFunctionsWENO::eigen(B) == eigVal2);
+            checkEigenValues(mathFunctionsWENO::eigen(B), {2,1.1,0});
         }
         
         {
@@ -99,14 +112,15 @@ TEST_CASE("mathFunctionsWENO","[baseTest],[mathFunctions]")
                 { 0     ,  0     ,-3.46944695e-18}
             };
             
-            blaze::DynamicVector<double,blaze::columnVector> eigVal
-            {
-                1.70008e-14,
-                -3.46945e-18,
-                -0.000105802
-            };
-
-            REQUIRE(mathFunctionsWENO::eigen(A) == eigVal);
+            checkEigenValues
+            (
+                mathFunctionsWENO::eigen(A),
+                {
+                    1.70008e-14,
+                    -3.46945e-18,
+                    -0.000105802
+                }
+            );
         }
     }
 

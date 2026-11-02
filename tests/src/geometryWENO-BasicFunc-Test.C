@@ -72,9 +72,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
     {
         geometryWENO::scalarSquareMatrix J = geometryWENO::jacobi(pts,referenceFrame);
         
-        for (unsigned int i = 0; i<J.rows();i++)
+        for (Eigen::Index i = 0; i<J.rows();i++)
         {
-            for (unsigned int j = 0; j < J.columns(); j++)
+            for (Eigen::Index j = 0; j < J.cols(); j++)
             {
                 if (i==j)
                     REQUIRE(Catch::Approx(J(i,j)) == i+1);
@@ -97,9 +97,9 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
             pts[referenceFrame[3]][1], pts[referenceFrame[3]][2]
         );
         
-        for (unsigned int i = 0; i<J.rows();i++)
+        for (Eigen::Index i = 0; i<J.rows();i++)
         {
-            for (unsigned int j = 0; j < J.columns(); j++)
+            for (Eigen::Index j = 0; j < J.cols(); j++)
             {
                 if (i==j)
                     REQUIRE(Catch::Approx(J(i,j)) == i+1);
@@ -110,16 +110,16 @@ TEST_CASE("geometryWENO:: Jakobi Matrix","[baseTest]")
         
         WHEN("Determinante is positive")
         {
-            REQUIRE(det(J)>0);
+            REQUIRE(J.determinant()>0);
             
             THEN("Calculate Inverse of Jacobi")
             {
-                geometryWENO::scalarSquareMatrix JInv = blaze::inv(J);
+                geometryWENO::scalarSquareMatrix JInv = J.inverse();
                 WHEN("Inverse of Jacobi is correct")
                 {
-                    for (unsigned int i = 0; i < J.rows();i++)
+                    for (Eigen::Index i = 0; i < J.rows();i++)
                     {
-                        for (unsigned int j = 0; j < J.columns(); j++)
+                        for (Eigen::Index j = 0; j < J.cols(); j++)
                         {
                             if (i==j)
                                 REQUIRE(Catch::Approx(JInv(i,j)*J(i,j)) == 1.0);
@@ -304,7 +304,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         // for the inverse volume if the cell is rectengular
         // E.g.: V' = det(JInv) * V
         // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
-        REQUIRE(Catch::Approx(mag(blaze::det(JInvI)))==1E+05);        
+        REQUIRE(Catch::Approx(mag(JInvI.determinant()))==1E+05);        
     }
     
     
@@ -381,7 +381,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         // for the inverse volume if the cell is rectengular
         // E.g.: V' = det(JInv) * V
         // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
-        REQUIRE(Catch::Approx(mag(blaze::det(JInvI)))==1E+05);
+        REQUIRE(Catch::Approx(mag(JInvI.determinant()))==1E+05);
     }
     
     
@@ -472,7 +472,7 @@ TEST_CASE("geometryWENO::initIntegrals","[baseTest]")
         // for the inverse volume if the cell is rectengular
         // E.g.: V' = det(JInv) * V
         // Where V' = 1 and V = cell volume of a regular grid with orthogonal cells        
-        REQUIRE(Catch::Approx(mag(blaze::det(JInvI)))==1E+05);
+        REQUIRE(Catch::Approx(mag(JInvI.determinant()))==1E+05);
     }
     
 }

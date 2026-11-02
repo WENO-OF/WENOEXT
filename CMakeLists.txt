@@ -31,8 +31,7 @@
 # CMake is used instead of OpenFOAM standard wmake as it allows 
 # for some more flexibility between the different OpenFOAM distributions
 # without writing extensive bash scripts to do this 
-# Further, it integrates directly with Catch2 and the Blaze library if
-# needed
+# Further, it integrates directly with Catch2 and the Eigen library
 # ===========================================================================
 
 cmake_minimum_required (VERSION 3.10)
@@ -41,7 +40,6 @@ include(GNUInstallDirs)
 
 
 # Enforce C++ 14 standard
-# C++ 14 is required for blaze
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set minimum gnu compiler version
@@ -68,12 +66,6 @@ endif()
 # Default is ON
 
 option (MARCH_NATIVE "If enabled, uses -march=native" ON)
-
-# Blaze requires LAPACK for the calculation of SVD and the eigenvalues of 
-# a matrix.
-# If Blaze functions should be used it has to be switched on
-# Default: OFF
-option (USE_LAPACK "If enabled, uses LAPACK for matrix operations" OFF)
 
 # If AVX support is enabled set the FP_FAST_FMA flag to use
 # std::fma instead of (a*b) + c for the mathFunctionsWENO::det2() function 
@@ -222,8 +214,10 @@ add_definitions(-Dlinux64 -DWM_ARCH_OPTION=$ENV{WM_ARCH_OPTION} -DWM_DP -DWM_LAB
 #                           Add subdirectories
 #===============================================================================
 
+# Header only Eigen library for the matrix operations
+find_package(Eigen3 3.4 REQUIRED NO_MODULE)
+
 # Directory to build the library
-add_subdirectory(blaze-3.8)
 add_subdirectory(libWENOEXT)
 add_subdirectory(utilities)
 

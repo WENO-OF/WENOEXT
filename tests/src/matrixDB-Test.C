@@ -41,7 +41,6 @@ Author
 #include "matrixDB.H"
 #include "OFstream.H"
 #include "IFstream.H"
-#include "blaze/Math.h"
 
 #include "globalFoamArgs.H"
 
@@ -73,7 +72,7 @@ TEST_CASE("matrixDB Test Case","[2DMesh][singleCore]")
     };
     
     // function to check the sum 
-    auto compareMatrix = [](const scalarRectangularMatrix& A, const blaze::DynamicMatrix<double>& B) -> void
+    auto compareMatrix = [](const scalarRectangularMatrix& A, const geometryWENO::DynamicMatrix& B) -> void
     {
         for (int i = 0; i < A.m(); i++)
         {
