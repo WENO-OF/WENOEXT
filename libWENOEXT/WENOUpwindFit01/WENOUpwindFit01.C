@@ -31,6 +31,7 @@ Author
 #include "WENOUpwindFit01.H"
 #include "processorFvPatch.H"
 #include "cyclicFvPatch.H"
+#include "IOdictionary.H"
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
@@ -61,6 +62,33 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
 
     scalar argMax = 0.0;
     scalar argMin = 0.0;
+
+    // Cells within boundMargin of the upper bound get no correction (WENODict,
+    // default 0); read once per run
+    static scalar boundMargin = -1;
+    if (boundMargin < 0)
+    {
+        IOdictionary WENODict
+        (
+            IOobject
+            (
+                "WENODict",
+                mesh.time().system(),
+                mesh,
+                IOobject::READ_IF_PRESENT,
+                IOobject::NO_WRITE,
+                false
+            )
+        );
+
+        boundMargin = max(WENODict.lookupOrDefault<scalar>("boundMargin", 0.0), 0.0);
+
+        if (boundMargin > 0)
+        {
+            Info<< "WENOUpwindFit01: upwind within " << boundMargin
+                << " of the upper bound" << endl;
+        }
+    }
 
     // Largest and smallest value of the polynomial of each cell on its faces
     // on coupled patches; the loop over the cells below covers the internal
@@ -207,6 +235,15 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
                    /(minPci - component(vfI[cellI],cI)));
             }
             setComponent(theta[cellI],cI) = min(min(argMax, argMin), 1.0);
+
+            if
+            (
+                boundMargin > 0
+             && component(maxVfI,cI) - component(vfI[cellI],cI) < boundMargin
+            )
+            {
+                setComponent(theta[cellI],cI) = 0.0;
+            }
         }
     }
 
