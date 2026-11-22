@@ -80,6 +80,12 @@ Contributors/Copyright:
     #define FOAM_NEW_COUPLED_PATCHES
 #endif
 
+// OpenFOAM.org 9 removed the geometric faceCoupleInfo constructor and fvMesh::topoChanging():
+// the processor meshes are coupled through their processor patches by name.
+#if (defined(OF_FORK_ORG) && OF_FORK_VERSION >= 9)
+    #define FOAM_ORG_NAMED_COUPLES
+#endif
+
 
 
 #endif

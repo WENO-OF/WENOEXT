@@ -227,9 +227,11 @@ Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createGlobalMesh(const fvM
 
 Foam::autoPtr<Foam::fvMesh> Foam::WENO::globalfvMesh::createLocalMesh(const fvMesh& mesh)
 {
+    #ifndef FOAM_ORG_NAMED_COUPLES
     if (mesh.topoChanging())
         FatalErrorInFunction << "Mesh cannot change topology if used with WENO scheme"
                              << exit(FatalError);
+    #endif
     if (mesh.moving())
     {
         // If the mesh is moving it needs to be constructed from the same time field the 
