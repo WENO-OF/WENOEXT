@@ -62,12 +62,60 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
     scalar argMax = 0.0;
     scalar argMin = 0.0;
 
+    // Largest and smallest value of the polynomial of each cell on its faces
+    // on coupled patches; the loop over the cells below covers the internal
+    // faces only
+    Field<Type> maxCoupled(vfI);
+    Field<Type> minCoupled(vfI);
+
+    forAll(tsfP.boundaryField(), patchI)
+    {
+        if (mesh.boundary()[patchI].coupled())
+        {
+            const scalarField& pFaceFlux = faceFlux_.boundaryField()[patchI];
+            const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+            const fvsPatchField<Type>& pbtsfP = tsfP.boundaryField()[patchI];
+            const label startFace = mesh.boundary()[patchI].start();
+
+            forAll(pOwner, faceI)
+            {
+                const label own = pOwner[faceI];
+
+                // Polynomial of this cell at the face; for an outgoing flux
+                // it is the correction already stored on the face
+                Type pFace = vfI[own];
+                if (pFaceFlux[faceI] > 0)
+                {
+                    pFace += pbtsfP[faceI];
+                }
+                else
+                {
+                    pFace +=
+                        sumFlux
+                        (
+                            WENOBase_.dimList()[own],
+                            coeffsWeighted[own],
+                            WENOBase_.intBasTrans()[faceI + startFace][0]
+                        )/WENOBase_.refFacAr()[faceI + startFace];
+                }
+
+                for (label cI = 0; cI < nComp; cI++)
+                {
+                    setComponent(maxCoupled[own],cI) =
+                        max(component(maxCoupled[own],cI), component(pFace,cI));
+                    setComponent(minCoupled[own],cI) =
+                        min(component(minCoupled[own],cI), component(pFace,cI));
+                }
+            }
+        }
+    }
+
     for (label cellI = 0; cellI < mesh.nCells(); cellI++)
     {
         const cell& faces = mesh.cells()[cellI];
 
-        maxP = vfI[cellI];
-        minP = vfI[cellI];
+        maxP = maxCoupled[cellI];
+        minP = minCoupled[cellI];
 
         for (label cI = 0; cI < nComp; cI++)
         {
@@ -122,7 +170,7 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
                                 (
                                     WENOBase_.dimList()[cellI],
                                     coeffsWeighted[cellI],
-                                    WENOBase_.intBasTrans()[cellI][1]
+                                    WENOBase_.intBasTrans()[faces[fI]][1]
                                 )  /WENOBase_.refFacAr()[faces[fI]]
                             ,cI
                             );
@@ -180,6 +228,44 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
         }
     }
 
+    // Limiter of the cell on the other side of the processor faces
+    GeometricField<Type, fvsPatchField, surfaceMesh> thetaNbr
+    (
+        IOobject
+        (
+            "thetaNbr",
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE,
+            false
+        ),
+        mesh,
+        dimensioned<Type>("thetaNbr", dimless, pTraits<Type>::zero)
+    );
+
+    typename GeometricField<Type, fvsPatchField, surfaceMesh>::
+    #ifdef FOAM_NEW_GEOMFIELD_RULES
+        Boundary& bthetaNbr = thetaNbr.boundaryFieldRef();
+    #else
+        GeometricBoundaryField& bthetaNbr = thetaNbr.boundaryField();
+    #endif
+
+    forAll(bthetaNbr, patchI)
+    {
+        if (isA<processorFvPatch>(mesh.boundary()[patchI]))
+        {
+            const labelUList& pOwner = mesh.boundary()[patchI].faceCells();
+
+            forAll(pOwner, faceI)
+            {
+                bthetaNbr[patchI][faceI] = theta[pOwner[faceI]];
+            }
+        }
+    }
+
+    swapData(mesh, bthetaNbr);
+
     forAll(tsfP.boundaryField(), patchI)
     {
         const fvPatchList& patches = mesh.boundary();
@@ -187,12 +273,14 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
         fvsPatchField<Type>& pbtsfP =
         #ifdef FOAM_NEW_GEOMFIELD_RULES
             tsfP.boundaryFieldRef()[patchI];
-        #else 
+        #else
             tsfP.boundaryField()[patchI];
         #endif
-        
+
         if (isA<processorFvPatch>(patches[patchI]))
         {
+            const scalarField& pFaceFlux = faceFlux_.boundaryField()[patchI];
+
             const labelUList& pOwner =
                 mesh.boundary()[patchI].faceCells();
 
@@ -200,10 +288,17 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
             {
                 label own = pOwner[faceI];
 
+                // The correction on the face is the polynomial of the upwind
+                // cell: scale it with the limiter of that cell
+                const Type& thetaUp =
+                    pFaceFlux[faceI] > 0
+                  ? theta[own]
+                  : bthetaNbr[patchI][faceI];
+
                 for (label cI = 0; cI < nComp; cI++)
                 {
                     setComponent(pbtsfP[faceI],cI) =
-                            component(theta[own],cI)
+                            component(thetaUp,cI)
                           * component(pbtsfP[faceI],cI);
                 }
             }
