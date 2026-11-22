@@ -777,6 +777,7 @@ void Foam::geometryWENO::surfIntTrans
             }
 
             scalar area = 0;
+            scalar faceArea = 0;        // sum over the triangles of the face
 
             // Evaluate surface integral using Gaussian quadratures
             forAll(triFaces, i)
@@ -808,6 +809,7 @@ void Foam::geometryWENO::surfIntTrans
                 vector vn = (v1 - v0) ^ (v2 - v0);
 
                 area = 0.5*mag(vn);
+                faceArea += area;
 
                 /**************************************************************\
                 Note: The face is the same for the neighbour and the owner
@@ -863,7 +865,7 @@ void Foam::geometryWENO::surfIntTrans
                         {
                             intBasTrans[faces[faceI]][OwnNeighIndex](n,m,l) -=
                             (
-                                area*volIntegralsList[cellI](n,m,l)
+                                faceArea*volIntegralsList[cellI](n,m,l)
                             );
                         }
                     }
