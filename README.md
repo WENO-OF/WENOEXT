@@ -145,6 +145,18 @@ FoamFile
     checkCondition  false;// Check the condition of the pseudo inverse matrix
                           // If the central stencil has at least one zero entry
                           // the matrix is removed for all stencils of this cell.
+
+    stencilTies     include; // Cut of a stencil that falls inside a group of
+                          // equidistant cells (regular meshes):
+                          // include (default) keeps the whole group,
+                          // exclude drops it (smaller stencils; boundary
+                          // cells may lose their central stencil),
+                          // order cuts in the sorted order, which leans the
+                          // stencils towards low coordinates
+
+    boundMargin     0;    // WENOUpwindFit01 only: cells whose value lies
+                          // within boundMargin x upper bound of the upper
+                          // bound get no high-order correction. Default 0
 // ************************************************************************* /
 ```
 
@@ -154,6 +166,10 @@ The limited WENOUpwindFit scheme uses a cell limited approach known from other
 schemes such as linearUpwind. For scalar transport in the range 0 to 1 a 
 specialized scheme called *WENOUpwindFit01* is available. This schemes limits
 the value using the limiter of Zhang and Shu.
+An optional second argument sets the upper bound (default 1), e.g. for a
+species whose mass fraction cannot exceed its inflow value:
+
+    div(phi,Yi) 	Gauss WENOUpwindFit01 2 0.233;
 
 
 

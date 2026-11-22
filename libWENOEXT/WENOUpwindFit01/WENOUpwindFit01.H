@@ -80,6 +80,31 @@ class WENOUpwindFit01
         //- Reference to WENOBase
         const WENOBase& WENOBase_;
 
+        //- Upper bound of the field, optional second argument of the
+        //  scheme (default 1). Declared after polOrder_ and the WENO data:
+        //  it is read from the stream after the polynomial order
+        const scalar upperBound_;
+
+        //- Read the optional upper bound
+        static scalar readUpperBound(Istream& is)
+        {
+            if (is.good() && !is.eof())
+            {
+                token t(is);
+
+                if (t.isNumber())
+                {
+                    return t.number();
+                }
+                else if (t.good())
+                {
+                    is.putBack(t);
+                }
+            }
+
+            return 1;
+        }
+
 
     // Private Member Functions
 
@@ -162,7 +187,8 @@ public:
             faceFlux_(zeroFlux()),
             polOrder_(polOrder),
             WENOCoeff_(mesh,polOrder_),
-            WENOBase_(WENOCoeff_.WENOBaseRef())
+            WENOBase_(WENOCoeff_.WENOBaseRef()),
+            upperBound_(1)
         {}
 
         //- Construct from mesh and Istream
@@ -182,7 +208,8 @@ public:
             ) ,
             polOrder_(readScalar(is)),
             WENOCoeff_(mesh,polOrder_),
-            WENOBase_(WENOCoeff_.WENOBaseRef())
+            WENOBase_(WENOCoeff_.WENOBaseRef()),
+            upperBound_(readUpperBound(is))
         {}
 
         //- Construct from mesh, faceFlux and Istream
@@ -197,7 +224,8 @@ public:
             faceFlux_(faceFlux),
             polOrder_(readScalar(is)),
             WENOCoeff_(mesh,polOrder_),
-            WENOBase_(WENOCoeff_.WENOBaseRef())
+            WENOBase_(WENOCoeff_.WENOBaseRef()),
+            upperBound_(readUpperBound(is))
         {}
 
 

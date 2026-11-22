@@ -112,6 +112,40 @@ void Foam::WENOBase::splitStencil
         }
     }
 
+    // Distance of the cells of the big central stencil in the reference
+    // space, as used by sortStencil, and the distances per stencil
+    scalarList dist(stencilsGlobalID_[localCellI][0].size(), 0.0);
+    {
+        const point transCenterI =
+            Foam::geometryWENO::transformPoint
+            (
+                JInv_[localCellI],
+                globalMesh.C()[globalCellI],
+                refPoint_[localCellI]
+            );
+
+        forAll(dist, cellJ)
+        {
+            dist[cellJ] =
+                mag
+                (
+                    Foam::geometryWENO::transformPoint
+                    (
+                        JInv_[localCellI],
+                        globalMesh.C()[stencilsGlobalID_[localCellI][0][cellJ]],
+                        refPoint_[localCellI]
+                    )
+                  - transCenterI
+                );
+        }
+    }
+
+    List<DynamicList<scalar>> sectorDist(stencilsID_[localCellI].size());
+    forAll(sectorDist, stencilI)
+    {
+        sectorDist[stencilI].append(0.0);       // the cell itself
+    }
+
     // Distribute cells from big central stencil to the appropriate sector
     for (label cellJ = 1; cellJ <stencilsID_[localCellI][0].size(); cellJ++)
     {
@@ -121,7 +155,15 @@ void Foam::WENOBase::splitStencil
 
         while (attached == false)
         {
-            if (stencilsID_[localCellI][actualFace + 1].size() < extendRatio*nDvt_)
+            if
+            (
+                stencilsID_[localCellI][actualFace + 1].size() < extendRatio*nDvt_
+             || (
+                    stencilTies_ != stencilTies::order
+                 && dist[cellJ] - sectorDist[actualFace + 1].last()
+                 <= 1e-6*(1 + dist[cellJ])
+                )
+            )
             {
                 forAll(JacobiInvQ[actualFace], triangleI)
                 {
@@ -158,6 +200,8 @@ void Foam::WENOBase::splitStencil
                             cellToProcMap_[localCellI][0][cellJ]
                         );
 
+                        sectorDist[actualFace + 1].append(dist[cellJ]);
+
                         attached = true;
                         break;
                     }
@@ -183,9 +227,14 @@ void Foam::WENOBase::splitStencil
     {
         if (stencilsID_[localCellI][stencilI].size() >= necSize)
         {
-            stencilsID_[localCellI][stencilI].resize(necSize);
-            stencilsGlobalID_[localCellI][stencilI].resize(necSize);
-            cellToProcMap_[localCellI][stencilI].resize(necSize);
+            const label size =
+                stencilI == 0
+              ? cutSize(dist, necSize)
+              : cutSize(sectorDist[stencilI], necSize);
+
+            stencilsID_[localCellI][stencilI].resize(size);
+            stencilsGlobalID_[localCellI][stencilI].resize(size);
+            cellToProcMap_[localCellI][stencilI].resize(size);
         }
         else
         {
@@ -193,6 +242,51 @@ void Foam::WENOBase::splitStencil
             nStencilsI--;
         }
     }
+}
+
+
+Foam::label Foam::WENOBase::cutSize
+(
+    const UList<scalar>& dist,
+    const label necSize
+) const
+{
+    if (stencilTies_ == stencilTies::order || dist.size() <= necSize)
+    {
+        return min(necSize, dist.size());
+    }
+
+    // First cell beyond the nominal cut and the tolerance for "equidistant"
+    const scalar dOut = dist[necSize];
+    const scalar tol = 1e-6*(1 + dOut);
+
+    if (dOut - dist[necSize - 1] > tol)
+    {
+        return necSize;         // the cut does not split a group
+    }
+
+    if (stencilTies_ == stencilTies::exclude)
+    {
+        label size = necSize;
+        while (size > 1 && dOut - dist[size - 1] <= tol)
+        {
+            size--;
+        }
+
+        // Keep at least 1.5 cells per degree of freedom
+        if (size - 1 >= 1.5*nDvt_)
+        {
+            return size;
+        }
+    }
+
+    label size = necSize;
+    while (size < dist.size() && dist[size] - dOut <= tol)
+    {
+        size++;
+    }
+
+    return size;
 }
 
 
@@ -718,7 +812,7 @@ Foam::WENOBase::WENOBase
             IOobject
             (
                 "WENODict",
-                localMesh.time().caseSystem(),
+                localMesh.time().system(),
                 localMesh,
                 IOobject::READ_IF_PRESENT,
                 IOobject::NO_WRITE
@@ -733,6 +827,26 @@ Foam::WENOBase::WENOBase
         maxCondition_ = WENODict.lookupOrAddDefault<scalar>("maxCondition",1e-05);
         
         checkCondition_ = WENODict.lookupOrAddDefault<Switch>("checkCondition",true);
+
+        const word ties(WENODict.lookupOrAddDefault<word>("stencilTies","include"));
+        if (ties == "order")
+        {
+            stencilTies_ = stencilTies::order;
+        }
+        else if (ties == "include")
+        {
+            stencilTies_ = stencilTies::include;
+        }
+        else if (ties == "exclude")
+        {
+            stencilTies_ = stencilTies::exclude;
+        }
+        else
+        {
+            FatalErrorInFunction
+                << "stencilTies " << ties << ": order, include or exclude"
+                << exit(FatalError);
+        }
         
         // ------------- Initialize Lists --------------------------------------
 

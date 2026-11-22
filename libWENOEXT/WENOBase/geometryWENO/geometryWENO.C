@@ -777,6 +777,7 @@ void Foam::geometryWENO::surfIntTrans
             }
 
             scalar area = 0;
+            scalar faceArea = 0;        // sum over the triangles of the face
 
             // Evaluate surface integral using Gaussian quadratures
             forAll(triFaces, i)
@@ -808,14 +809,13 @@ void Foam::geometryWENO::surfIntTrans
                 vector vn = (v1 - v0) ^ (v2 - v0);
 
                 area = 0.5*mag(vn);
+                faceArea += area;
 
                 /**************************************************************\
                 Note: The face is the same for the neighbour and the owner
                       Therefore integration is the same and looping over all
                       owner faces will include all faces.
                 \**************************************************************/
-                if (OwnNeighIndex == 0)                
-                    refFacAr[faces[faceI]] += area;
 
                 if (sign(vn & (v0 - refPointTrans)) < 0.0)
                 {
@@ -852,6 +852,8 @@ void Foam::geometryWENO::surfIntTrans
                 }
             }
 
+            refFacAr[faces[faceI]] = 1;
+
             // Subtract volume integrals
             for (label n = 0; n <= polOrder; n++)
             {
@@ -863,8 +865,13 @@ void Foam::geometryWENO::surfIntTrans
                         {
                             intBasTrans[faces[faceI]][OwnNeighIndex](n,m,l) -=
                             (
-                                area*volIntegralsList[cellI](n,m,l)
+                                faceArea*volIntegralsList[cellI](n,m,l)
                             );
+
+                            // Face average in the reference space of this cell. The owner and the neighbour
+                            // map the face with their own Jacobians, so each side has its own face area
+                            // (they differ at a 2:1 refinement interface); refFacAr is therefore 1.
+                            intBasTrans[faces[faceI]][OwnNeighIndex](n,m,l) /= faceArea;
                         }
                     }
                 }

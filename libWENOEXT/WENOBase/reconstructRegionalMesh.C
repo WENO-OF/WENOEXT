@@ -102,6 +102,10 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
             )
         );
 
+    #ifdef FOAM_ORG_NAMED_COUPLES
+    DynamicList<label> mergedProcs(processorList.size());     // processors already in masterMesh
+    #endif
+
     for (label procI : processorList)
     {        
         // Mesh cannot be constructed with boundaries as this calls the 
@@ -160,6 +164,50 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
         meshToAdd.addPatches(patches,false);
 
 
+        #ifdef FOAM_ORG_NAMED_COUPLES
+        // Coupled faces: the processor patches between this mesh and the meshes merged so far.
+        // Both sides store the faces of such a pair in the same order.
+        DynamicList<label> masterFaces;
+        DynamicList<label> addFaces;
+        {
+            const polyBoundaryMesh& masterPatches = masterMesh->boundaryMesh();
+            const polyBoundaryMesh& addPatches = meshToAdd.boundaryMesh();
+            forAll(mergedProcs, i)
+            {
+                const label masterID = masterPatches.findPatchID
+                (
+                    "procBoundary" + name(mergedProcs[i]) + "to" + name(procI)
+                );
+                const label addID = addPatches.findPatchID
+                (
+                    "procBoundary" + name(procI) + "to" + name(mergedProcs[i])
+                );
+                if (masterID == -1 || addID == -1)
+                {
+                    continue;
+                }
+                const polyPatch& masterPp = masterPatches[masterID];
+                const polyPatch& addPp = addPatches[addID];
+                if (masterPp.size() != addPp.size())
+                {
+                    FatalErrorInFunction
+                        << "Processor patches " << masterPp.name() << " and " << addPp.name()
+                        << " have " << masterPp.size() << " and " << addPp.size() << " faces"
+                        << exit(FatalError);
+                }
+                forAll(masterPp, k)
+                {
+                    masterFaces.append(masterPp.start() + k);
+                    addFaces.append(addPp.start() + k);
+                }
+            }
+        }
+        mergedProcs.append(procI);
+        autoPtr<faceCoupleInfo> couples
+        (
+            new faceCoupleInfo(*masterMesh, masterFaces, meshToAdd, addFaces)
+        );
+        #else
         // Find geometrically shared points/faces.
         autoPtr<faceCoupleInfo> couples
         (
@@ -171,6 +219,7 @@ Foam::autoPtr<Foam::fvMesh> Foam::reconstructRegionalMesh::reconstruct
                 true            // Matching faces identical
             )
         );
+        #endif
 
         // Add elements to mesh
         autoPtr<mapAddedPolyMesh> map = add

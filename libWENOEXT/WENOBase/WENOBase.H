@@ -171,6 +171,20 @@ class WENOBase
         //  one zero entry. (Default is true)
         Switch checkCondition_;
 
+        //- Treatment of a group of equidistant cells at the cut of a stencil
+        //  (WENODict entry stencilTies). order: cut at the fixed size in the
+        //  sorted order, which keeps the cells with the lowest coordinates
+        //  and makes the stencils lean to one side on regular meshes;
+        //  include: keep the whole group (default); exclude: drop the whole
+        //  group (at least 1.5 cells per degree of freedom are kept; the
+        //  stencils of boundary cells can become too small)
+        enum class stencilTies { order, include, exclude };
+        stencilTies stencilTies_ = stencilTies::include;
+
+        //- Number of cells to keep of a stencil with the given distances
+        //  of its cells (nearest first) and the nominal size necSize
+        label cutSize(const UList<scalar>& dist, const label necSize) const;
+
     //- Private member functions
 
         //- Split big central stencil into sectorial stencils
