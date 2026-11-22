@@ -54,7 +54,7 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
     // Evaluate the limiters
     Field<Type> theta(mesh.nCells(),pTraits<Type>::zero);
 
-    const Type maxVfI = pTraits<Type>::one;
+    const Type maxVfI = upperBound_*pTraits<Type>::one;
     const Type minVfI = pTraits<Type>::zero;
 
     Type maxP = pTraits<Type>::zero;
@@ -63,8 +63,8 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
     scalar argMax = 0.0;
     scalar argMin = 0.0;
 
-    // Cells within boundMargin of the upper bound get no correction (WENODict,
-    // default 0); read once per run
+    // Cells within boundMargin times the upper bound of that bound get no
+    // correction (WENODict, default 0); read once per run
     static scalar boundMargin = -1;
     if (boundMargin < 0)
     {
@@ -86,7 +86,7 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
         if (boundMargin > 0)
         {
             Info<< "WENOUpwindFit01: upwind within " << boundMargin
-                << " of the upper bound" << endl;
+                << " times the upper bound of that bound" << endl;
         }
     }
 
@@ -239,7 +239,8 @@ void Foam::WENOUpwindFit01<Type>::calcLimiter
             if
             (
                 boundMargin > 0
-             && component(maxVfI,cI) - component(vfI[cellI],cI) < boundMargin
+             && component(maxVfI,cI) - component(vfI[cellI],cI)
+              < boundMargin*upperBound_
             )
             {
                 setComponent(theta[cellI],cI) = 0.0;
