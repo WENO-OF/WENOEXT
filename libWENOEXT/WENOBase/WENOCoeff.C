@@ -76,7 +76,7 @@ Foam::WENOCoeff<Type>::WENOCoeff
             IOobject
             (
                 "WENODict",
-                mesh.time().caseSystem(),
+                mesh.time().system(),
                 mesh,
                 IOobject::READ_IF_PRESENT,
                 IOobject::NO_WRITE

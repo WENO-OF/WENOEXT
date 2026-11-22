@@ -812,7 +812,7 @@ Foam::WENOBase::WENOBase
             IOobject
             (
                 "WENODict",
-                localMesh.time().caseSystem(),
+                localMesh.time().system(),
                 localMesh,
                 IOobject::READ_IF_PRESENT,
                 IOobject::NO_WRITE
