@@ -816,8 +816,6 @@ void Foam::geometryWENO::surfIntTrans
                       Therefore integration is the same and looping over all
                       owner faces will include all faces.
                 \**************************************************************/
-                if (OwnNeighIndex == 0)                
-                    refFacAr[faces[faceI]] += area;
 
                 if (sign(vn & (v0 - refPointTrans)) < 0.0)
                 {
@@ -854,6 +852,8 @@ void Foam::geometryWENO::surfIntTrans
                 }
             }
 
+            refFacAr[faces[faceI]] = 1;
+
             // Subtract volume integrals
             for (label n = 0; n <= polOrder; n++)
             {
@@ -867,6 +867,11 @@ void Foam::geometryWENO::surfIntTrans
                             (
                                 faceArea*volIntegralsList[cellI](n,m,l)
                             );
+
+                            // Face average in the reference space of this cell. The owner and the neighbour
+                            // map the face with their own Jacobians, so each side has its own face area
+                            // (they differ at a 2:1 refinement interface); refFacAr is therefore 1.
+                            intBasTrans[faces[faceI]][OwnNeighIndex](n,m,l) /= faceArea;
                         }
                     }
                 }
